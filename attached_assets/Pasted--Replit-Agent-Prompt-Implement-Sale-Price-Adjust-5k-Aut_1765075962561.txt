@@ -1,0 +1,162 @@
+# Replit Agent Prompt — Implement Sale Price Adjust (+/- 5k) + Auto Discount Expense
+
+You are a multi-agent team working in a TypeScript monorepo: Node.js (Fastify) backend + React TypeScript frontend + PostgreSQL + Prisma. Work fast and efficiently: minimize chatter, avoid long explanations, and do not waste tokens. Prefer small, surgical diffs. Always inspect the existing codebase first and avoid duplicating work already done in recent commits.
+
+## Goal
+On the core Sales/Transaction page (Quick Log / Sales page):
+1) Show the default **applied price** (derived from the active PriceRule for the selected Location + transaction date).
+2) Provide **+ / - buttons** to adjust applied price in steps of **IDR 5,000**.
+3) If applied price is reduced below base price (e.g., 280,000 → 270,000), automatically create or update an **Expense** record under category/type **DISCOUNT** for the difference (10,000) linked to the **plate/truck** and the **sale trip**.
+4) Ensure discount expense is **idempotent** (no duplicates when editing / resaving).
+5) Monthly dashboard should separate:
+   - Gross Revenue = sum(basePrice)
+   - Discounts = sum(discount expenses)
+   - Net Revenue = Gross - Discounts (should equal sum(appliedPrice))
+   - Operational Expenses (exclude DISCOUNT type)
+
+## Non-negotiable constraints
+- Store money as integer (IDR) in the database.
+- The discount "expense" MUST NOT cause net revenue to be reduced twice. Therefore:
+  - SaleTrip stores BOTH `basePrice` and `appliedPrice`.
+  - Discount is reported separately via ExpenseCategory.type = DISCOUNT.
+- Autocomplete plate input must continue working as before.
+- Location and transaction date defaults: Location default + Date = today.
+- Step size: 5,000. Floor at 0 (never negative). No decimals.
+
+## Multi-agent execution (use sub-agents)
+Split work into sub-agents and run them in parallel where possible:
+- **Coordinator/Planner Agent**: quick repo scan, identify existing modules/routes/components/schema, then assign tasks and keep changes consistent.
+- **DB/Prisma Agent**: schema + migration + seed updates for DISCOUNT category/type and linking fields.
+- **Backend/API Agent**: domain service + routes to create/update SaleTrip with basePrice/appliedPrice and upsert discount expense.
+- **Frontend/UI Agent**: sales page UI changes (+/- stepper, applied price display, discount indicator) and API integration.
+- **QA/Docs Agent**: quick sanity tests, update docs, and ensure no duplicates / regressions.
+
+## Step 0 — Repo reconnaissance (Coordinator)
+- Locate existing modules: locations, pricing rules, sales/trips, expenses, categories, dashboard/reporting.
+- Identify existing DB models and route patterns.
+- Identify sales page component and expense input page. Confirm where autocomplete is implemented.
+- Identify existing “category” concept. If it exists but has no `type`, add minimal extension.
+
+Deliverable: One short internal plan + pointers to exact files to change (no long prose).
+
+## Data model requirements (DB/Prisma Agent)
+### If not already present, ensure these fields/entities exist (adapt to current schema naming):
+- `SaleTrip` (or equivalent):
+  - `id`
+  - `locationId`
+  - `transDate` (date of the trip)
+  - `plateNumber` OR `truckId`
+  - `basePrice` INT (snapshot from active price rule)
+  - `appliedPrice` INT (editable, default = basePrice)
+  - `createdAt`, `createdBy` as existing
+- `Expense`:
+  - `id`
+  - `locationId`
+  - `expenseDate`
+  - `amount` INT
+  - `categoryId`
+  - `note` nullable
+  - `relatedPlateNumber` nullable (or `truckId`)
+  - `saleTripId` nullable (NEW: link discount expense to a specific sale trip)
+- `ExpenseCategory`:
+  - `id`
+  - `name`
+  - `type` enum/string with values at least: `OPERATIONAL`, `DEBT`, `LOAN`, `DISCOUNT`
+  - `isActive`
+
+### Seed/Migration rules
+- Create/ensure an ExpenseCategory with:
+  - `name = "Discount"` (or "Diskon")
+  - `type = DISCOUNT`
+  - active = true
+- If categories are per-location, create it for each existing location, otherwise global is OK.
+
+## Backend behavior (Backend/API Agent)
+### Price resolution
+When creating SaleTrip:
+- Resolve active PriceRule for `(locationId, transDate)` → basePrice (fallback to 280000 if no rule exists, but log/warn)
+- appliedPrice defaults to basePrice unless explicitly provided by client.
+
+### Auto discount expense (idempotent upsert)
+Create a domain function, e.g.:
+- `syncDiscountExpenseForSaleTrip(saleTripId)`
+Logic:
+- Load SaleTrip + locationId + transDate + plateNumber + basePrice + appliedPrice
+- `discount = max(0, basePrice - appliedPrice)`
+- Find existing Expense where `saleTripId = ...` AND category.type = DISCOUNT
+  - If `discount > 0`: upsert Expense with `amount = discount`, `expenseDate = transDate`, `locationId`, `relatedPlateNumber = plateNumber`, `note = "Auto discount for SaleTrip <id>"`
+  - If `discount == 0`: delete that Expense if it exists (or set amount=0 if deletes are undesired)
+- Ensure no duplicates: unique constraint recommended:
+  - `@@unique([saleTripId, categoryId])` OR enforce via query+transaction
+
+### Routes
+- POST `/sale-trips` (or existing endpoint):
+  - input: `locationId`, `transDate`, `plateNumber`, optional `appliedPrice`
+  - output: created SaleTrip including basePrice/appliedPrice and computed discount
+- PATCH `/sale-trips/:id`:
+  - allow updating `appliedPrice` (and plateNumber if needed)
+  - after update, call `syncDiscountExpenseForSaleTrip`
+- GET `/sale-trips` with filters for date range + location
+
+### Reporting
+Update monthly dashboard service/query to return:
+- grossRevenue = sum(basePrice)
+- discountTotal = sum(expenses where category.type=DISCOUNT)
+- netRevenue = grossRevenue - discountTotal
+- operationalExpenses = sum(expenses where category.type != DISCOUNT) (and optionally exclude DEBT/LOAN depending on existing rules)
+- profit = netRevenue - operationalExpenses (align with the chosen definition)
+
+## Frontend UI (Frontend/UI Agent)
+### Sales/Quick Log page requirements
+- Keep default `transDate = today` and default selected location.
+- Show current price panel:
+  - Label: "Price"
+  - Show **appliedPrice** prominently
+  - Show basePrice smaller (or show “Base: 280,000”)
+  - Buttons:
+    - `- 5k` decreases appliedPrice by 5000
+    - `+ 5k` increases appliedPrice by 5000
+  - Optional: allow keyboard shortcuts `-` and `+`
+  - Never allow appliedPrice < 0
+- When user submits plate (Enter/click):
+  - Create SaleTrip using API with provided appliedPrice
+  - On success, reset appliedPrice back to basePrice (recommended for speed input)
+- In the “Today’s log list”, show for each entry:
+  - plate
+  - basePrice, appliedPrice
+  - discount badge if (base - applied) > 0
+- If user edits an existing trip’s appliedPrice in the list (optional but ideal):
+  - call PATCH; UI updates and discount badge updates
+
+### Expenses page
+- Ensure discount appears in expenses list and category breakdown (type=DISCOUNT).
+- When filtering by plateNumber, discount expense should show if relatedPlateNumber matches.
+
+### Autocomplete
+- Keep existing autocomplete for plate input.
+- If plate does not exist, still allow submission and create minimal truck record if current backend does that; otherwise, keep saleTrip storing plateNumber directly.
+
+## QA / Verification (QA/Docs Agent)
+Add minimal verification steps:
+- Create trip at basePrice (280k) → no discount expense
+- Decrease to 270k → discount expense of 10k created (exactly one)
+- Change appliedPrice from 270k → 275k → discount expense updates to 5k (no duplicates)
+- Set back to 280k → discount expense removed
+- Monthly dashboard:
+  - grossRevenue unaffected by discounts
+  - discountTotal equals sum of discount expenses
+  - netRevenue equals sum(appliedPrice) for the month
+- Update README/docs (short) explaining:
+  - basePrice vs appliedPrice
+  - discounts are tracked as DISCOUNT type expenses linked to SaleTrip
+
+## Output requirements
+- Make commits in logical chunks if repo uses commits; otherwise produce clean diffs.
+- Update any existing `features_checklist.md` / docs if present.
+- Keep responses short. Prefer:
+  - file list changed
+  - what’s implemented
+  - how to run migrations + dev server
+  - a tiny test checklist
+
+Now execute with sub-agents and implement this end-to-end.
