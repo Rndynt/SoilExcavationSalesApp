@@ -57,12 +57,12 @@ export default function Sales() {
   const isDiscounted = discount > 0;
 
   return (
-    <div className="grid lg:grid-cols-12 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       
       {/* LEFT COLUMN: INPUT FORM */}
-      <div className="lg:col-span-5 space-y-6">
+      <div className="col-span-1 lg:col-span-5 space-y-6">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-slate-900">Quick Log</h2>
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">Quick Log</h2>
           <p className="text-slate-500 mt-1">Record a new trip transaction.</p>
         </div>
 
@@ -72,7 +72,7 @@ export default function Sales() {
             <form onSubmit={handleSubmit} className="space-y-6">
               
               {/* Top Row: Date & Location */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Date</Label>
                   <div className="relative">
@@ -132,13 +132,13 @@ export default function Sales() {
                       variant="outline" 
                       size="icon" 
                       onClick={() => handleAdjustPrice(-STEP)}
-                      className="h-12 w-12 rounded-full border-slate-300 hover:border-amber-500 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                      className="h-12 w-12 shrink-0 rounded-full border-slate-300 hover:border-amber-500 hover:text-amber-600 hover:bg-amber-50 transition-colors"
                     >
                       <Minus className="h-5 w-5" />
                     </Button>
 
-                    <div className="text-center">
-                      <div className="text-3xl font-bold font-mono tracking-tight text-slate-900">
+                    <div className="text-center px-2">
+                      <div className="text-2xl md:text-3xl font-bold font-mono tracking-tight text-slate-900">
                         {new Intl.NumberFormat('id-ID').format(appliedPrice)}
                       </div>
                       <div className="h-6 flex items-center justify-center gap-2 mt-1">
@@ -159,7 +159,7 @@ export default function Sales() {
                       variant="outline" 
                       size="icon" 
                       onClick={() => handleAdjustPrice(STEP)}
-                      className="h-12 w-12 rounded-full border-slate-300 hover:border-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                      className="h-12 w-12 shrink-0 rounded-full border-slate-300 hover:border-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
                     >
                       <Plus className="h-5 w-5" />
                     </Button>
@@ -185,7 +185,7 @@ export default function Sales() {
       </div>
 
       {/* RIGHT COLUMN: RECENT LOGS */}
-      <div className="lg:col-span-7 space-y-6">
+      <div className="col-span-1 lg:col-span-7 space-y-6">
         <div>
           <h2 className="text-xl font-bold tracking-tight text-slate-900">Today's Logs</h2>
           <p className="text-slate-500 mt-1 text-sm">Most recent transactions recorded.</p>
