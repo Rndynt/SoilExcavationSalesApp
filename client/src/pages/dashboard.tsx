@@ -1,27 +1,35 @@
 import { useStore } from "@/lib/store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, TrendingDown, TrendingUp, Wallet } from "lucide-react";
+import { DollarSign, TrendingDown, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function Dashboard() {
-  const { trips, expenses } = useStore();
+  const { trips, expenses, categories } = useStore();
 
   const grossRevenue = trips.reduce((sum, t) => sum + t.basePrice, 0);
   
   const discountExpenses = expenses.filter(e => {
-    const category = useStore.getState().categories.find(c => c.id === e.categoryId);
+    const category = categories.find(c => c.id === e.categoryId);
     return category?.type === 'DISCOUNT';
   });
   const totalDiscounts = discountExpenses.reduce((sum, e) => sum + e.amount, 0);
 
   const operationalExpenses = expenses.filter(e => {
-    const category = useStore.getState().categories.find(c => c.id === e.categoryId);
-    return category?.type !== 'DISCOUNT';
+    const category = categories.find(c => c.id === e.categoryId);
+    return category?.type === 'OPERATIONAL';
   });
   const totalOpsExpenses = operationalExpenses.reduce((sum, e) => sum + e.amount, 0);
 
   // Net Revenue = Gross - Discounts (should equal sum(appliedPrice))
   const netRevenue = grossRevenue - totalDiscounts;
   const profit = netRevenue - totalOpsExpenses;
+
+  // Debt/Loan Tracking
+  const debtExpenses = expenses.filter(e => {
+    const category = categories.find(c => c.id === e.categoryId);
+    return category?.type === 'DEBT' && e.status === 'UNPAID';
+  });
+  const totalUnpaidDebt = debtExpenses.reduce((sum, e) => sum + e.amount, 0);
 
   // Formatter
   const fmtMoney = (n: number) => 
@@ -42,7 +50,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-slate-900 font-mono">{fmtMoney(grossRevenue)}</div>
-            <p className="text-xs text-slate-500 mt-1">Sum of Base Prices</p>
+            <p className="text-xs text-slate-500 mt-1">Total Base Price Value</p>
           </CardContent>
         </Card>
 
@@ -64,20 +72,59 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-emerald-700 font-mono">{fmtMoney(netRevenue)}</div>
-            <p className="text-xs text-emerald-600/80 mt-1">Gross - Discounts</p>
+            <p className="text-xs text-emerald-600/80 mt-1">Realized Income</p>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-slate-500 shadow-sm hover:shadow-md transition-shadow">
+        <Card className="border-l-4 border-l-slate-800 shadow-sm hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-slate-500">Net Profit</CardTitle>
-            <TrendingUp className="h-4 w-4 text-slate-500" />
+            {profit >= 0 ? <TrendingUp className="h-4 w-4 text-emerald-500" /> : <TrendingDown className="h-4 w-4 text-red-500" />}
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-slate-900 font-mono">{fmtMoney(profit)}</div>
-            <p className="text-xs text-slate-500 mt-1">After Ops Expenses</p>
+            <div className={cn("text-2xl font-bold font-mono", profit >= 0 ? "text-slate-900" : "text-red-600")}>
+               {fmtMoney(profit)}
+            </div>
+            <p className="text-xs text-slate-500 mt-1">Revenue - Operational Exp.</p>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Secondary Metrics */}
+      <div className="grid gap-6 md:grid-cols-2">
+         <Card className="shadow-sm">
+           <CardHeader>
+             <CardTitle>Operational Expenses</CardTitle>
+           </CardHeader>
+           <CardContent>
+             <div className="flex items-center justify-between">
+               <div>
+                  <div className="text-3xl font-bold font-mono text-slate-900">{fmtMoney(totalOpsExpenses)}</div>
+                  <p className="text-sm text-slate-500 mt-1">Total spending this period</p>
+               </div>
+               <div className="p-3 bg-red-50 rounded-full">
+                 <ArrowUpRight className="w-6 h-6 text-red-500" />
+               </div>
+             </div>
+           </CardContent>
+         </Card>
+
+         <Card className="shadow-sm">
+           <CardHeader>
+             <CardTitle>Outstanding Driver Debt</CardTitle>
+           </CardHeader>
+           <CardContent>
+             <div className="flex items-center justify-between">
+               <div>
+                  <div className="text-3xl font-bold font-mono text-slate-900">{fmtMoney(totalUnpaidDebt)}</div>
+                  <p className="text-sm text-slate-500 mt-1">Unpaid loans to drivers</p>
+               </div>
+               <div className="p-3 bg-purple-50 rounded-full">
+                 <ArrowDownRight className="w-6 h-6 text-purple-500" />
+               </div>
+             </div>
+           </CardContent>
+         </Card>
       </div>
     </div>
   );

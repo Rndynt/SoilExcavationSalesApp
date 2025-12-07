@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Receipt, DollarSign, Truck, Menu, X } from "lucide-react";
+import { LayoutDashboard, Receipt, DollarSign, Truck, Menu, X, History, MapPin, Tags, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const navItems = [
     { href: "/", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/sales", icon: Truck, label: "Quick Log" },
+    { href: "/sales-history", icon: History, label: "Sales History" },
     { href: "/expenses", icon: Receipt, label: "Expenses" },
+    { href: "/trucks", icon: Truck, label: "Trucks" },
+    { href: "/locations", icon: MapPin, label: "Locations" },
+    { href: "/pricing", icon: Tags, label: "Pricing Rules" },
   ];
 
   const NavContent = () => (
@@ -51,13 +55,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </h1>
         </div>
         
-        <div className="flex-1 p-4">
+        <div className="flex-1 p-4 overflow-y-auto">
           <NavContent />
         </div>
 
         <div className="p-4 border-t border-slate-800 text-xs text-slate-500">
           <p>Mockup Mode Active</p>
-          <p className="mt-1">v0.1.0-alpha</p>
+          <p className="mt-1">v0.2.0-beta</p>
         </div>
       </aside>
 
@@ -92,7 +96,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </div>
               <div className="p-4 border-t border-slate-800 text-xs text-slate-500 absolute bottom-0 w-full">
                 <p>Mockup Mode Active</p>
-                <p className="mt-1">v0.1.0-alpha</p>
+                <p className="mt-1">v0.2.0-beta</p>
               </div>
             </SheetContent>
           </Sheet>

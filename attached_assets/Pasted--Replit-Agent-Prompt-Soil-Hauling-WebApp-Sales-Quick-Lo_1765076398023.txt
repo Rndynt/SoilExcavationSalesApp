@@ -1,0 +1,294 @@
+# Replit Agent Prompt — Soil Hauling WebApp (Sales Quick Log + Expense FULL CRUD + Discount Auto Expense)
+
+You are a multi-agent team building a production-ready web app using:
+- Backend: Node.js + TypeScript + Fastify (or existing backend framework in repo)
+- DB: PostgreSQL + Prisma
+- Frontend: React + TypeScript + Tailwind + shadcn/ui
+Work FAST and EFFICIENTLY: minimal explanations, no token waste, small diffs, reuse existing patterns, and always scan the repo first to avoid duplicating work. Implement complete features end-to-end.
+
+## Product Summary
+This app tracks dump trucks entering an excavation site (soil hauling):
+- Core: fast daily Sales (each entry = 1 trip)
+- Expenses: daily expense input with categories + notes + optional plate link + debt/loan tracking
+- Locations: multi-location with default location preference
+- Dynamic pricing rules per date range; sales store basePrice + appliedPrice
+- Sales page includes +/- 5k adjustment; reducing price auto-creates DISCOUNT expense linked to the sale trip
+
+## MUST-HAVE Pages
+1) Sales / Quick Log (core)
+2) Sales History (filter)
+3) Expenses (CRUD + quick add)
+4) Expense Categories (CRUD; also allow inline add from Expense form)
+5) Trucks/Drivers (CRUD minimal)
+6) Locations (CRUD + set default)
+7) Pricing Rules (CRUD)
+8) Monthly Dashboard (reporting)
+
+## Key UX Requirements
+### Sales Quick Log
+- Default Date = today
+- Default Location = user's default location
+- Main input: plate number with autocomplete
+- Price panel:
+  - Base price (from rule)
+  - Applied price (editable)
+  - +/- buttons to adjust applied price by 5,000 (floor at 0)
+- Submit creates SaleTrip with basePrice/appliedPrice
+- If applied < base: auto-create/update DISCOUNT expense = (base - applied) for that trip + plate + date
+- If applied returns to base: remove discount expense (or set to 0) — no duplicates
+
+### Expenses
+- Full CRUD:
+  - Create expense (default date=today, location=default)
+  - List expenses by date (today default) and filters (date range, category, plate, status)
+  - Edit expense
+  - Delete expense
+- Expense form fields:
+  - expenseDate
+  - category (select) + inline add category ("+ Add category" opens modal)
+  - amount
+  - note
+  - optional: relatedPlateNumber (shown when category.type requires it, and always allowed if user wants)
+  - status (PAID/UNPAID) for DEBT/LOAN categories
+  - optional dueDate for DEBT/LOAN
+- Categories:
+  - types: OPERATIONAL, DEBT, LOAN, DISCOUNT
+  - DISCOUNT should be system category used by auto-discount logic (hide from manual selection or mark read-only)
+- Debt/Loan behavior:
+  - If category.type in (DEBT, LOAN): show status + dueDate
+  - Allow linking to plateNumber (esp. debt to a specific truck)
+
+## Money + Accounting Rules
+- Store money in integer IDR.
+- SaleTrip stores BOTH:
+  - basePrice (snapshot from pricing rule)
+  - appliedPrice (editable)
+- Discounts are tracked as Expenses with category.type = DISCOUNT.
+- Monthly dashboard should show:
+  - grossRevenue = sum(basePrice)
+  - discountTotal = sum(expenses where type=DISCOUNT)
+  - netRevenue = grossRevenue - discountTotal (should equal sum(appliedPrice))
+  - operationalExpenses = sum(expenses where type=OPERATIONAL) (exclude DISCOUNT; DEBT/LOAN shown separately)
+  - profit = netRevenue - operationalExpenses (and optionally show DEBT/LOAN outstanding separately)
+
+## Multi-agent Execution (use sub-agents)
+- Coordinator: repo scan, file pointers, task split, consistency
+- DB/Prisma: schema + migration + seed
+- Backend/API: routes + domain services + validation
+- Frontend/UI: pages + forms + tables + query integration
+- QA/Docs: minimal tests + update docs
+
+---
+
+# Step 0 — Repo scan (Coordinator)
+- Identify existing domain/modules, routes, UI pages/components, table/list components, form patterns, and where defaults (date/location) are stored.
+- Determine whether plate is stored as `truckId` or `plateNumber` string and follow existing convention.
+- Identify existing reporting/dashboard patterns.
+
+Output internally: list of files to modify and a short plan (no long prose).
+
+---
+
+# Data Model (DB/Prisma Agent)
+Adapt names to existing schema, but ensure equivalent fields exist.
+
+## Models
+### Location
+- id, name, note?, isActive
+### UserPreference (or AppSetting if single-user)
+- id, userId?, defaultLocationId
+### Truck (simple MVP)
+- id, plateNumber (unique), driverName?, driverPhone?, note?, isActive?
+### PriceRule
+- id, locationId, pricePerTrip INT, startDate, endDate?, note?, isActive?
+### SaleTrip
+- id
+- locationId
+- transDate (DATE)
+- plateNumber (or truckId)
+- basePrice INT
+- appliedPrice INT
+- note?
+- createdAt
+### ExpenseCategory
+- id
+- name (unique)
+- type ENUM: OPERATIONAL | DEBT | LOAN | DISCOUNT
+- isActive
+- isSystem (boolean) => true for DISCOUNT
+### Expense
+- id
+- locationId
+- expenseDate (DATE)
+- amount INT
+- categoryId
+- note?
+- relatedPlateNumber? (or truckId)
+- status ENUM: PAID | UNPAID (nullable for OPERATIONAL)
+- dueDate? (nullable)
+- saleTripId? (nullable) => for DISCOUNT linkage
+
+## Constraints for idempotency
+- Create a UNIQUE constraint for discount expense per saleTrip:
+  - recommended: `@@unique([saleTripId, categoryId])` where saleTripId is not null
+- Alternatively enforce by query in transaction if schema constraints conflict.
+
+## Seed
+- Ensure categories exist:
+  - OPERATIONAL defaults: "General", "Salary", "Night Guard", etc. (optional)
+  - DEBT default: "Debt"
+  - LOAN default: "Loan"
+  - DISCOUNT system category: "Discount" with isSystem=true, type=DISCOUNT
+- Ensure at least one default location exists in seed/dev.
+
+---
+
+# Backend API (Backend/API Agent)
+Use existing patterns for:
+- zod validation
+- error handling
+- pagination/filtering
+
+## SaleTrip endpoints
+- POST /api/sale-trips
+  - body: locationId, transDate, plateNumber, appliedPrice? , note?
+  - server resolves basePrice from PriceRule (fallback 280000 only if absolutely necessary)
+  - appliedPrice default = basePrice
+  - after create => syncDiscountExpenseForSaleTrip(tripId)
+  - return trip + computed discount
+- PATCH /api/sale-trips/:id
+  - allow update: appliedPrice, plateNumber?, note?, transDate?
+  - after update => syncDiscountExpenseForSaleTrip(tripId)
+- GET /api/sale-trips
+  - filters: locationId, dateFrom, dateTo, plateNumber
+  - return list + summaries if needed
+- DELETE /api/sale-trips/:id
+  - delete linked DISCOUNT expense first (or cascade)
+  - delete trip
+
+## Expense endpoints (FULL CRUD)
+- POST /api/expenses
+  - body: locationId, expenseDate, categoryId, amount, note?, relatedPlateNumber?, status?, dueDate?
+  - forbid category.type=DISCOUNT for manual create (return 400)
+- GET /api/expenses
+  - filters: locationId, dateFrom, dateTo, categoryId, type, plateNumber, status
+- GET /api/expenses/:id
+- PATCH /api/expenses/:id
+  - forbid changing to DISCOUNT
+- DELETE /api/expenses/:id
+  - forbid deleting DISCOUNT if linked to saleTrip (optional) OR allow only via saleTrip changes; choose one consistent rule
+
+## ExpenseCategory endpoints (CRUD)
+- POST /api/expense-categories (name, type)
+  - forbid creating DISCOUNT unless isSystem=true and only in seed/migration
+- GET /api/expense-categories (include active only default)
+- PATCH /api/expense-categories/:id (name, isActive)
+  - forbid editing system category (DISCOUNT)
+- DELETE /api/expense-categories/:id (soft delete by isActive=false recommended)
+
+## Truck endpoints (CRUD minimal)
+- POST /api/trucks (plateNumber, driverName?, driverPhone?, note?)
+- GET /api/trucks (search by plateNumber for autocomplete)
+- PATCH /api/trucks/:id
+- DELETE /api/trucks/:id (soft delete recommended)
+
+## Location endpoints (CRUD)
+- CRUD locations
+- PATCH /api/preferences/default-location (set default)
+
+## PricingRule endpoints (CRUD)
+- CRUD price rules
+- GET /api/pricing/resolve?locationId&date=YYYY-MM-DD returns pricePerTrip and ruleId
+
+## Domain logic: syncDiscountExpenseForSaleTrip(tripId)
+- load SaleTrip (locationId, transDate, plate, basePrice, appliedPrice)
+- discount = max(0, basePrice - appliedPrice)
+- find DISCOUNT categoryId (type=DISCOUNT, isSystem=true)
+- in transaction:
+  - find existing expense where saleTripId=tripId and categoryId=discountCategoryId
+  - if discount > 0: upsert with amount=discount, expenseDate=transDate, locationId, relatedPlateNumber=plate, note="Auto discount"
+  - if discount == 0: delete existing discount expense (or set amount=0)
+- Ensure no duplicates.
+
+---
+
+# Frontend UI (Frontend/UI Agent)
+Use existing layout + routing.
+
+## Shared
+- Add a location selector that defaults to user preference.
+- Add date picker default today (can change).
+- Use TanStack Query or existing fetch wrapper.
+
+## Sales Quick Log Page
+- Plate autocomplete input:
+  - query /api/trucks?search=...
+  - allow free text
+- Price panel:
+  - show basePrice and appliedPrice
+  - buttons: -5000 / +5000 (apply in state)
+  - show discount badge when base-applied > 0
+- Create trip:
+  - POST /api/sale-trips with appliedPrice + transDate + locationId + plate
+  - on success: reset plate input and reset appliedPrice to basePrice
+- Today list:
+  - show rows (time optional), plate, base, applied, discount badge, edit applied (inline stepper optional), delete
+  - editing applied triggers PATCH and refreshes row
+
+## Expenses Page (FULL UX)
+- Top filter bar:
+  - date range (default today)
+  - location (default)
+  - category filter
+  - type filter (OPERATIONAL/DEBT/LOAN; DISCOUNT optional view toggle)
+  - plate search
+  - status filter for DEBT/LOAN
+- Expense table:
+  - columns: date, category, type, amount, plate, status, note, actions(edit/delete)
+- Create/Edit modal (or dedicated page):
+  - fields as required
+  - category select excludes DISCOUNT
+  - inline add category modal:
+    - name + type (OPERATIONAL/DEBT/LOAN)
+    - after create, auto-select it
+
+## Categories Page
+- list categories with type, active toggle
+- protect system DISCOUNT category (read-only)
+
+## Dashboard Page
+- month selector + location
+- show KPI cards:
+  - grossRevenue, discounts, netRevenue, operationalExpenses, profit
+  - outstandingDebt, outstandingLoan
+- show breakdown tables:
+  - top plates by net revenue
+  - expenses by category
+  - debt by plate
+
+---
+
+# QA / Minimal tests (QA/Docs Agent)
+Provide a short checklist and run basic dev checks:
+- migrations apply
+- create saleTrip base price => no discount expense
+- reduce applied => discount expense created once
+- adjust applied multiple times => expense updated, no duplicates
+- return to base => discount removed
+- create/edit/delete operational expense works
+- cannot manually create DISCOUNT expense
+- dashboard numbers reconcile: sum(appliedPrice) == gross - discounts
+
+Update docs:
+- basePrice vs appliedPrice explanation
+- discount accounting rule
+- how to run migrations and seed
+
+---
+
+# Delivery format
+- Keep final response concise:
+  - Files changed
+  - How to run
+  - Quick test checklist
+Now implement end-to-end using sub-agents.

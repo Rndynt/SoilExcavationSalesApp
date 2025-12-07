@@ -10,18 +10,35 @@ import { format } from "date-fns";
 import { Plus, Minus, Truck, Calendar, MapPin, Tag, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-const BASE_PRICE = 280000;
 const STEP = 5000;
 
 export default function Sales() {
-  const { trips, addTrip } = useStore();
+  const { trips, addTrip, locations, trucks, defaultLocationId, resolveBasePrice } = useStore();
   
   // Form State
-  const [plate, setPlate] = useState("");
-  const [locationId, setLocationId] = useState("loc_1");
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
-  const [appliedPrice, setAppliedPrice] = useState(BASE_PRICE);
+  const [locationId, setLocationId] = useState(defaultLocationId);
+  const [plate, setPlate] = useState("");
+  const [plateOpen, setPlateOpen] = useState(false);
+  
+  // Derive Base Price from Rules
+  const basePrice = resolveBasePrice(locationId, date);
+  const [appliedPrice, setAppliedPrice] = useState(basePrice);
+
+  // Reset applied price if base price changes (e.g. location switch)
+  // In a real app we might want to be careful not to overwrite user input, 
+  // but for quick logging, syncing to base is usually desired.
+  // We'll use a simple effect-like logic in render or separate useEffect.
+  // For simplicity here, we assume user sets location first. 
+  // If they change location, we reset price.
+  const handleLocationChange = (val: string) => {
+    setLocationId(val);
+    const newBase = resolveBasePrice(val, date);
+    setAppliedPrice(newBase);
+  };
 
   const handleAdjustPrice = (delta: number) => {
     setAppliedPrice(prev => Math.max(0, prev + delta));
@@ -38,7 +55,7 @@ export default function Sales() {
       locationId,
       transDate: date,
       plateNumber: plate.toUpperCase(),
-      basePrice: BASE_PRICE,
+      basePrice: basePrice,
       appliedPrice,
     });
 
@@ -49,11 +66,10 @@ export default function Sales() {
 
     // Reset for next entry
     setPlate("");
-    setAppliedPrice(BASE_PRICE);
-    // Keep date/location same
+    // setAppliedPrice(basePrice); // Reset to standard
   };
 
-  const discount = Math.max(0, BASE_PRICE - appliedPrice);
+  const discount = Math.max(0, basePrice - appliedPrice);
   const isDiscounted = discount > 0;
 
   return (
@@ -90,39 +106,70 @@ export default function Sales() {
                   <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Location</Label>
                   <div className="relative">
                     <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                    <Select value={locationId} onValueChange={setLocationId}>
+                    <Select value={locationId} onValueChange={handleLocationChange}>
                       <SelectTrigger className="pl-9 bg-slate-50/50">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="loc_1">Jakarta HQ</SelectItem>
-                        <SelectItem value="loc_2">Surabaya Hub</SelectItem>
+                        {locations.map(l => (
+                          <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
               </div>
 
-              {/* Middle: Plate Input */}
+              {/* Middle: Plate Input with Autocomplete */}
               <div className="space-y-2">
                 <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Truck Plate</Label>
-                <div className="relative">
-                  <Truck className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-                  <Input 
-                    value={plate}
-                    onChange={e => setPlate(e.target.value)}
-                    placeholder="B 1234 XYZ"
-                    className="pl-10 h-12 text-lg font-mono uppercase placeholder:text-slate-300 border-slate-300 focus-visible:ring-emerald-500"
-                    autoFocus
-                  />
-                </div>
+                <Popover open={plateOpen} onOpenChange={setPlateOpen}>
+                  <PopoverTrigger asChild>
+                    <div className="relative">
+                      <Truck className="absolute left-3 top-3 h-5 w-5 text-slate-400 z-10" />
+                      <Input 
+                        value={plate}
+                        onChange={e => setPlate(e.target.value)}
+                        placeholder="B 1234 XYZ"
+                        className="pl-10 h-12 text-lg font-mono uppercase placeholder:text-slate-300 border-slate-300 focus-visible:ring-emerald-500"
+                        autoFocus
+                      />
+                    </div>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]" align="start">
+                    <Command>
+                      <CommandList>
+                        {trucks.filter(t => t.plateNumber.includes(plate.toUpperCase())).length > 0 ? (
+                          <CommandGroup heading="Suggestions">
+                            {trucks.filter(t => t.plateNumber.includes(plate.toUpperCase())).map(t => (
+                              <CommandItem 
+                                key={t.id} 
+                                onSelect={() => {
+                                  setPlate(t.plateNumber);
+                                  setPlateOpen(false);
+                                }}
+                              >
+                                {t.plateNumber}
+                                {t.driverName && <span className="ml-2 text-slate-400 text-xs">({t.driverName})</span>}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        ) : (
+                           <CommandEmpty className="py-2 text-center text-xs text-slate-500">
+                             New plate will be recorded
+                           </CommandEmpty>
+                        )}
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               {/* Bottom: Price Adjuster */}
               <div className="pt-4 pb-2 border-t border-slate-100">
                 <div className="flex items-center justify-between mb-4">
                   <Label className="text-sm font-semibold text-slate-700">Applied Price</Label>
-                  <div className="text-xs text-slate-400 font-mono">Base: {BASE_PRICE.toLocaleString()}</div>
+                  <div className="text-xs text-slate-400 font-mono">Base: {basePrice.toLocaleString()}</div>
                 </div>
 
                 <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-4">
@@ -169,7 +216,7 @@ export default function Sales() {
                   <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden flex">
                      <div 
                         className={cn("h-full transition-all duration-300", isDiscounted ? "bg-amber-400" : "bg-emerald-500")} 
-                        style={{ width: `${Math.min(100, (appliedPrice / BASE_PRICE) * 100)}%` }} 
+                        style={{ width: `${Math.min(100, (appliedPrice / basePrice) * 100)}%` }} 
                      />
                   </div>
                 </div>
@@ -211,8 +258,10 @@ export default function Sales() {
                     </td>
                   </tr>
                 ) : (
-                  trips.map((trip) => {
-                    const tripDiscount = Math.max(0, trip.basePrice - trip.appliedPrice);
+                  trips.slice(0, 10).map((trip) => {
+                     const tripDiscount = Math.max(0, trip.basePrice - trip.appliedPrice);
+                     const locName = locations.find(l => l.id === trip.locationId)?.name || 'Unknown';
+                     
                     return (
                       <tr key={trip.id} className="group hover:bg-slate-50 transition-colors">
                         <td className="px-4 py-3 text-slate-500 whitespace-nowrap">
@@ -222,7 +271,7 @@ export default function Sales() {
                           {trip.plateNumber}
                         </td>
                         <td className="px-4 py-3 text-slate-500">
-                          {trip.locationId === 'loc_1' ? 'Jakarta' : 'Surabaya'}
+                          {locName}
                         </td>
                         <td className="px-4 py-3 text-right font-mono text-slate-700">
                           {new Intl.NumberFormat('id-ID').format(trip.appliedPrice)}
