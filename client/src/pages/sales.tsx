@@ -1,117 +1,186 @@
-import { useState } from "react";
-import { useStore, SaleTrip } from "@/lib/store";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { useLocations, useTrucks, useResolvePrice, useDefaultLocation, useCreateSaleTrip, useSaleTrips } from "@/hooks/use-api";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
-import { Plus, Minus, Truck, Calendar, MapPin, Tag, ArrowRight } from "lucide-react";
+import { Plus, Minus, Truck, Calendar, MapPin, ArrowRight, CreditCard, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const STEP = 5000;
 
 export default function Sales() {
-  const { trips, addTrip, locations, trucks, defaultLocationId, resolveBasePrice } = useStore();
+  const { data: locations, isLoading: locationsLoading } = useLocations();
+  const { data: defaultLocationData } = useDefaultLocation();
+  const [searchPlate, setSearchPlate] = useState("");
+  const { data: trucks } = useTrucks(searchPlate);
   
-  // Form State
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
-  const [locationId, setLocationId] = useState(defaultLocationId);
+  const [locationId, setLocationId] = useState<string>("");
   const [plate, setPlate] = useState("");
   const [plateOpen, setPlateOpen] = useState(false);
+  const [note, setNote] = useState("");
   
-  // Derive Base Price from Rules
-  const basePrice = resolveBasePrice(locationId, date);
-  const [appliedPrice, setAppliedPrice] = useState(basePrice);
+  const [paymentStatus, setPaymentStatus] = useState<"PAID" | "PARTIAL" | "UNPAID">("PAID");
+  const [paidAmount, setPaidAmount] = useState<number>(0);
+  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "TRANSFER" | "QRIS" | "OTHER">("CASH");
 
-  // Reset applied price if base price changes (e.g. location switch)
-  // In a real app we might want to be careful not to overwrite user input, 
-  // but for quick logging, syncing to base is usually desired.
-  // We'll use a simple effect-like logic in render or separate useEffect.
-  // For simplicity here, we assume user sets location first. 
-  // If they change location, we reset price.
+  useEffect(() => {
+    if (defaultLocationData?.defaultLocationId && !locationId) {
+      setLocationId(defaultLocationData.defaultLocationId);
+    } else if (locations && locations.length > 0 && !locationId) {
+      setLocationId(locations[0].id);
+    }
+  }, [defaultLocationData, locations, locationId]);
+
+  const { data: priceData, isLoading: priceLoading } = useResolvePrice(locationId, date);
+  const basePrice = priceData?.price ?? 0;
+  const [appliedPrice, setAppliedPrice] = useState(0);
+
+  useEffect(() => {
+    if (basePrice > 0 && appliedPrice === 0) {
+      setAppliedPrice(basePrice);
+      if (paymentStatus === "PAID") {
+        setPaidAmount(basePrice);
+      }
+    }
+  }, [basePrice, appliedPrice, paymentStatus]);
+
+  const { data: todayTrips, isLoading: tripsLoading } = useSaleTrips({
+    dateFrom: date,
+    dateTo: date,
+    locationId: locationId || undefined,
+  });
+
+  const createTrip = useCreateSaleTrip();
+
   const handleLocationChange = (val: string) => {
     setLocationId(val);
-    const newBase = resolveBasePrice(val, date);
-    setAppliedPrice(newBase);
+    setAppliedPrice(0);
   };
 
   const handleAdjustPrice = (delta: number) => {
-    setAppliedPrice(prev => Math.max(0, prev + delta));
+    const newPrice = Math.max(0, appliedPrice + delta);
+    setAppliedPrice(newPrice);
+    if (paymentStatus === "PAID") {
+      setPaidAmount(newPrice);
+    } else if (paymentStatus === "PARTIAL") {
+      setPaidAmount(Math.min(paidAmount, newPrice));
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handlePaymentStatusChange = (status: "PAID" | "PARTIAL" | "UNPAID") => {
+    setPaymentStatus(status);
+    if (status === "PAID") {
+      setPaidAmount(appliedPrice);
+    } else if (status === "UNPAID") {
+      setPaidAmount(0);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!plate) {
       toast({ title: "Plate required", variant: "destructive" });
       return;
     }
+    if (!locationId) {
+      toast({ title: "Location required", variant: "destructive" });
+      return;
+    }
 
-    addTrip({
-      locationId,
-      transDate: date,
-      plateNumber: plate.toUpperCase(),
-      basePrice: basePrice,
-      appliedPrice,
-    });
+    try {
+      await createTrip.mutateAsync({
+        locationId,
+        transDate: date,
+        plateNumber: plate.toUpperCase(),
+        basePrice,
+        appliedPrice,
+        paymentStatus,
+        paidAmount: paymentStatus === "PAID" ? appliedPrice : paymentStatus === "UNPAID" ? 0 : paidAmount,
+        paymentMethod,
+        note: note || undefined,
+      });
 
-    toast({ 
-      title: "Trip Logged", 
-      description: `Plate ${plate.toUpperCase()} - ${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(appliedPrice)}`
-    });
+      toast({ 
+        title: "Trip Logged", 
+        description: `Plate ${plate.toUpperCase()} - ${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(appliedPrice)}`
+      });
 
-    // Reset for next entry
-    setPlate("");
-    // setAppliedPrice(basePrice); // Reset to standard
+      setPlate("");
+      setNote("");
+      setPaymentStatus("PAID");
+      setPaidAmount(appliedPrice);
+    } catch (error) {
+      toast({ title: "Failed to log trip", description: String(error), variant: "destructive" });
+    }
   };
 
   const discount = Math.max(0, basePrice - appliedPrice);
   const isDiscounted = discount > 0;
 
+  if (locationsLoading) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
+        <div className="col-span-1 lg:col-span-5 space-y-6">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-96 w-full" />
+        </div>
+        <div className="col-span-1 lg:col-span-7 space-y-6">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       
-      {/* LEFT COLUMN: INPUT FORM */}
       <div className="col-span-1 lg:col-span-5 space-y-6">
         <div>
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">Quick Log</h2>
-          <p className="text-slate-500 mt-1">Record a new trip transaction.</p>
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight" data-testid="text-page-title">Quick Log</h2>
+          <p className="text-muted-foreground mt-1">Record a new trip transaction.</p>
         </div>
 
-        <Card className="border-slate-200 shadow-sm overflow-hidden">
-          <div className="h-1 bg-emerald-500 w-full" />
+        <Card className="shadow-sm overflow-hidden">
+          <div className="h-1 bg-primary w-full" />
           <CardContent className="pt-6 space-y-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               
-              {/* Top Row: Date & Location */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Date</Label>
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Date</Label>
                   <div className="relative">
-                    <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                    <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input 
                       type="date" 
                       value={date} 
                       onChange={e => setDate(e.target.value)}
-                      className="pl-9 bg-slate-50/50"
+                      className="pl-9"
+                      data-testid="input-date"
                     />
                   </div>
                 </div>
                 
                 <div className="space-y-2">
-                  <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Location</Label>
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Location</Label>
                   <div className="relative">
-                    <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                    <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground z-10" />
                     <Select value={locationId} onValueChange={handleLocationChange}>
-                      <SelectTrigger className="pl-9 bg-slate-50/50">
-                        <SelectValue />
+                      <SelectTrigger className="pl-9" data-testid="select-location">
+                        <SelectValue placeholder="Select location" />
                       </SelectTrigger>
                       <SelectContent>
-                        {locations.map(l => (
+                        {locations?.map(l => (
                           <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
                         ))}
                       </SelectContent>
@@ -120,42 +189,46 @@ export default function Sales() {
                 </div>
               </div>
 
-              {/* Middle: Plate Input with Autocomplete */}
               <div className="space-y-2">
-                <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Truck Plate</Label>
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Truck Plate</Label>
                 <Popover open={plateOpen} onOpenChange={setPlateOpen}>
                   <PopoverTrigger asChild>
                     <div className="relative">
-                      <Truck className="absolute left-3 top-3 h-5 w-5 text-slate-400 z-10" />
+                      <Truck className="absolute left-3 top-3 h-5 w-5 text-muted-foreground z-10" />
                       <Input 
                         value={plate}
-                        onChange={e => setPlate(e.target.value)}
+                        onChange={e => {
+                          setPlate(e.target.value);
+                          setSearchPlate(e.target.value);
+                        }}
                         placeholder="B 1234 XYZ"
-                        className="pl-10 h-12 text-lg font-mono uppercase placeholder:text-slate-300 border-slate-300 focus-visible:ring-emerald-500"
+                        className="pl-10 h-12 text-lg font-mono uppercase"
                         autoFocus
+                        data-testid="input-plate"
                       />
                     </div>
                   </PopoverTrigger>
                   <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]" align="start">
                     <Command>
                       <CommandList>
-                        {trucks.filter(t => t.plateNumber.includes(plate.toUpperCase())).length > 0 ? (
+                        {trucks && trucks.filter(t => t.plateNumber.toUpperCase().includes(plate.toUpperCase())).length > 0 ? (
                           <CommandGroup heading="Suggestions">
-                            {trucks.filter(t => t.plateNumber.includes(plate.toUpperCase())).map(t => (
+                            {trucks.filter(t => t.plateNumber.toUpperCase().includes(plate.toUpperCase())).map(t => (
                               <CommandItem 
                                 key={t.id} 
                                 onSelect={() => {
                                   setPlate(t.plateNumber);
                                   setPlateOpen(false);
                                 }}
+                                data-testid={`suggestion-plate-${t.id}`}
                               >
                                 {t.plateNumber}
-                                {t.driverName && <span className="ml-2 text-slate-400 text-xs">({t.driverName})</span>}
+                                {t.contactName && <span className="ml-2 text-muted-foreground text-xs">({t.contactName})</span>}
                               </CommandItem>
                             ))}
                           </CommandGroup>
                         ) : (
-                           <CommandEmpty className="py-2 text-center text-xs text-slate-500">
+                           <CommandEmpty className="py-2 text-center text-xs text-muted-foreground">
                              New plate will be recorded
                            </CommandEmpty>
                         )}
@@ -165,36 +238,38 @@ export default function Sales() {
                 </Popover>
               </div>
 
-              {/* Bottom: Price Adjuster */}
-              <div className="pt-4 pb-2 border-t border-slate-100">
-                <div className="flex items-center justify-between mb-4">
-                  <Label className="text-sm font-semibold text-slate-700">Applied Price</Label>
-                  <div className="text-xs text-slate-400 font-mono">Base: {basePrice.toLocaleString()}</div>
+              <div className="pt-4 pb-2 border-t">
+                <div className="flex items-center justify-between gap-2 mb-4">
+                  <Label className="text-sm font-semibold">Applied Price</Label>
+                  <div className="text-xs text-muted-foreground font-mono">
+                    {priceLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : `Base: ${basePrice.toLocaleString()}`}
+                  </div>
                 </div>
 
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-4">
-                  <div className="flex items-center justify-between">
+                <div className="bg-muted/50 rounded-xl p-4 border space-y-4">
+                  <div className="flex items-center justify-between gap-2">
                     <Button 
                       type="button" 
                       variant="outline" 
                       size="icon" 
                       onClick={() => handleAdjustPrice(-STEP)}
-                      className="h-12 w-12 shrink-0 rounded-full border-slate-300 hover:border-amber-500 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                      className="h-12 w-12 shrink-0 rounded-full"
+                      data-testid="button-price-decrease"
                     >
                       <Minus className="h-5 w-5" />
                     </Button>
 
-                    <div className="text-center px-2">
-                      <div className="text-2xl md:text-3xl font-bold font-mono tracking-tight text-slate-900">
+                    <div className="text-center px-2 min-w-0">
+                      <div className="text-2xl md:text-3xl font-bold font-mono tracking-tight" data-testid="text-applied-price">
                         {new Intl.NumberFormat('id-ID').format(appliedPrice)}
                       </div>
                       <div className="h-6 flex items-center justify-center gap-2 mt-1">
                         {isDiscounted ? (
-                          <Badge variant="secondary" className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-amber-200 px-2 py-0 h-5 text-[10px]">
+                          <Badge variant="secondary" className="text-[10px]" data-testid="badge-discount">
                             Disc. {new Intl.NumberFormat('id-ID').format(discount)}
                           </Badge>
                         ) : (
-                          <span className="text-xs text-emerald-600 font-medium flex items-center gap-1">
+                          <span className="text-xs text-muted-foreground font-medium">
                              Standard Price
                           </span>
                         )}
@@ -206,23 +281,97 @@ export default function Sales() {
                       variant="outline" 
                       size="icon" 
                       onClick={() => handleAdjustPrice(STEP)}
-                      className="h-12 w-12 shrink-0 rounded-full border-slate-300 hover:border-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                      className="h-12 w-12 shrink-0 rounded-full"
+                      data-testid="button-price-increase"
                     >
                       <Plus className="h-5 w-5" />
                     </Button>
                   </div>
                   
-                  {/* Range visualizer (optional polish) */}
-                  <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden flex">
+                  <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden flex">
                      <div 
-                        className={cn("h-full transition-all duration-300", isDiscounted ? "bg-amber-400" : "bg-emerald-500")} 
-                        style={{ width: `${Math.min(100, (appliedPrice / basePrice) * 100)}%` }} 
+                        className={cn("h-full transition-all duration-300", isDiscounted ? "bg-amber-500" : "bg-primary")} 
+                        style={{ width: `${basePrice > 0 ? Math.min(100, (appliedPrice / basePrice) * 100) : 0}%` }} 
                      />
                   </div>
                 </div>
               </div>
 
-              <Button type="submit" className="w-full h-12 bg-slate-900 hover:bg-slate-800 text-white font-medium text-base shadow-lg shadow-slate-900/10">
+              <div className="pt-4 border-t space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <CreditCard className="h-4 w-4 text-muted-foreground" />
+                  <Label className="text-sm font-semibold">Payment</Label>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Status</Label>
+                    <Select value={paymentStatus} onValueChange={(v) => handlePaymentStatusChange(v as "PAID" | "PARTIAL" | "UNPAID")}>
+                      <SelectTrigger data-testid="select-payment-status">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="PAID">Paid</SelectItem>
+                        <SelectItem value="PARTIAL">Partial</SelectItem>
+                        <SelectItem value="UNPAID">Unpaid</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Method</Label>
+                    <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as "CASH" | "TRANSFER" | "QRIS" | "OTHER")}>
+                      <SelectTrigger data-testid="select-payment-method">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="CASH">Cash</SelectItem>
+                        <SelectItem value="TRANSFER">Transfer</SelectItem>
+                        <SelectItem value="QRIS">QRIS</SelectItem>
+                        <SelectItem value="OTHER">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {paymentStatus === "PARTIAL" && (
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Paid Amount</Label>
+                    <Input 
+                      type="number" 
+                      value={paidAmount} 
+                      onChange={e => setPaidAmount(Math.min(appliedPrice, Math.max(0, parseInt(e.target.value) || 0)))}
+                      className="font-mono"
+                      data-testid="input-paid-amount"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Outstanding: {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(appliedPrice - paidAmount)}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Note (Optional)</Label>
+                <Textarea 
+                  value={note}
+                  onChange={e => setNote(e.target.value)}
+                  placeholder="Add a note..."
+                  className="resize-none"
+                  rows={2}
+                  data-testid="input-note"
+                />
+              </div>
+
+              <Button 
+                type="submit" 
+                className="w-full h-12 font-medium text-base"
+                disabled={createTrip.isPending}
+                data-testid="button-submit"
+              >
+                {createTrip.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
                 Log Trip
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -231,59 +380,69 @@ export default function Sales() {
         </Card>
       </div>
 
-      {/* RIGHT COLUMN: RECENT LOGS */}
       <div className="col-span-1 lg:col-span-7 space-y-6">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight text-slate-900">Today's Logs</h2>
-          <p className="text-slate-500 mt-1 text-sm">Most recent transactions recorded.</p>
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight">Today's Logs</h2>
+            <p className="text-muted-foreground mt-1 text-sm">Most recent transactions recorded.</p>
+          </div>
+          <Badge variant="outline" data-testid="badge-trip-count">
+            {todayTrips?.length ?? 0} trips
+          </Badge>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
+              <thead className="bg-muted/50 text-muted-foreground border-b">
                 <tr>
                   <th className="px-4 py-3 font-medium">Time</th>
                   <th className="px-4 py-3 font-medium">Plate</th>
                   <th className="px-4 py-3 font-medium">Location</th>
-                  <th className="px-4 py-3 font-medium text-right">Applied Price</th>
+                  <th className="px-4 py-3 font-medium text-right">Applied</th>
                   <th className="px-4 py-3 font-medium text-right">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
-                {trips.length === 0 ? (
+              <tbody className="divide-y">
+                {tripsLoading ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-slate-400 italic">
+                    <td colSpan={5} className="px-4 py-8 text-center">
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                    </td>
+                  </tr>
+                ) : todayTrips?.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground italic">
                       No trips logged yet today.
                     </td>
                   </tr>
                 ) : (
-                  trips.slice(0, 10).map((trip) => {
+                  todayTrips?.slice(0, 10).map((trip) => {
                      const tripDiscount = Math.max(0, trip.basePrice - trip.appliedPrice);
-                     const locName = locations.find(l => l.id === trip.locationId)?.name || 'Unknown';
+                     const locName = locations?.find(l => l.id === trip.locationId)?.name || 'Unknown';
                      
                     return (
-                      <tr key={trip.id} className="group hover:bg-slate-50 transition-colors">
-                        <td className="px-4 py-3 text-slate-500 whitespace-nowrap">
-                          {format(new Date(trip.createdAt), "HH:mm")}
+                      <tr key={trip.id} className="group" data-testid={`row-trip-${trip.id}`}>
+                        <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                          {trip.createdAt ? format(new Date(trip.createdAt), "HH:mm") : "-"}
                         </td>
-                        <td className="px-4 py-3 font-mono font-medium text-slate-900">
+                        <td className="px-4 py-3 font-mono font-medium">
                           {trip.plateNumber}
                         </td>
-                        <td className="px-4 py-3 text-slate-500">
+                        <td className="px-4 py-3 text-muted-foreground">
                           {locName}
                         </td>
-                        <td className="px-4 py-3 text-right font-mono text-slate-700">
+                        <td className="px-4 py-3 text-right font-mono">
                           {new Intl.NumberFormat('id-ID').format(trip.appliedPrice)}
                         </td>
                         <td className="px-4 py-3 text-right">
                           {tripDiscount > 0 ? (
-                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[10px]">
+                            <Badge variant="outline" className="text-[10px]">
                               - {new Intl.NumberFormat('id-ID', { notation: "compact" }).format(tripDiscount)}
                             </Badge>
                           ) : (
-                            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px]">
-                              Full Price
+                            <Badge variant="secondary" className="text-[10px]">
+                              Full
                             </Badge>
                           )}
                         </td>
