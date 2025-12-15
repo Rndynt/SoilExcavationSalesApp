@@ -1,40 +1,46 @@
-import { useStore } from "@/lib/store";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLocations, useSaleTrips } from "@/hooks/use-api";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
-import { Truck, Search, Filter } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
 import { useState } from "react";
 
 export default function SalesHistory() {
-  const { trips, locations } = useStore();
-  
-  // Filters
   const [filterPlate, setFilterPlate] = useState("");
   const [filterLocation, setFilterLocation] = useState("all");
+  const [filterPaymentStatus, setFilterPaymentStatus] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
-  const filteredTrips = trips.filter(trip => {
-    const matchesPlate = trip.plateNumber.toLowerCase().includes(filterPlate.toLowerCase());
-    const matchesLocation = filterLocation === 'all' || trip.locationId === filterLocation;
-    return matchesPlate && matchesLocation;
+  const { data: locations = [], isLoading: locationsLoading } = useLocations();
+  const { data: trips = [], isLoading: tripsLoading } = useSaleTrips({
+    locationId: filterLocation !== "all" ? filterLocation : undefined,
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
+    plateNumber: filterPlate || undefined,
+    paymentStatus: filterPaymentStatus !== "all" ? filterPaymentStatus : undefined,
   });
+
+  const isLoading = locationsLoading || tripsLoading;
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight text-slate-900">Sales History</h2>
-        <p className="text-slate-500 mt-1">Review past transactions.</p>
+        <h2 className="text-3xl font-bold tracking-tight">Sales History</h2>
+        <p className="text-muted-foreground mt-1">Review past transactions.</p>
       </div>
 
-      {/* Filters */}
-      <Card className="border-slate-200 shadow-sm">
-        <CardContent className="p-4 flex flex-col md:flex-row gap-4 items-end">
-          <div className="w-full md:w-1/3 space-y-2">
-            <span className="text-xs font-semibold text-slate-500 uppercase">Search Plate</span>
+      <Card>
+        <CardContent className="p-4 flex flex-col md:flex-row gap-4 items-end flex-wrap">
+          <div className="w-full md:w-48 space-y-2">
+            <span className="text-xs font-semibold text-muted-foreground uppercase">Search Plate</span>
             <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input 
+                data-testid="input-search-plate"
                 placeholder="Search..." 
                 value={filterPlate}
                 onChange={e => setFilterPlate(e.target.value)}
@@ -43,78 +49,161 @@ export default function SalesHistory() {
             </div>
           </div>
           
-          <div className="w-full md:w-1/3 space-y-2">
-             <span className="text-xs font-semibold text-slate-500 uppercase">Location</span>
-             <Select value={filterLocation} onValueChange={setFilterLocation}>
-              <SelectTrigger>
+          <div className="w-full md:w-48 space-y-2">
+            <span className="text-xs font-semibold text-muted-foreground uppercase">Location</span>
+            <Select value={filterLocation} onValueChange={setFilterLocation}>
+              <SelectTrigger data-testid="select-location-trigger">
                 <SelectValue placeholder="All Locations" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Locations</SelectItem>
+                <SelectItem value="all" data-testid="select-location-all">All Locations</SelectItem>
                 {locations.map(loc => (
-                  <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
+                  <SelectItem key={loc.id} value={loc.id} data-testid={`select-location-${loc.id}`}>{loc.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+
+          <div className="w-full md:w-40 space-y-2">
+            <span className="text-xs font-semibold text-muted-foreground uppercase">Date From</span>
+            <Input 
+              data-testid="input-date-from"
+              type="date"
+              value={dateFrom}
+              onChange={e => setDateFrom(e.target.value)}
+            />
+          </div>
+
+          <div className="w-full md:w-40 space-y-2">
+            <span className="text-xs font-semibold text-muted-foreground uppercase">Date To</span>
+            <Input 
+              data-testid="input-date-to"
+              type="date"
+              value={dateTo}
+              onChange={e => setDateTo(e.target.value)}
+            />
+          </div>
+
+          <div className="w-full md:w-40 space-y-2">
+            <span className="text-xs font-semibold text-muted-foreground uppercase">Payment Status</span>
+            <Select value={filterPaymentStatus} onValueChange={setFilterPaymentStatus}>
+              <SelectTrigger data-testid="select-payment-status-trigger">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all" data-testid="select-payment-all">All Status</SelectItem>
+                <SelectItem value="PAID" data-testid="select-payment-paid">Paid</SelectItem>
+                <SelectItem value="PARTIAL" data-testid="select-payment-partial">Partial</SelectItem>
+                <SelectItem value="UNPAID" data-testid="select-payment-unpaid">Unpaid</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           
-          <div className="w-full md:w-1/3 text-right text-sm text-slate-500 pb-2">
-            Showing {filteredTrips.length} records
+          <div className="w-full md:w-auto text-right text-sm text-muted-foreground pb-2 md:ml-auto">
+            {isLoading ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading...
+              </span>
+            ) : (
+              <span data-testid="text-record-count">Showing {trips.length} records</span>
+            )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-xl border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
+            <thead className="bg-muted text-muted-foreground border-b">
               <tr>
                 <th className="px-6 py-3 font-medium">Date & Time</th>
                 <th className="px-6 py-3 font-medium">Plate</th>
                 <th className="px-6 py-3 font-medium">Location</th>
                 <th className="px-6 py-3 font-medium text-right">Base Price</th>
                 <th className="px-6 py-3 font-medium text-right">Applied Price</th>
-                <th className="px-6 py-3 font-medium text-right">Status</th>
+                <th className="px-6 py-3 font-medium text-center">Payment Status</th>
+                <th className="px-6 py-3 font-medium text-right">Outstanding</th>
+                <th className="px-6 py-3 font-medium text-right">Discount</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredTrips.length === 0 ? (
+            <tbody className="divide-y divide-border">
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i}>
+                    <td className="px-6 py-4"><Skeleton className="h-4 w-24" /></td>
+                    <td className="px-6 py-4"><Skeleton className="h-4 w-20" /></td>
+                    <td className="px-6 py-4"><Skeleton className="h-4 w-28" /></td>
+                    <td className="px-6 py-4"><Skeleton className="h-4 w-16 ml-auto" /></td>
+                    <td className="px-6 py-4"><Skeleton className="h-4 w-16 ml-auto" /></td>
+                    <td className="px-6 py-4"><Skeleton className="h-4 w-16 mx-auto" /></td>
+                    <td className="px-6 py-4"><Skeleton className="h-4 w-16 ml-auto" /></td>
+                    <td className="px-6 py-4"><Skeleton className="h-4 w-16 ml-auto" /></td>
+                  </tr>
+                ))
+              ) : trips.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan={8} className="px-6 py-12 text-center text-muted-foreground">
                     No trips found matching filters.
                   </td>
                 </tr>
               ) : (
-                filteredTrips.map((trip) => {
+                trips.map((trip) => {
                   const tripDiscount = Math.max(0, trip.basePrice - trip.appliedPrice);
                   const locationName = locations.find(l => l.id === trip.locationId)?.name || 'Unknown';
+                  const outstanding = trip.appliedPrice - trip.paidAmount;
                   
                   return (
-                    <tr key={trip.id} className="group hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 text-slate-500 whitespace-nowrap">
-                        <div className="font-medium text-slate-900">{format(new Date(trip.transDate), "dd MMM yyyy")}</div>
+                    <tr key={trip.id} className="group hover:bg-muted/50 transition-colors" data-testid={`row-trip-${trip.id}`}>
+                      <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">
+                        <div className="font-medium text-foreground" data-testid={`text-date-${trip.id}`}>
+                          {format(new Date(trip.transDate), "dd MMM yyyy")}
+                        </div>
                         <div className="text-xs">{format(new Date(trip.createdAt), "HH:mm")}</div>
                       </td>
-                      <td className="px-6 py-4 font-mono font-medium text-slate-900">
+                      <td className="px-6 py-4 font-mono font-medium" data-testid={`text-plate-${trip.id}`}>
                         {trip.plateNumber}
                       </td>
-                      <td className="px-6 py-4 text-slate-500">
+                      <td className="px-6 py-4 text-muted-foreground" data-testid={`text-location-${trip.id}`}>
                         {locationName}
                       </td>
-                      <td className="px-6 py-4 text-right font-mono text-slate-400">
+                      <td className="px-6 py-4 text-right font-mono text-muted-foreground" data-testid={`text-base-price-${trip.id}`}>
                         {new Intl.NumberFormat('id-ID').format(trip.basePrice)}
                       </td>
-                      <td className="px-6 py-4 text-right font-mono font-medium text-slate-900">
+                      <td className="px-6 py-4 text-right font-mono font-medium" data-testid={`text-applied-price-${trip.id}`}>
                         {new Intl.NumberFormat('id-ID').format(trip.appliedPrice)}
+                      </td>
+                      <td className="px-6 py-4 text-center" data-testid={`status-payment-${trip.id}`}>
+                        {trip.paymentStatus === 'PAID' ? (
+                          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800 text-[10px]">
+                            Paid
+                          </Badge>
+                        ) : trip.paymentStatus === 'PARTIAL' ? (
+                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800 text-[10px]">
+                            Partial
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-800 text-[10px]">
+                            Unpaid
+                          </Badge>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-right font-mono" data-testid={`text-outstanding-${trip.id}`}>
+                        {outstanding > 0 ? (
+                          <span className="text-red-600 dark:text-red-400">
+                            {new Intl.NumberFormat('id-ID').format(outstanding)}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-right">
                         {tripDiscount > 0 ? (
-                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[10px]">
+                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800 text-[10px]">
                             - {new Intl.NumberFormat('id-ID', { notation: "compact" }).format(tripDiscount)}
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px]">
+                          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800 text-[10px]">
                             Standard
                           </Badge>
                         )}
