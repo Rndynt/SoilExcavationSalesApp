@@ -33,11 +33,11 @@
 - [x] Sales Quick Log page - uses real API hooks  
 - [x] Sales History page - uses real API hooks
 
-## Frontend - Pages Still Using Mock Store (Need Conversion)
-- [ ] Expenses page - convert from Zustand to API hooks
-- [ ] Trucks page - convert from Zustand to API hooks
-- [ ] Locations page - convert from Zustand to API hooks
-- [ ] Pricing Rules page - convert from Zustand to API hooks
+## Frontend - Pages Using Real API (Converted)
+- [x] Expenses page - converted to API hooks
+- [x] Trucks page - converted to API hooks
+- [x] Locations page - converted to API hooks
+- [x] Pricing Rules page - converted to API hooks
 
 ## Offline Mode & Sync (Future Enhancement)
 - [ ] Install idb/localForage for IndexedDB

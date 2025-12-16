@@ -1,49 +1,115 @@
 import { useState } from "react";
-import { useStore } from "@/lib/store";
+import { usePriceRules, useLocations, useCreatePriceRule, useDeletePriceRule } from "@/hooks/use-api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Tags, Plus, Trash2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tags, Plus, Trash2, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 
 export default function Pricing() {
-  const { priceRules, locations, addPriceRule, deletePriceRule } = useStore();
-  const [isAddOpen, setIsAddOpen] = useState(false);
+  const { data: priceRules = [], isLoading: rulesLoading } = usePriceRules();
+  const { data: locations = [], isLoading: locationsLoading } = useLocations();
+  const createPriceRule = useCreatePriceRule();
+  const deletePriceRule = useDeletePriceRule();
 
-  // Form
+  const [isAddOpen, setIsAddOpen] = useState(false);
   const [locId, setLocId] = useState("");
   const [price, setPrice] = useState("280000");
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState("");
+  const [note, setNote] = useState("");
 
-  const handleAdd = (e: React.FormEvent) => {
+  const isLoading = rulesLoading || locationsLoading;
+
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!locId) return;
     
-    addPriceRule({
-      locationId: locId,
-      pricePerTrip: parseInt(price),
-      startDate: date,
-      isActive: true
-    });
-    
-    setIsAddOpen(false);
-    toast({ title: "Rule Added" });
+    try {
+      await createPriceRule.mutateAsync({
+        locationId: locId,
+        pricePerTrip: parseInt(price),
+        startDate: date,
+        endDate: endDate || undefined,
+        note: note || undefined,
+        isActive: true
+      });
+      
+      setIsAddOpen(false);
+      setLocId("");
+      setPrice("280000");
+      setNote("");
+      setEndDate("");
+      toast({ title: "Pricing Rule Added" });
+    } catch (error: any) {
+      toast({ 
+        title: "Failed to add pricing rule", 
+        description: error?.message || "Unknown error",
+        variant: "destructive" 
+      });
+    }
   };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete pricing rule?')) return;
+    
+    try {
+      await deletePriceRule.mutateAsync(id);
+      toast({ title: "Pricing rule deleted" });
+    } catch (error) {
+      toast({ title: "Failed to delete pricing rule", variant: "destructive" });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="flex items-center justify-between">
+          <div>
+            <Skeleton className="h-9 w-48" />
+            <Skeleton className="h-5 w-64 mt-2" />
+          </div>
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map(i => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="w-10 h-10 rounded-full" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-6 w-28" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                  </div>
+                  <Skeleton className="w-9 h-9" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-slate-900">Pricing Rules</h2>
-          <p className="text-slate-500 mt-1">Configure base prices per location.</p>
+          <h2 className="text-3xl font-bold tracking-tight text-foreground" data-testid="text-page-title">Pricing Rules</h2>
+          <p className="text-muted-foreground mt-1">Configure base prices per location.</p>
         </div>
         
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-emerald-600 hover:bg-emerald-700">
+            <Button data-testid="button-add-rule">
               <Plus className="w-4 h-4 mr-2" />
               Add Rule
             </Button>
@@ -56,7 +122,7 @@ export default function Pricing() {
               <div className="space-y-2">
                 <Label>Location</Label>
                 <Select value={locId} onValueChange={setLocId}>
-                  <SelectTrigger>
+                  <SelectTrigger data-testid="select-location">
                     <SelectValue placeholder="Select location" />
                   </SelectTrigger>
                   <SelectContent>
@@ -74,62 +140,118 @@ export default function Pricing() {
                   value={price} 
                   onChange={e => setPrice(e.target.value)}
                   step={5000}
+                  data-testid="input-price"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Start Date</Label>
+                  <Input 
+                    type="date" 
+                    value={date} 
+                    onChange={e => setDate(e.target.value)}
+                    data-testid="input-start-date"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>End Date (Optional)</Label>
+                  <Input 
+                    type="date" 
+                    value={endDate} 
+                    onChange={e => setEndDate(e.target.value)}
+                    data-testid="input-end-date"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
-                <Label>Start Date</Label>
+                <Label>Note (Optional)</Label>
                 <Input 
-                  type="date" 
-                  value={date} 
-                  onChange={e => setDate(e.target.value)}
+                  value={note} 
+                  onChange={e => setNote(e.target.value)}
+                  placeholder="Additional notes..."
+                  data-testid="input-note"
                 />
               </div>
 
-              <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700">Save Rule</Button>
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={createPriceRule.isPending || !locId}
+                data-testid="button-submit-rule"
+              >
+                {createPriceRule.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Save Rule
+              </Button>
             </form>
           </DialogContent>
         </Dialog>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {priceRules.map(rule => {
-          const locName = locations.find(l => l.id === rule.locationId)?.name || 'Unknown';
-          
-          return (
-            <Card key={rule.id} className="group hover:border-emerald-500/50 transition-all">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors">
-                      <Tags className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="text-sm text-slate-500 uppercase font-semibold">{locName}</div>
-                      <div className="font-bold text-xl font-mono text-slate-900">
-                        {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(rule.pricePerTrip)}
+        {priceRules.length === 0 ? (
+          <Card className="col-span-full">
+            <CardContent className="p-12 text-center">
+              <div className="flex flex-col items-center gap-2">
+                <Tags className="h-8 w-8 text-muted-foreground/50" />
+                <p className="text-muted-foreground" data-testid="text-no-rules">No pricing rules found. Add your first rule.</p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          priceRules.map(rule => {
+            const locName = locations.find(l => l.id === rule.locationId)?.name || 'Unknown';
+            const isActive = rule.isActive;
+            const today = new Date().toISOString().split('T')[0];
+            const isCurrentlyActive = isActive && 
+              rule.startDate <= today && 
+              (!rule.endDate || rule.endDate >= today);
+            
+            return (
+              <Card key={rule.id} data-testid={`card-rule-${rule.id}`} className="group hover:border-primary/50 transition-all">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                        <Tags className="w-5 h-5" />
                       </div>
-                      <div className="text-xs text-slate-400 mt-1">
-                        Effective: {rule.startDate}
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground uppercase font-semibold">{locName}</span>
+                          {isCurrentlyActive && (
+                            <Badge variant="secondary" className="text-xs">Active</Badge>
+                          )}
+                        </div>
+                        <div className="font-bold text-xl font-mono text-foreground">
+                          {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(rule.pricePerTrip)}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          From: {rule.startDate}
+                          {rule.endDate && ` to ${rule.endDate}`}
+                        </div>
+                        {rule.note && (
+                          <div className="text-xs text-muted-foreground mt-1">{rule.note}</div>
+                        )}
                       </div>
                     </div>
+                    
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => handleDelete(rule.id)}
+                      disabled={deletePriceRule.isPending}
+                      data-testid={`button-delete-${rule.id}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
-                  
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="text-slate-400 hover:text-red-500 hover:bg-red-50"
-                    onClick={() => {
-                      if(confirm('Delete rule?')) deletePriceRule(rule.id);
-                    }}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+                </CardContent>
+              </Card>
+            );
+          })
+        )}
       </div>
     </div>
   );
