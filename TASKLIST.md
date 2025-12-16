@@ -18,79 +18,28 @@
 - [x] Implement Reports/Summary endpoint with date presets
 - [x] Implement App Settings endpoints (default location)
 
-## Frontend - Connect to API (Replace Zustand Mock Store)
-- [ ] Create API hooks for locations (useLocations, useLocation)
-- [ ] Create API hooks for trucks (useTrucks, useTruck, useTruckSummary)
-- [ ] Create API hooks for price rules (usePriceRules, useResolvePrice)
-- [ ] Create API hooks for expense categories (useCategories)
-- [ ] Create API hooks for expenses (useExpenses, useExpenseSummary)
-- [ ] Create API hooks for sale trips (useSaleTrips, useSaleSummary)
-- [ ] Create API hooks for reports (useReportsSummary)
-- [ ] Create API hooks for app settings (useSettings, useDefaultLocation)
+## Frontend - API Hooks
+- [x] Create API hooks for locations (useLocations, useLocation, useCreateLocation, etc.)
+- [x] Create API hooks for trucks (useTrucks, useTruck, useTruckSummary, etc.)
+- [x] Create API hooks for price rules (usePriceRules, useResolvePrice, etc.)
+- [x] Create API hooks for expense categories (useExpenseCategories, etc.)
+- [x] Create API hooks for expenses (useExpenses, useExpenseSummary, etc.)
+- [x] Create API hooks for sale trips (useSaleTrips, useSaleSummary, etc.)
+- [x] Create API hooks for reports (useReportsSummary)
+- [x] Create API hooks for app settings (useDefaultLocation, useSetDefaultLocation)
 
-## Frontend - Sales Quick Log Page
-- [ ] Update Sales page to use API hooks instead of Zustand store
-- [ ] Add payment status select (PAID | PARTIAL | UNPAID)
-- [ ] Add paid amount input (editable for PARTIAL)
-- [ ] Add payment method select (CASH | TRANSFER | QRIS | OTHER)
-- [ ] Add note input field
-- [ ] Show total trips counter for selected date/location
-- [ ] Implement price resolution from API
-- [ ] Reset form after successful submission
+## Frontend - Pages Using Real API
+- [x] Dashboard page - uses real API hooks
+- [x] Sales Quick Log page - uses real API hooks  
+- [x] Sales History page - uses real API hooks
 
-## Frontend - Sales History Page
-- [ ] Update to use API hooks
-- [ ] Add date range filter
-- [ ] Add location filter
-- [ ] Add plate number filter
-- [ ] Add payment status filter
-- [ ] Add outstanding only toggle
-- [ ] Show edit dialog for updating trips
-- [ ] Show delete confirmation
-- [ ] Display outstanding amount column
+## Frontend - Pages Still Using Mock Store (Need Conversion)
+- [ ] Expenses page - convert from Zustand to API hooks
+- [ ] Trucks page - convert from Zustand to API hooks
+- [ ] Locations page - convert from Zustand to API hooks
+- [ ] Pricing Rules page - convert from Zustand to API hooks
 
-## Frontend - Expenses Page
-- [ ] Update to use API hooks
-- [ ] Add date range filter (default: today)
-- [ ] Add location filter
-- [ ] Add category filter
-- [ ] Add type filter (OPERATIONAL | PAYABLE | LOAN)
-- [ ] Show create/edit modal
-- [ ] Add inline category creation button
-- [ ] Block DISCOUNT type selection in forms
-
-## Frontend - Trucks Page
-- [ ] Update to use API hooks
-- [ ] Show totalTrips for each truck
-- [ ] Add truck detail view with trip history
-- [ ] Add date range and location filters for trip history
-
-## Frontend - Locations Page
-- [ ] Update to use API hooks
-- [ ] Add set as default location button
-- [ ] Show default location indicator
-
-## Frontend - Pricing Rules Page
-- [ ] Update to use API hooks
-- [ ] Display active and future rules clearly
-- [ ] Show location name in rules list
-
-## Frontend - Dashboard Page
-- [ ] Update to use API hooks with reports/summary endpoint
-- [ ] Add location selector
-- [ ] Add time filter pills (Today, Yesterday, This Week, This Month, Last Month)
-- [ ] Show all KPI cards:
-  - Total Trips
-  - Gross Revenue
-  - Discounts Given
-  - Net Revenue
-  - Cash Collected
-  - Receivables Outstanding
-  - Operational Expenses
-  - Profit (cash-basis and accrual)
-- [ ] Ensure correct mobile ordering with Tailwind order-* utilities
-
-## Offline Mode & Sync
+## Offline Mode & Sync (Future Enhancement)
 - [ ] Install idb/localForage for IndexedDB
 - [ ] Create offline queue storage
 - [ ] Add online/offline detection hook

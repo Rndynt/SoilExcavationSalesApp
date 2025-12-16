@@ -1,0 +1,532 @@
+# Replit Agent Prompt — Soil Excavation Sales App  
+Quick Sales + Expenses + Receivables + Offline Sync + Reports
+
+You are a **multi-agent team** working on an existing TypeScript monorepo with:
+
+- **Backend**: Node.js + TypeScript + Fastify (or the current backend framework in this repo)
+- **Database**: PostgreSQL + Prisma
+- **Frontend**: React + TypeScript + Tailwind CSS + shadcn/ui
+- Possibly already some **existing app structure**: routes, pages, components, domain modules.
+
+Your goals:
+
+1. **Understand the existing app first** (VERY IMPORTANT).
+2. Implement and/or complete the soil excavation business features described here.
+3. Add a **task list markdown with checkboxes** and keep it updated.
+4. Work **fast and efficiently**, avoid duplicate implementation, and **do not waste tokens** in your responses.
+
+---
+
+## 0. Work Style & Multi-Agent Rules
+
+You are a team of sub-agents. Use them intelligently:
+
+- **Coordinator/Planner Agent**
+- **DB/Prisma Agent**
+- **Backend/API Agent**
+- **Frontend/UI Agent**
+- **QA/Docs Agent**
+
+**Global rules:**
+
+1. **Scan before coding**  
+   - Before implementing anything, the Coordinator must:
+     - Scan the repo structure.
+     - Find existing models, routes, services, hooks, components, and docs.
+     - Check for any existing implementation of similar features.
+     - Optionally glance at recent commit history if available.
+   - The Coordinator then produces a **short internal plan** and a **list of files to touch**. No long essays.
+
+2. **No double implementation**  
+   - If a feature or model already exists:
+     - **Reuse and extend** it.
+     - Do NOT create a second version of the same concept.
+     - Do NOT duplicate existing schemas or pages.
+   - Always adjust the **task list** before you start a new sub-task and mark items done only when fully implemented & tested.
+
+3. **Tasklist & Checklist (MANDATORY)**
+   - Create (or update) a markdown file at the root (or suitable docs folder), named e.g.:
+     - `TASKLIST.md` **or** `features_checklist.md` (if one already exists, reuse it).
+   - Structure:
+     - Group tasks by domain: `Sales`, `Expenses`, `Trucks`, `Locations`, `Pricing Rules`, `Dashboard`, `Offline/Sync`, `Receivables`, etc.
+     - Use GitHub-style checkboxes: `- [ ]` and `- [x]`.
+     - Include sub-tasks like “DB schema”, “API”, “UI”, “Offline integration”, “Tests”.
+   - Every time you complete a feature, update this file and check the relevant box.
+
+4. **Response style**
+   - Keep responses **short and to the point**:
+     - Mention files changed.
+     - Mention how to run migrations/seed/dev.
+     - Mention key tests to run.
+   - Avoid long explanations and theory.
+
+---
+
+## 1. Business Model (Must Be Followed)
+
+We run an **excavation project** producing soil ("tanah").  
+**Dump trucks are customers** who **buy our soil** and transport it to brick/paving factories.
+
+- Dump truck drivers are **not our employees**.
+- There is **no "driver salary" expense**.
+- If a driver doesn’t pay or pays partially, that is **customer debt / receivable (piutang)**, NOT an expense.
+
+All features must reflect this model.
+
+---
+
+## 2. Core Feature Scope (High Level)
+
+We need these key areas:
+
+1. **Sales / Quick Log page** (core screen used in the field)
+2. **Sales History** (filterable list + editing)
+3. **Expenses** (FULL CRUD)
+4. **Expense Categories** (CRUD + inline add)
+5. **Trucks/Customers** (CRUD + trip history + total trips)
+6. **Locations** (CRUD + default selection)
+7. **Pricing Rules** (per location + date range)
+8. **Receivables (Piutang)** (via Sales; optional dedicated page)
+9. **Dashboard** (filters: today, yesterday, this week, this month, last month)
+10. **Offline Mode + Sync** (for Sales + Expenses at minimum)
+
+---
+
+## 3. Data Model (DB/Prisma Agent)
+
+Follow existing naming if similar models exist. Otherwise, implement using these shapes (adapt to repo):
+
+### Location
+- `id`
+- `name`
+- `note?`
+- `isActive`
+
+### UserPreference / AppSetting
+- `id`
+- `userId?` (if multi-user)
+- `defaultLocationId`
+
+### TruckCustomer (or Truck)
+- `id`
+- `plateNumber` (unique)
+- `contactName?`
+- `contactPhone?`
+- `note?`
+- `isActive?`
+
+### PriceRule
+- `id`
+- `locationId`
+- `pricePerTrip` `INT` (IDR)
+- `startDate` (DATE)
+- `endDate?` (DATE, nullable)
+- `note?`
+- `isActive?`
+
+### SaleTrip
+Each record = **one trip / one dump truck entry**.
+
+- `id`
+- `locationId`
+- `transDate` (DATE)
+- `plateNumber` **or** `truckId` (follow existing pattern)
+- `basePrice` `INT` (snapshot from PriceRule at that date + location)
+- `appliedPrice` `INT` (actual price after +/-)
+- `paymentStatus` ENUM: `PAID | PARTIAL | UNPAID`
+- `paidAmount` `INT`
+- `paymentMethod` ENUM: `CASH | TRANSFER | QRIS | OTHER` (nullable)
+- `note?` (user-entered note in Sales page)
+- `clientId?` (string, for offline idempotency)
+- `clientCreatedAt?` (timestamp, for offline idempotency)
+- `createdAt`
+
+### ExpenseCategory
+- `id`
+- `name` (unique)
+- `type` ENUM: `OPERATIONAL | PAYABLE | LOAN | DISCOUNT`
+- `isActive`
+- `isSystem` BOOLEAN (true for DISCOUNT system category)
+
+> **OPERATIONAL**: our real project costs (fuel, wages for our team, maintenance, etc.)  
+> **PAYABLE**: supplier debts (optional).  
+> **LOAN**: loans we took (optional).  
+> **DISCOUNT**: auto-created discount from sales; **not selectable manually.**
+
+### Expense
+- `id`
+- `locationId`
+- `expenseDate` (DATE)
+- `amount` `INT`
+- `categoryId`
+- `note?`
+- `saleTripId?` (nullable; used for DISCOUNT linkage)
+- `relatedPlateNumber?` (optional; for display)
+- `clientId?` / `clientCreatedAt?` (optional, for offline idempotency)
+
+### Constraints / Idempotency
+- Ensure exactly one DISCOUNT Expense per SaleTrip:
+  - e.g. `@@unique([saleTripId, categoryId])` where `saleTripId` not null.
+- If you add idempotency keys:
+  - `@@unique([clientId, clientCreatedAt])` per table (or similar).
+
+### Seed Data (minimal)
+- System category:
+  - name: `"Discount"`, `type=DISCOUNT`, `isSystem=true`, `isActive=true`.
+- Example operational categories (no driver salary):
+  - `"Excavator Fuel (Diesel)"` type=OPERATIONAL
+  - `"Excavator Operator Wage"` type=OPERATIONAL
+  - `"Helpers/Labor Wage"` type=OPERATIONAL
+  - `"Night Guard / Security"` type=OPERATIONAL
+  - `"Equipment Maintenance"` type=OPERATIONAL
+- At least one Location for development.
+
+---
+
+## 4. Backend Logic & APIs (Backend/API Agent)
+
+Follow existing patterns: validation (zod or similar), error handling, transactions.
+
+### Price Resolution
+- On SaleTrip creation:
+  - Resolve `basePrice` from active PriceRule using `(locationId, transDate)`.
+  - If no rule found, fallback to default `280000` (and log/warn, not crash).
+
+### Discount Sync: `syncDiscountExpenseForSaleTrip(tripId)`
+- Load SaleTrip: `locationId, transDate, plateNumber/truckId, basePrice, appliedPrice`.
+- `discount = max(0, basePrice - appliedPrice)`.
+- Get DISCOUNT category.
+- Transaction:
+  - Find existing Expense where `saleTripId=tripId AND categoryId=discountCategoryId`.
+  - If `discount > 0`: upsert (create or update) the Expense:
+    - `amount = discount`
+    - `expenseDate = transDate`
+    - `locationId`
+    - `relatedPlateNumber = plateNumber` (if you store it)
+    - `note = "Auto discount for SaleTrip <id>"`
+  - If `discount == 0`: delete that Expense (or set amount=0) — choose consistent behavior.
+
+### SaleTrip Endpoints
+
+**POST `/api/sale-trips`**
+
+- Body:
+  - `locationId`
+  - `transDate`
+  - `plateNumber` (or `truckId`)
+  - `appliedPrice?`
+  - `paymentStatus?` (PAID | PARTIAL | UNPAID)
+  - `paidAmount?`
+  - `paymentMethod?`
+  - `note?`
+  - `clientId?`, `clientCreatedAt?` (for offline idempotency)
+- Logic:
+  - Resolve `basePrice` from PriceRule.
+  - `appliedPrice` default = `basePrice` if not provided.
+  - Apply payment rules:
+    - if `paymentStatus` missing → default `PAID`.
+    - if `PAID` and `paidAmount` missing → `paidAmount = appliedPrice`.
+    - if `UNPAID` → `paidAmount = 0`.
+    - if `PARTIAL` → require `0 < paidAmount < appliedPrice`.
+  - Validate `0 <= paidAmount <= appliedPrice`.
+  - Handle idempotency if client keys are present.
+  - Create SaleTrip.
+  - Call `syncDiscountExpenseForSaleTrip(tripId)`.
+  - Return SaleTrip with computed fields (including discount if any).
+
+**PATCH `/api/sale-trips/:id`**
+
+- Allow updates to:
+  - `appliedPrice`, `paymentStatus`, `paidAmount`, `paymentMethod`, `note`, `transDate`, `plateNumber` if needed.
+- Re-run validation rules for payments.
+- Call `syncDiscountExpenseForSaleTrip(tripId)`.
+
+**GET `/api/sale-trips`**
+- Query filters:
+  - `locationId`
+  - `dateFrom`, `dateTo`
+  - `plateNumber`
+  - `paymentStatus`
+  - `outstandingOnly` (if true, only trips where `appliedPrice > paidAmount`)
+- Include computed `outstandingAmount`.
+
+**GET `/api/sale-trips/summary`**
+- Params: `locationId`, `dateFrom`, `dateTo`
+- Returns:
+  - `totalTrips`
+  - `grossRevenue` (sum basePrice)
+  - `discountTotal` (sum DISCOUNT expenses in that range)
+  - `netRevenue` (grossRevenue - discountTotal)
+  - `cashCollected` (sum paidAmount)
+  - `receivablesOutstanding` (sum outstandingAmount)
+
+**DELETE `/api/sale-trips/:id`**
+- Delete linked DISCOUNT expense first (or via cascade), then delete the SaleTrip.
+
+### Expense Endpoints (FULL CRUD)
+
+**POST `/api/expenses`**
+- Body: `locationId`, `expenseDate`, `categoryId`, `amount`, `note?`, `clientId?`, `clientCreatedAt?`.
+- Reject if category type = DISCOUNT (manual creation not allowed).
+- Handle idempotency keys if present.
+
+**GET `/api/expenses`**
+- Filters: `locationId`, `dateFrom`, `dateTo`, `categoryId`, `type`.
+
+**GET `/api/expenses/:id`**
+
+**PATCH `/api/expenses/:id`**
+- Allow editing `expenseDate`, `categoryId` (non-DISCOUNT), `amount`, `note`.
+- Do not allow changing to DISCOUNT.
+
+**DELETE `/api/expenses/:id`**
+- For DISCOUNT linked to SaleTrip, either:
+  - Disallow manual delete; or
+  - Allow only via specific logic. Choose one consistent rule and document it.
+
+**GET `/api/expenses/summary`**
+- Input: `locationId`, `dateFrom`, `dateTo`
+- Output: `operationalExpensesTotal` (+ optional breakdown by category).
+
+### ExpenseCategory Endpoints
+
+- `POST /api/expense-categories`:
+  - Create category with type in `OPERATIONAL | PAYABLE | LOAN`.
+  - DISCOUNT is system-only; do not create via API.
+- `GET /api/expense-categories`:
+  - List active categories.
+- `PATCH /api/expense-categories/:id`:
+  - Edit `name`, `isActive`.
+  - DISCOUNT system category is read-only.
+- Soft delete (isActive=false) if deletion is needed.
+
+### Truck/Customer Endpoints
+
+- `GET /api/trucks?search=query`:
+  - For plate autocomplete.
+- CRUD: `POST`, `GET`, `PATCH`, `DELETE (soft)`.
+- `GET /api/trucks/:id/summary`:
+  - Optional filters: `dateFrom`, `dateTo`, `locationId`.
+  - Returns `totalTrips` (+ optional totals).
+- `GET /api/trucks/:id/trips`:
+  - List trips for that truck with filters.
+
+### Location & Preferences
+
+- Location CRUD.
+- Endpoint to get/set default location (for the current user or globally).
+
+### Reporting / Dashboard API
+
+**GET `/api/reports/summary`**
+
+- Inputs:
+  - `locationId`
+  - Either:
+    - `preset=TODAY|YESTERDAY|THIS_WEEK|THIS_MONTH|LAST_MONTH`, or
+    - `dateFrom` + `dateTo`.
+- Returns KPIs (used by Dashboard) including:
+  - `totalTrips`
+  - `grossRevenue`
+  - `discountTotal`
+  - `netRevenue`
+  - `cashCollected`
+  - `receivablesOutstanding`
+  - `operationalExpenses`
+  - `profitCashBasis`
+  - `profitAccrualLike`
+
+---
+
+## 5. Frontend / UI (Frontend/UI Agent)
+
+Use existing layout and routing. Prefer composable components and reusing existing tables/inputs.
+
+### Offline & Sync UX
+
+- Implement offline using IndexedDB (idb / localForage) or existing abstraction if already present.
+- Features:
+  - Detect online/offline (`navigator.onLine`, `window` events).
+  - When offline:
+    - Allow **creating SaleTrip** and **creating Expense**.
+    - Queue up writes with `clientId` + `clientCreatedAt`.
+    - Show "Pending" badge in lists.
+  - When online:
+    - Automatic sync of queue.
+  - Add a **manual Sync button** (refresh icon) in a global header or relevant pages:
+    - States: `Offline`, `Pending n`, `Syncing...`, `Synced at HH:mm`, `Error`.
+- After successful sync:
+  - Replace local pending items with server-confirmed records.
+
+### Sales Quick Log Page
+
+- Controls:
+  - Location selector (default = user’s default location).
+  - Date picker (default = today).
+  - Plate input with autocomplete.
+  - **Note input (optional)** before Log Trip button.
+- Price area:
+  - Display basePrice from server.
+  - Show appliedPrice prominently.
+  - Buttons: `- 5k` and `+ 5k` to adjust appliedPrice.
+  - Ensure appliedPrice never goes below 0.
+  - Show discount indicator when basePrice > appliedPrice.
+- Payment area:
+  - Select `paymentStatus`: PAID | PARTIAL | UNPAID.
+  - `paidAmount` behavior:
+    - Auto = appliedPrice when PAID.
+    - 0 when UNPAID.
+    - Editable when PARTIAL, 0 < paidAmount < appliedPrice.
+  - `paymentMethod` select when paidAmount > 0.
+  - Show computed `outstandingAmount`.
+- Actions:
+  - `Log Trip` button:
+    - If online: call `POST /api/sale-trips`.
+    - If offline: enqueue into offline queue with `clientId/clientCreatedAt`.
+    - Reset plate, note, and appliedPrice to basePrice; reset paymentStatus to PAID.
+- Summary for the selected date + location:
+  - Show **Total Trips (rit)** using `/api/sale-trips/summary`.
+  - Optional summary: daily gross/net/cash.
+
+### Sales History Page
+
+- Filters:
+  - Date range
+  - Location
+  - Plate
+  - PaymentStatus
+  - Outstanding only toggle
+- Table:
+  - Columns: date, plate, basePrice, appliedPrice, paidAmount, outstanding, discount badge, note, actions.
+- Actions:
+  - Edit: update price, payment, note.
+  - Delete sale (with confirmation).
+
+### Expenses Page
+
+- Filters:
+  - Date range (default: today)
+  - Location
+  - Category
+  - Type (OPERATIONAL / PAYABLE / LOAN; DISCOUNT optionally visible via toggle but read-only)
+- Table:
+  - Columns: date, category, type, amount, note, actions.
+- Create/Edit modal:
+  - expenseDate
+  - category select (no DISCOUNT)
+  - amount
+  - note
+  - Inline “Add Category” button:
+    - Opens modal: `name`, `type (OPERATIONAL | PAYABLE | LOAN)`.
+    - On success, refresh category list and select the new one.
+
+### Expense Categories Page
+
+- List: name, type, active switch.
+- DISCOUNT system category displayed clearly but read-only.
+
+### Trucks/Customers Page
+
+- List:
+  - plateNumber
+  - contactName
+  - contactPhone
+  - **totalTrips**
+- Detail view:
+  - filters for date range + location
+  - trip history table
+  - optional summary: totalTrips, gross/net, cash & receivables for this truck.
+
+### Locations & Pricing Rules
+
+- Locations page:
+  - CRUD, set default location.
+- Pricing Rules page:
+  - Create/edit/delete rules per location.
+  - Display active and future rules clearly.
+
+### Dashboard Page
+
+- Controls:
+  - Location selector.
+  - Time filter pills:
+    - Today
+    - Yesterday
+    - This Week
+    - This Month
+    - Last Month
+  - (Optional) Custom date range picker.
+- Data:
+  - Fetch via `/api/reports/summary`.
+- KPI cards (make sure **mobile order is correct**):
+  1. **Total Trips**
+  2. **Gross Revenue**
+  3. **Discounts**
+  4. **Net Revenue**
+  5. **Cash Collected**
+  6. **Receivables Outstanding**
+  7. **Operational Expenses**
+  8. **Profit** (which can display both cash-basis and accrual-like)
+- Use Tailwind `order-*` utilities or similar to ensure correct stacking on mobile.
+- Optional graphs:
+  - Trips per day
+  - Revenue per day
+  - Expenses by category
+
+---
+
+## 6. QA & Docs (QA/Docs Agent)
+
+### Minimum Tests
+
+- Migrations apply successfully; app starts.
+- Sales:
+  - Create trip at basePrice: no discount expense.
+  - Adjust appliedPrice down: discount expense created once.
+  - Change appliedPrice multiple times: discount expense amount updates (no duplicate rows).
+  - Reset appliedPrice to basePrice: discount expense removed.
+- Receivables:
+  - UNPAID → paidAmount=0, outstanding=appliedPrice.
+  - PARTIAL accepted only when 0 < paidAmount < appliedPrice.
+- Expenses:
+  - Operational expense create/edit/delete works.
+  - Cannot manually create DISCOUNT expense.
+- Dashboard:
+  - Time filters (Today / Yesterday / This Week / This Month / Last Month) correctly change:
+    - totalTrips
+    - revenue, discounts, net, cash, receivables, expenses, profit.
+  - KPI ordering is correct on mobile.
+- Trucks:
+  - totalTrips for a plate shown correctly.
+  - Trip history filters work.
+- Offline:
+  - With connection off:
+    - Can create SaleTrip & Expense (appear as pending).
+  - Turn connection on + click Sync:
+    - Pending entries synced to backend.
+    - Pending badge cleared; IDs updated.
+
+### Docs
+
+- Update / create short docs:
+  - Business model (drivers are customers).
+  - Data model overview.
+  - Accounting logic (basePrice vs appliedPrice, DISCOUNT expense, receivables).
+  - Offline mode behavior & manual sync.
+  - How to run migrations, seeds, and dev server.
+  - Link and explain `TASKLIST.md` / `features_checklist.md` usage.
+
+---
+
+## 7. Final Delivery
+
+Keep your final messages **concise and practical**:
+- List **files changed**.
+- Commands to run migrations, seed, and start dev.
+- Point to `TASKLIST.md` and mention which items are completed.
+- Short reminder of what to test.
+
+Now:
+1. Scan the repo and existing implementation.
+2. Update/create `TASKLIST.md` with grouped checklists for all features above.
+3. Implement the features end-to-end using sub-agents, avoiding duplicate work.
