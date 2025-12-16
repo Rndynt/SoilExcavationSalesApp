@@ -7,13 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tags, Plus, Trash2, Loader2 } from "lucide-react";
+import { Tags, Plus, Trash2, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 
 export default function Pricing() {
-  const { data: priceRules = [], isLoading: rulesLoading } = usePriceRules();
-  const { data: locations = [], isLoading: locationsLoading } = useLocations();
+  const { data: priceRules = [], isLoading: rulesLoading, isError: rulesError, error: rulesErrorObj, refetch: refetchRules } = usePriceRules();
+  const { data: locations = [], isLoading: locationsLoading, isError: locationsError, error: locationsErrorObj, refetch: refetchLocations } = useLocations();
   const createPriceRule = useCreatePriceRule();
   const deletePriceRule = useDeletePriceRule();
 
@@ -25,6 +25,12 @@ export default function Pricing() {
   const [note, setNote] = useState("");
 
   const isLoading = rulesLoading || locationsLoading;
+  const isError = rulesError || locationsError;
+
+  const handleRefresh = () => {
+    refetchRules();
+    refetchLocations();
+  };
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,6 +101,34 @@ export default function Pricing() {
             </Card>
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight text-foreground">Pricing Rules</h2>
+            <p className="text-muted-foreground mt-1">Configure base prices per location.</p>
+          </div>
+        </div>
+        <Card className="border-destructive/50">
+          <CardContent className="p-12 text-center">
+            <div className="flex flex-col items-center gap-4">
+              <AlertCircle className="h-10 w-10 text-destructive" />
+              <div>
+                <p className="text-foreground font-medium" data-testid="text-error">Failed to load pricing rules</p>
+                <p className="text-sm text-muted-foreground mt-1">{(rulesErrorObj as Error)?.message || (locationsErrorObj as Error)?.message || "Please try again"}</p>
+              </div>
+              <Button variant="outline" onClick={handleRefresh} data-testid="button-retry">
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Retry
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
