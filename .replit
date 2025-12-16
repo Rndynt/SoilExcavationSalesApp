@@ -9,7 +9,7 @@ channel = "stable-25_05"
 deploymentTarget = "autoscale"
 build = ["npm", "run", "build"]
 publicDir = "dist/public"
-run = ["npm", "run", "start"]
+run = ["node", "./dist/index.cjs"]
 
 [[ports]]
 localPort = 5000
@@ -34,13 +34,13 @@ args = "Start application"
 name = "Start application"
 author = "agent"
 
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
-
-[workflows.workflow.metadata]
-outputType = "webview"
 
 [agent]
 mockupState = "FULLSTACK"
