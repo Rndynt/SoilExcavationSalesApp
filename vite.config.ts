@@ -4,6 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 import { metaImagesPlugin } from "./vite-plugin-meta-images";
+import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
   plugins: [
@@ -11,6 +12,55 @@ export default defineConfig({
     runtimeErrorOverlay(),
     tailwindcss(),
     metaImagesPlugin(),
+    VitePWA({
+      registerType: "autoUpdate",
+      includeAssets: ["icons/icon-192.png", "icons/icon-512.png"],
+      manifest: {
+        name: "LogiTrack - Excavation Sales",
+        short_name: "LogiTrack",
+        description: "Soil excavation sales and expense tracking app",
+        start_url: "/",
+        display: "standalone",
+        background_color: "#0f172a",
+        theme_color: "#10b981",
+        orientation: "portrait-primary",
+        icons: [
+          {
+            src: "/icons/icon-192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "any maskable"
+          },
+          {
+            src: "/icons/icon-512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any maskable"
+          }
+        ],
+        categories: ["business", "finance", "productivity"]
+      },
+      workbox: {
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/.*\/api\/.*/i,
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "api-cache",
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24
+              },
+              networkTimeoutSeconds: 10
+            }
+          }
+        ]
+      },
+      devOptions: {
+        enabled: true
+      }
+    }),
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [

@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/components/ui/sheet";
+import { SyncButton } from "@/components/SyncButton";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -59,9 +60,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <NavContent />
         </div>
 
-        <div className="p-4 border-t border-slate-800 text-xs text-slate-500">
-          <p>Mockup Mode Active</p>
-          <p className="mt-1">v0.2.0-beta</p>
+        <div className="p-4 border-t border-slate-800">
+          <div className="flex items-center justify-between mb-2">
+            <SyncButton />
+            <span className="text-xs text-slate-500">Sync Status</span>
+          </div>
+          <p className="text-xs text-slate-500">v0.2.0-beta</p>
         </div>
       </aside>
 
@@ -76,7 +80,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <span className="text-lg font-bold text-white tracking-tight">LogiTrack</span>
           </div>
           
-          <Sheet open={open} onOpenChange={setOpen}>
+          <div className="flex items-center gap-2">
+            <SyncButton />
+            <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="text-slate-300 hover:bg-slate-800 hover:text-white">
                 <Menu className="h-6 w-6" />
@@ -100,6 +106,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </div>
             </SheetContent>
           </Sheet>
+          </div>
         </header>
 
         {/* Main Scrollable Content */}

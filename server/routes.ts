@@ -401,6 +401,18 @@ export async function registerRoutes(
   app.post("/api/expenses", async (req: Request, res: Response) => {
     try {
       const data = insertExpenseSchema.parse(req.body);
+      
+      // Idempotency check for offline sync
+      if (data.clientId && data.clientCreatedAt) {
+        const existing = await storage.getExpenseByClientId(
+          data.clientId,
+          data.clientCreatedAt.toISOString ? data.clientCreatedAt.toISOString() : String(data.clientCreatedAt)
+        );
+        if (existing) {
+          return res.status(200).json(existing);
+        }
+      }
+      
       const category = await storage.getCategory(data.categoryId);
       if (!category) {
         return res.status(400).json({ message: "Invalid category" });
@@ -510,6 +522,17 @@ export async function registerRoutes(
   app.post("/api/sale-trips", async (req: Request, res: Response) => {
     try {
       const data = insertSaleTripSchema.parse(req.body);
+      
+      // Idempotency check for offline sync
+      if (data.clientId && data.clientCreatedAt) {
+        const existing = await storage.getSaleTripByClientId(
+          data.clientId,
+          data.clientCreatedAt.toISOString ? data.clientCreatedAt.toISOString() : String(data.clientCreatedAt)
+        );
+        if (existing) {
+          return res.status(200).json(existing);
+        }
+      }
       
       let basePrice = data.basePrice;
       if (!basePrice) {

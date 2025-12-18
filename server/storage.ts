@@ -75,10 +75,13 @@ export interface IStorage {
 
   getSaleTrips(filters?: SaleTripFilters): Promise<SaleTrip[]>;
   getSaleTrip(id: string): Promise<SaleTrip | undefined>;
+  getSaleTripByClientId(clientId: string, clientCreatedAt: string): Promise<SaleTrip | undefined>;
   createSaleTrip(saleTrip: InsertSaleTrip): Promise<SaleTrip>;
   updateSaleTrip(id: string, saleTrip: Partial<InsertSaleTrip>): Promise<SaleTrip | undefined>;
   deleteSaleTrip(id: string): Promise<boolean>;
   syncDiscountExpenseForSaleTrip(tripId: string): Promise<void>;
+  
+  getExpenseByClientId(clientId: string, clientCreatedAt: string): Promise<Expense | undefined>;
 
   getDefaultLocation(): Promise<string | null>;
   setDefaultLocation(locationId: string | null): Promise<void>;
@@ -331,6 +334,26 @@ export class DatabaseStorage implements IStorage {
 
   async getSaleTrip(id: string): Promise<SaleTrip | undefined> {
     const result = await db.select().from(saleTrips).where(eq(saleTrips.id, id));
+    return result[0];
+  }
+
+  async getSaleTripByClientId(clientId: string, clientCreatedAt: string): Promise<SaleTrip | undefined> {
+    const result = await db.select().from(saleTrips).where(
+      and(
+        eq(saleTrips.clientId, clientId),
+        eq(saleTrips.clientCreatedAt, new Date(clientCreatedAt))
+      )
+    );
+    return result[0];
+  }
+
+  async getExpenseByClientId(clientId: string, clientCreatedAt: string): Promise<Expense | undefined> {
+    const result = await db.select().from(expenses).where(
+      and(
+        eq(expenses.clientId, clientId),
+        eq(expenses.clientCreatedAt, new Date(clientCreatedAt))
+      )
+    );
     return result[0];
   }
 
