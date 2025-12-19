@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocations, useTrucks, useResolvePrice, useDefaultLocation, useCreateSaleTrip, useSaleTrips } from "@/hooks/use-api";
+import { useLocations, useTrucks, useResolvePrice, useDefaultLocation, useCreateSaleTrip, useSaleTrips, useCreateTruck } from "@/hooks/use-api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -61,6 +61,7 @@ export default function Sales() {
   });
 
   const createTrip = useCreateSaleTrip();
+  const createTruck = useCreateTruck();
 
   const handleLocationChange = (val: string) => {
     setLocationId(val);
@@ -98,10 +99,34 @@ export default function Sales() {
     }
 
     try {
+      const upperPlate = plate.toUpperCase();
+      
+      // Check if truck with this plate already exists
+      const truckExists = trucks?.some(t => t.plateNumber.toUpperCase() === upperPlate);
+      
+      // If truck doesn't exist, create it automatically
+      if (!truckExists) {
+        try {
+          await createTruck.mutateAsync({
+            plateNumber: upperPlate,
+            isActive: true,
+          });
+          toast({ 
+            title: "New truck created", 
+            description: `Truck ${upperPlate} has been registered.`
+          });
+        } catch (truckError) {
+          // If truck creation fails due to duplicate (race condition), continue anyway
+          if (!String(truckError).includes("already exists")) {
+            throw truckError;
+          }
+        }
+      }
+
       await createTrip.mutateAsync({
         locationId,
         transDate: date,
-        plateNumber: plate.toUpperCase(),
+        plateNumber: upperPlate,
         basePrice,
         appliedPrice,
         paymentStatus,
@@ -112,7 +137,7 @@ export default function Sales() {
 
       toast({ 
         title: "Trip Logged", 
-        description: `Plate ${plate.toUpperCase()} - ${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(appliedPrice)}`
+        description: `Plate ${upperPlate} - ${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(appliedPrice)}`
       });
 
       setPlate("");
