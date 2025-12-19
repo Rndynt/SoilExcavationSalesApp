@@ -664,10 +664,19 @@ export async function registerRoutes(
         storage.getExpenseSummary(locationId as string | null, dateFrom, dateTo)
       ]);
       
+      const totalDiscounts = saleSummary.basePrice - saleSummary.totalRevenue;
+      
       res.json({
         dateFrom,
         dateTo,
-        sales: saleSummary,
+        sales: {
+          totalTrips: saleSummary.totalTrips,
+          grossRevenue: saleSummary.basePrice,
+          totalDiscounts: Math.max(0, totalDiscounts),
+          netRevenue: saleSummary.totalRevenue,
+          cashCollected: saleSummary.totalPaid,
+          receivables: saleSummary.totalUnpaid
+        },
         expenses: expenseSummary,
         netIncome: saleSummary.totalRevenue - expenseSummary.totalExpenses
       });

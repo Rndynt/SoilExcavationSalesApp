@@ -90,6 +90,7 @@ export interface IStorage {
   getSaleSummary(locationId: string | null, dateFrom: string, dateTo: string): Promise<{
     totalTrips: number;
     totalRevenue: number;
+    basePrice: number;
     totalPaid: number;
     totalUnpaid: number;
   }>;
@@ -439,6 +440,7 @@ export class DatabaseStorage implements IStorage {
   async getSaleSummary(locationId: string | null, dateFrom: string, dateTo: string): Promise<{
     totalTrips: number;
     totalRevenue: number;
+    basePrice: number;
     totalPaid: number;
     totalUnpaid: number;
   }> {
@@ -453,6 +455,7 @@ export class DatabaseStorage implements IStorage {
 
     const result = await db.select({
       totalTrips: sql<number>`count(*)::int`,
+      basePrice: sql<number>`coalesce(sum(${saleTrips.basePrice}), 0)::int`,
       totalRevenue: sql<number>`coalesce(sum(${saleTrips.appliedPrice}), 0)::int`,
       totalPaid: sql<number>`coalesce(sum(${saleTrips.paidAmount}), 0)::int`,
     }).from(saleTrips).where(and(...conditions));
@@ -460,6 +463,7 @@ export class DatabaseStorage implements IStorage {
     const data = result[0];
     return {
       totalTrips: data?.totalTrips ?? 0,
+      basePrice: data?.basePrice ?? 0,
       totalRevenue: data?.totalRevenue ?? 0,
       totalPaid: data?.totalPaid ?? 0,
       totalUnpaid: (data?.totalRevenue ?? 0) - (data?.totalPaid ?? 0)
