@@ -96,6 +96,7 @@ export interface IStorage {
   }>;
   getExpenseSummary(locationId: string | null, dateFrom: string, dateTo: string): Promise<{
     totalExpenses: number;
+    totalOperational: number;
     byCategory: { categoryId: string; categoryName: string; total: number }[];
   }>;
   getTruckSummary(truckId: string, dateFrom?: string, dateTo?: string): Promise<{
@@ -472,6 +473,7 @@ export class DatabaseStorage implements IStorage {
 
   async getExpenseSummary(locationId: string | null, dateFrom: string, dateTo: string): Promise<{
     totalExpenses: number;
+    totalOperational: number;
     byCategory: { categoryId: string; categoryName: string; total: number }[];
   }> {
     let conditions = [
@@ -487,6 +489,13 @@ export class DatabaseStorage implements IStorage {
       total: sql<number>`coalesce(sum(${expenses.amount}), 0)::int`
     }).from(expenses).where(and(...conditions));
 
+    const operationalResult = await db.select({
+      total: sql<number>`coalesce(sum(${expenses.amount}), 0)::int`
+    })
+    .from(expenses)
+    .innerJoin(expenseCategories, eq(expenses.categoryId, expenseCategories.id))
+    .where(and(...conditions, eq(expenseCategories.type, 'OPERATIONAL')));
+
     const byCategory = await db.select({
       categoryId: expenses.categoryId,
       categoryName: expenseCategories.name,
@@ -499,6 +508,7 @@ export class DatabaseStorage implements IStorage {
 
     return {
       totalExpenses: totalResult[0]?.total ?? 0,
+      totalOperational: operationalResult[0]?.total ?? 0,
       byCategory: byCategory.map(c => ({
         categoryId: c.categoryId,
         categoryName: c.categoryName,

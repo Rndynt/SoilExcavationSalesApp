@@ -677,8 +677,12 @@ export async function registerRoutes(
           cashCollected: saleSummary.totalPaid,
           receivables: saleSummary.totalUnpaid
         },
-        expenses: expenseSummary,
-        netIncome: saleSummary.totalRevenue - expenseSummary.totalExpenses
+        expenses: {
+          totalExpenses: expenseSummary.totalExpenses,
+          totalOperational: expenseSummary.totalOperational,
+          byCategory: expenseSummary.byCategory
+        },
+        netIncome: saleSummary.totalRevenue - expenseSummary.totalOperational
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch report summary" });
