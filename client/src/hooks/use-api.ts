@@ -283,6 +283,7 @@ export function useCreateExpense() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/summary"] });
     },
   });
 }
@@ -296,6 +297,7 @@ export function useUpdateExpense() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/summary"] });
     },
   });
 }
@@ -308,6 +310,7 @@ export function useDeleteExpense() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/summary"] });
     },
   });
 }
@@ -373,8 +376,7 @@ export function useCreateSaleTrip() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/sale-trips"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/summary"] });
     },
   });
 }
@@ -399,8 +401,7 @@ export function useUpdateSaleTrip() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/sale-trips"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/summary"] });
     },
   });
 }
@@ -413,8 +414,7 @@ export function useDeleteSaleTrip() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/sale-trips"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/summary"] });
     },
   });
 }
