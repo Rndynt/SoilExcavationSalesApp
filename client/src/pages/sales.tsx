@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocations, useTrucks, useResolvePrice, useDefaultLocation, useCreateSaleTrip, useSaleTrips, useCreateTruck } from "@/hooks/use-api";
+import { useLocations, useTrucks, useResolvePrice, useDefaultLocation, useCreateSaleTrip, useSaleTrips, useCreateTruck, useUpdateSaleTrip, useDeleteSaleTrip } from "@/hooks/use-api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,13 +7,29 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
-import { Plus, Minus, Truck, Calendar, MapPin, ArrowRight, CreditCard, Loader2 } from "lucide-react";
+import { Plus, Minus, Truck, Calendar, MapPin, ArrowRight, CreditCard, Loader2, Edit, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
+
+interface SaleTrip {
+  id: string;
+  locationId: string;
+  transDate: string;
+  plateNumber: string;
+  basePrice: number;
+  appliedPrice: number;
+  paymentStatus: "PAID" | "PARTIAL" | "UNPAID";
+  paidAmount: number;
+  paymentMethod?: "CASH" | "TRANSFER" | "QRIS" | "OTHER";
+  note?: string;
+  createdAt?: string;
+}
 
 const STEP = 5000;
 
@@ -62,6 +78,12 @@ export default function Sales() {
 
   const createTrip = useCreateSaleTrip();
   const createTruck = useCreateTruck();
+  const updateTrip = useUpdateSaleTrip();
+  const deleteTrip = useDeleteSaleTrip();
+  
+  const [editingTrip, setEditingTrip] = useState<SaleTrip | null>(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const handleLocationChange = (val: string) => {
     setLocationId(val);
@@ -151,6 +173,44 @@ export default function Sales() {
 
   const discount = Math.max(0, basePrice - appliedPrice);
   const isDiscounted = discount > 0;
+
+  const handleEditTrip = (trip: SaleTrip) => {
+    setEditingTrip(trip);
+    setIsEditOpen(true);
+  };
+
+  const handleUpdateTrip = async () => {
+    if (!editingTrip) return;
+    try {
+      await updateTrip.mutateAsync({
+        id: editingTrip.id,
+        locationId: editingTrip.locationId,
+        transDate: editingTrip.transDate,
+        plateNumber: editingTrip.plateNumber,
+        basePrice: editingTrip.basePrice,
+        appliedPrice: editingTrip.appliedPrice,
+        paymentStatus: editingTrip.paymentStatus,
+        paidAmount: editingTrip.paidAmount,
+        paymentMethod: editingTrip.paymentMethod,
+        note: editingTrip.note,
+      });
+      setIsEditOpen(false);
+      setEditingTrip(null);
+      toast({ title: "Trip updated successfully" });
+    } catch (error) {
+      toast({ title: "Failed to update trip", description: String(error), variant: "destructive" });
+    }
+  };
+
+  const handleDeleteTrip = async (tripId: string) => {
+    try {
+      await deleteTrip.mutateAsync(tripId);
+      setDeleteConfirmId(null);
+      toast({ title: "Trip deleted successfully" });
+    } catch (error) {
+      toast({ title: "Failed to delete trip", description: String(error), variant: "destructive" });
+    }
+  };
 
   if (locationsLoading) {
     return (
@@ -426,18 +486,19 @@ export default function Sales() {
                   <th className="px-4 py-3 font-medium">Location</th>
                   <th className="px-4 py-3 font-medium text-right">Applied</th>
                   <th className="px-4 py-3 font-medium text-right">Status</th>
+                  <th className="px-4 py-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {tripsLoading ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center">
+                    <td colSpan={6} className="px-4 py-8 text-center">
                       <Loader2 className="h-6 w-6 animate-spin mx-auto" />
                     </td>
                   </tr>
                 ) : todayTrips?.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground italic">
+                    <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground italic">
                       No trips logged yet today.
                     </td>
                   </tr>
@@ -471,6 +532,28 @@ export default function Sales() {
                             </Badge>
                           )}
                         </td>
+                        <td className="px-4 py-3 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7"
+                              onClick={() => handleEditTrip(trip)}
+                              data-testid={`button-edit-trip-${trip.id}`}
+                            >
+                              <Edit className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 text-destructive hover:text-destructive"
+                              onClick={() => setDeleteConfirmId(trip.id)}
+                              data-testid={`button-delete-trip-${trip.id}`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </td>
                       </tr>
                     );
                   })
@@ -480,6 +563,126 @@ export default function Sales() {
           </div>
         </div>
       </div>
+
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Trip</DialogTitle>
+            <DialogDescription>Update the trip details</DialogDescription>
+          </DialogHeader>
+          {editingTrip && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs">Date</Label>
+                  <Input 
+                    type="date"
+                    value={editingTrip.transDate}
+                    onChange={e => setEditingTrip({...editingTrip, transDate: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">Plate</Label>
+                  <Input 
+                    value={editingTrip.plateNumber}
+                    onChange={e => setEditingTrip({...editingTrip, plateNumber: e.target.value.toUpperCase()})}
+                    placeholder="B 1234 XYZ"
+                    className="font-mono uppercase"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">Location</Label>
+                <Select value={editingTrip.locationId} onValueChange={locId => setEditingTrip({...editingTrip, locationId: locId})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {locations?.map(l => (
+                      <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-2">
+                  <Label className="text-xs">Base Price</Label>
+                  <Input 
+                    type="number"
+                    value={editingTrip.basePrice}
+                    onChange={e => setEditingTrip({...editingTrip, basePrice: parseInt(e.target.value) || 0})}
+                    className="font-mono"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">Applied Price</Label>
+                  <Input 
+                    type="number"
+                    value={editingTrip.appliedPrice}
+                    onChange={e => setEditingTrip({...editingTrip, appliedPrice: parseInt(e.target.value) || 0})}
+                    className="font-mono"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">Paid Amount</Label>
+                  <Input 
+                    type="number"
+                    value={editingTrip.paidAmount}
+                    onChange={e => setEditingTrip({...editingTrip, paidAmount: parseInt(e.target.value) || 0})}
+                    className="font-mono"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">Payment Status</Label>
+                <Select value={editingTrip.paymentStatus} onValueChange={s => setEditingTrip({...editingTrip, paymentStatus: s as "PAID" | "PARTIAL" | "UNPAID"})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PAID">Paid</SelectItem>
+                    <SelectItem value="PARTIAL">Partial</SelectItem>
+                    <SelectItem value="UNPAID">Unpaid</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">Note</Label>
+                <Textarea 
+                  value={editingTrip.note || ""}
+                  onChange={e => setEditingTrip({...editingTrip, note: e.target.value})}
+                  placeholder="Optional notes"
+                  className="resize-none"
+                />
+              </div>
+              <Button onClick={handleUpdateTrip} disabled={updateTrip.isPending} className="w-full">
+                {updateTrip.isPending ? "Updating..." : "Update Trip"}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={open => !open && setDeleteConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Trip</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this trip? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex gap-3 justify-end">
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => deleteConfirmId && handleDeleteTrip(deleteConfirmId)}
+              disabled={deleteTrip.isPending}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {deleteTrip.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
