@@ -9,14 +9,60 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { format } from "date-fns";
+import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays } from "date-fns";
 import { Receipt, Plus, Filter, Truck, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { useTranslate } from "@/hooks/use-translate";
+
+type TimePeriod = "TODAY" | "YESTERDAY" | "THIS_WEEK" | "THIS_MONTH" | "LAST_MONTH";
+
+const getDateRange = (period: TimePeriod): [string, string] => {
+  const now = new Date();
+  let start: Date;
+  let end: Date;
+
+  switch (period) {
+    case "TODAY":
+      start = startOfDay(now);
+      end = endOfDay(now);
+      break;
+    case "YESTERDAY":
+      const yesterday = subDays(now, 1);
+      start = startOfDay(yesterday);
+      end = endOfDay(yesterday);
+      break;
+    case "THIS_WEEK":
+      start = startOfWeek(now, { weekStartsOn: 0 });
+      end = endOfWeek(now, { weekStartsOn: 0 });
+      break;
+    case "THIS_MONTH":
+      start = startOfMonth(now);
+      end = endOfMonth(now);
+      break;
+    case "LAST_MONTH":
+      const lastMonth = subDays(now, 30);
+      start = startOfMonth(lastMonth);
+      end = endOfMonth(lastMonth);
+      break;
+  }
+
+  return [format(start, 'yyyy-MM-dd'), format(end, 'yyyy-MM-dd')];
+};
+
+const TIME_PRESETS: { value: TimePeriod; label: string }[] = [
+  { value: "TODAY", label: "dashboard.today" },
+  { value: "YESTERDAY", label: "dashboard.yesterday" },
+  { value: "THIS_WEEK", label: "dashboard.thisweek" },
+  { value: "THIS_MONTH", label: "dashboard.thismonth" },
+  { value: "LAST_MONTH", label: "dashboard.lastmonth" },
+];
 
 export default function Expenses() {
+  const t = useTranslate();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isAddCatOpen, setIsAddCatOpen] = useState(false);
+  const [period, setPeriod] = useState<TimePeriod>("THIS_MONTH");
 
   // Filters
   const [filterType, setFilterType] = useState("all");
@@ -44,11 +90,15 @@ export default function Expenses() {
   const isLoading = expensesLoading || categoriesLoading;
 
   // Filter Logic
+  const [dateFrom, dateTo] = getDateRange(period);
   const filteredExpenses = expenses.filter(e => {
     const cat = categories.find(c => c.id === e.categoryId);
     if (!cat) return false;
     
     if (filterType !== 'all' && cat.type !== filterType) return false;
+    
+    // Filter by date range
+    if (e.expenseDate < dateFrom || e.expenseDate > dateTo) return false;
     
     return true;
   }).sort((a,b) => new Date(b.expenseDate).getTime() - new Date(a.expenseDate).getTime());
@@ -123,15 +173,15 @@ export default function Expenses() {
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-foreground" data-testid="text-page-title">Expenses</h2>
-          <p className="text-muted-foreground mt-1">Operational costs and price adjustments.</p>
+          <h2 className="text-3xl font-bold tracking-tight" data-testid="text-page-title">{t('expenses.title')}</h2>
+          <p className="text-muted-foreground mt-1">{t('expenses.subtitle')}</p>
         </div>
 
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
           <DialogTrigger asChild>
             <Button data-testid="button-add-expense">
               <Plus className="w-4 h-4 mr-2" />
-              Add Expense
+              {t('expenses.addexpense')}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md">
@@ -265,6 +315,20 @@ export default function Expenses() {
             </form>
           </DialogContent>
         </Dialog>
+      </div>
+
+      <div className="flex items-center gap-2 flex-wrap">
+        {TIME_PRESETS.map(p => (
+          <Button
+            key={p.value}
+            variant={period === p.value ? "default" : "outline"}
+            size="sm"
+            onClick={() => setPeriod(p.value)}
+            data-testid={`button-preset-${p.value.toLowerCase()}`}
+          >
+            {t(p.label)}
+          </Button>
+        ))}
       </div>
 
       <Card className="border-border shadow-sm">
