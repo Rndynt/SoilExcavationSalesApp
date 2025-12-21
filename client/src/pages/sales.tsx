@@ -533,24 +533,26 @@ export default function Sales() {
                           )}
                         </td>
                         <td className="px-4 py-3 text-right whitespace-nowrap">
-                          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center justify-end gap-2">
                             <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-7 w-7"
+                              size="sm"
+                              variant="outline"
                               onClick={() => handleEditTrip(trip)}
                               data-testid={`button-edit-trip-${trip.id}`}
+                              className="h-7"
                             >
-                              <Edit className="h-3.5 w-3.5" />
+                              <Edit className="h-3 w-3 mr-1" />
+                              Edit
                             </Button>
                             <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-7 w-7 text-destructive hover:text-destructive"
+                              size="sm"
+                              variant="outline"
                               onClick={() => setDeleteConfirmId(trip.id)}
                               data-testid={`button-delete-trip-${trip.id}`}
+                              className="h-7 text-destructive"
                             >
-                              <Trash2 className="h-3.5 w-3.5" />
+                              <Trash2 className="h-3 w-3 mr-1" />
+                              Delete
                             </Button>
                           </div>
                         </td>
