@@ -5,19 +5,22 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/components/ui/sheet";
 import { SyncButton } from "@/components/SyncButton";
+import { useTranslate } from "@/hooks/use-translate";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
+  const t = useTranslate();
   const [location] = useLocation();
   const [open, setOpen] = useState(false);
 
   const navItems = [
-    { href: "/", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/sales", icon: Truck, label: "Quick Log" },
-    { href: "/sales-history", icon: History, label: "Sales History" },
-    { href: "/expenses", icon: Receipt, label: "Expenses" },
-    { href: "/trucks", icon: Truck, label: "Trucks" },
-    { href: "/locations", icon: MapPin, label: "Locations" },
-    { href: "/pricing", icon: Tags, label: "Pricing Rules" },
+    { href: "/", icon: LayoutDashboard, label: t('nav.dashboard') },
+    { href: "/sales", icon: Truck, label: t('nav.quicklog') },
+    { href: "/sales-history", icon: History, label: t('nav.saleshistory') },
+    { href: "/expenses", icon: Receipt, label: t('nav.expenses') },
+    { href: "/trucks", icon: Truck, label: t('nav.trucks') },
+    { href: "/locations", icon: MapPin, label: t('nav.locations') },
+    { href: "/pricing", icon: Tags, label: t('nav.pricing') },
+    { href: "/settings", icon: Settings, label: t('nav.settings') },
   ];
 
   const NavContent = () => (

@@ -12,6 +12,8 @@ import Expenses from "@/pages/expenses";
 import Trucks from "@/pages/trucks";
 import Locations from "@/pages/locations";
 import Pricing from "@/pages/pricing";
+import Settings from "@/pages/settings";
+import { LanguageProvider } from "@/contexts/language-context";
 
 function Router() {
   return (
@@ -24,6 +26,7 @@ function Router() {
         <Route path="/trucks" component={Trucks} />
         <Route path="/locations" component={Locations} />
         <Route path="/pricing" component={Pricing} />
+        <Route path="/settings" component={Settings} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
@@ -32,12 +35,14 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <LanguageProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </LanguageProvider>
   );
 }
 

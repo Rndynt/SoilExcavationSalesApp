@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import { Plus, Minus, Truck, Calendar, MapPin, ArrowRight, CreditCard, Loader2, Edit, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { useTranslate } from "@/hooks/use-translate";
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,6 +35,7 @@ interface SaleTrip {
 const STEP = 5000;
 
 export default function Sales() {
+  const t = useTranslate();
   const { data: locations, isLoading: locationsLoading } = useLocations();
   const { data: defaultLocationData } = useDefaultLocation();
   const [searchPlate, setSearchPlate] = useState("");
