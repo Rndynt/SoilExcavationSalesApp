@@ -11,10 +11,16 @@ A web application for tracking dump truck trips at soil excavation sites. The sy
 - Expense tracking with categories (OPERATIONAL, PAYABLE, LOAN, DISCOUNT)
 - Payment status tracking (PAID, PARTIAL, UNPAID)
 - Dashboard with financial summaries by time period
+- **NEW**: Multi-language support (Indonesian & English)
+- **NEW**: Period-based filtering (Today, Yesterday, This Week, This Month, Last Month)
+- **NEW**: Export dashboard recap to HTML/PDF with detailed transaction list and financial summary
+- **NEW**: Period-based expense filtering on Expenses page
 
 ## User Preferences
 
-Preferred communication style: Simple, everyday language.
+- Preferred communication style: Simple, everyday language
+- Default language: Indonesian (Bahasa Indonesia) stored in localStorage
+- Multiple language support: Indonesian and English translations across all pages
 
 ## System Architecture
 
@@ -30,6 +36,8 @@ Preferred communication style: Simple, everyday language.
 - **UI Components**: shadcn/ui component library with Tailwind CSS
 - **API Layer**: Custom hooks in `client/src/hooks/use-api.ts` wrapping React Query
 - **Pages**: Dashboard, Quick Log, Sales History, Expenses, Trucks, Locations, Pricing Rules (all fully functional)
+- **Localization**: LanguageContext + useTranslate hook for i18n, centralized in `client/src/lib/translations.ts`
+- **Export Feature**: ExportRecapModal component for HTML/PDF export of dashboard summaries with print styling
 
 ### Database (PostgreSQL + Drizzle)
 - **Schema**: `shared/schema.ts` - All table definitions with Zod validation
@@ -50,6 +58,27 @@ Preferred communication style: Simple, everyday language.
 
 **Shared code:**
 - `shared/schema.ts` contains database schema and Zod validators used by both frontend and backend
+
+**Recent Additions (Session):**
+1. **Internationalization (i18n)**:
+   - LanguageContext and useTranslate hook for dynamic language switching
+   - Comprehensive translations in `client/src/lib/translations.ts` (English & Indonesian)
+   - Settings page with language selector (default: Indonesian)
+   - All pages and components fully translated
+
+2. **Period-Based Filtering**:
+   - TIME_PRESETS utility with 5 presets: TODAY, YESTERDAY, THIS_WEEK, THIS_MONTH, LAST_MONTH
+   - Date range calculation using date-fns (startOfDay, endOfDay, startOfWeek, endOfMonth, etc.)
+   - Dashboard: Period selector with automatic report refresh
+   - Expenses: Period-based expense filtering with same presets
+
+3. **Export Rekapan Feature**:
+   - ExportRecapModal component in `client/src/components/export-recap-modal.tsx`
+   - Features: Print to PDF via browser, Download as HTML
+   - Shows: Summary, Detail Sales (table), Expenses breakdown, Final Results
+   - Clean, organized layout designed for readability and professional appearance
+   - Uses React ref and window.print() for browser-native PDF export
+   - Supports location-specific exports when location filter is selected
 
 ## External Dependencies
 
