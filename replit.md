@@ -80,6 +80,15 @@ A web application for tracking dump truck trips at soil excavation sites. The sy
    - Uses React ref and window.print() for browser-native PDF export
    - Supports location-specific exports when location filter is selected
 
+4. **Dummy Data for Testing (2025-12-20)**:
+   - 6 sale trip transactions with varying payment statuses
+   - 5 registered trucks (BK 099 MDN, BL 1234 ABC, BL 234 L, BL 8133 AD, BL 5555 XX)
+   - 2 locations (Site A, Site B) with different pricing rules
+   - 3 expense transactions (Bensin 150k, Maintenance 200k, Rental 500k = 850k total)
+   - 3 expense categories (Operasional, Hutang, Pinjaman)
+   - Trip payments: 4 PAID, 1 PARTIAL (80k outstanding), 1 UNPAID
+   - Price adjustments: 2 trips with -5k to -10k discounts
+
 ## External Dependencies
 
 ### Database
