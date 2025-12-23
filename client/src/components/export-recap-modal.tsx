@@ -144,6 +144,33 @@ export function ExportRecapModal({
             </div>
           </div>
 
+          {/* Pengeluaran (Expenses) */}
+          {expenses.byCategory && expenses.byCategory.length > 0 && (
+            <div>
+              <h2 className="text-lg font-bold mb-4">{t("dashboard.expenses")}</h2>
+              <table>
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border border-gray-300 px-3 py-2 text-left">{t("expenses.category")}</th>
+                    <th className="border border-gray-300 px-3 py-2 text-right">{t("expenses.amount")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {expenses.byCategory.map((exp, idx) => (
+                    <tr key={idx}>
+                      <td className="border border-gray-300 px-3 py-2">{exp.category}</td>
+                      <td className="border border-gray-300 px-3 py-2 text-right font-mono">{fmtMoney(exp.amount)}</td>
+                    </tr>
+                  ))}
+                  <tr className="total-row bg-gray-100">
+                    <td className="border border-gray-300 px-3 py-2">{t("dashboard.totalexpenses")}</td>
+                    <td className="border border-gray-300 px-3 py-2 text-right font-mono">{fmtMoney(expenses.totalExpenses)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
+
           {/* Hasil Akhir (Final Results) */}
           <div>
             <h2 className="text-lg font-bold mb-4">{t("dashboard.finalresults")}</h2>
