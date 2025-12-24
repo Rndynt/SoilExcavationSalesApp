@@ -244,7 +244,13 @@ export default function Dashboard() {
           dateFrom={report.dateFrom}
           dateTo={report.dateTo}
           sales={report.sales}
-          expenses={report.expenses}
+          expenses={{
+            ...report.expenses,
+            byCategory: report.expenses.byCategory.map(item => ({
+              category: item.categoryName,
+              amount: item.total
+            }))
+          }}
           profit={profit}
           cashBasisProfit={cashBasisProfit}
           trips={trips || []}
