@@ -174,22 +174,22 @@ export function ExportRecapModal({
           {/* Hasil Akhir (Final Results) */}
           <div>
             <h2 className="text-lg font-bold mb-4">{t("dashboard.finalresults")}</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="summary">
-                <span className="summary-label">{t("dashboard.netrevenue")}:</span>
-                <span className="font-mono">{fmtMoney(sales.netRevenue)}</span>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between border-b pb-2">
+                <span className="font-semibold">{t("dashboard.netrevenue")}:</span>
+                <span className="font-mono font-bold">{fmtMoney(sales.netRevenue)}</span>
               </div>
-              <div className="summary">
-                <span className="summary-label">{t("dashboard.operationalexpenses")}:</span>
-                <span className="font-mono">{fmtMoney(expenses.totalOperational)}</span>
+              <div className="flex justify-between text-red-600 pb-2">
+                <span className="font-semibold">{t("dashboard.operationalexpenses")}:</span>
+                <span className="font-mono">({fmtMoney(expenses.totalOperational)})</span>
               </div>
-              <div className="summary bg-green-50 p-2 rounded">
-                <span className="summary-label">{t("dashboard.netprofit")}:</span>
-                <span className="font-mono font-bold text-green-700">{fmtMoney(profit)}</span>
+              <div className="flex justify-between border-b-2 border-black pb-2 font-bold text-lg bg-green-50 p-2">
+                <span>{t("dashboard.netprofit")}:</span>
+                <span className="font-mono text-green-700">{fmtMoney(profit)}</span>
               </div>
-              <div className="summary bg-blue-50 p-2 rounded">
-                <span className="summary-label">{t("dashboard.cashbasisprofit")}:</span>
-                <span className="font-mono font-bold text-blue-700">{fmtMoney(cashBasisProfit)}</span>
+              <div className="text-xs text-muted-foreground mt-3 pt-2 border-t">
+                <p className="mb-1">Catatan: Beban Operasional mencakup semua kategori operasional (Beban Operasional + Minyak)</p>
+                <p>Total Pengeluaran = Beban Operasional + Kategori lainnya</p>
               </div>
             </div>
           </div>
