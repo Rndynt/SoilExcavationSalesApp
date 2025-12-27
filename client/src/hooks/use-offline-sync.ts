@@ -86,7 +86,11 @@ export function useOfflineSync() {
         await updateOutboxItem(item.id, { status: 'syncing' });
 
         try {
-          await apiRequest(item.method, item.url, item.body);
+          const payload = { ...item.body } as Record<string, unknown>;
+          if (typeof payload.clientCreatedAt === 'string') {
+            payload.clientCreatedAt = new Date(payload.clientCreatedAt);
+          }
+          await apiRequest(item.method, item.url, payload);
           await removeFromOutbox(item.id);
         } catch (error: unknown) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
