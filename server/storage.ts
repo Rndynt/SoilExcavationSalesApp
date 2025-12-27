@@ -1,6 +1,6 @@
-import { drizzle } from "drizzle-orm/node-postgres";
+import { neon, neonConfig } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
 import { eq, and, or, gte, lte, ilike, sql, desc, isNull } from "drizzle-orm";
-import pg from "pg";
 import {
   type User, type InsertUser,
   type Location, type InsertLocation,
@@ -13,11 +13,15 @@ import {
   users, locations, trucks, priceRules, expenseCategories, expenses, saleTrips, appSettings
 } from "@shared/schema";
 
-const pool = new pg.Pool({
-  connectionString: process.env.DATABASE_URL,
-});
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL is not set");
+}
 
-export const db = drizzle(pool);
+neonConfig.fetchConnectionCache = true;
+
+const client = neon(process.env.DATABASE_URL);
+
+export const db = drizzle(client);
 
 export interface ExpenseFilters {
   locationId?: string;
