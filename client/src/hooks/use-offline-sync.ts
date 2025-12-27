@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { 
   addToOutbox, 
   getPendingItems, 
+  getFailedItems,
   updateOutboxItem, 
   removeFromOutbox, 
   getOutboxCount,
@@ -74,19 +75,25 @@ export function useOfflineSync() {
     setSyncState(prev => ({ ...prev, isOnline }));
   }, [isOnline]);
 
-  const syncNow = useCallback(async () => {
+  const syncNow = useCallback(async (includeFailed = false) => {
     if (!isOnline || syncState.isSyncing) return;
 
     setSyncState(prev => ({ ...prev, isSyncing: true, lastError: null }));
 
     try {
       const pendingItems = await getPendingItems();
+      const failedItems = includeFailed ? await getFailedItems() : [];
+      const itemsToSync = [...pendingItems, ...failedItems];
 
-      for (const item of pendingItems) {
+      for (const item of itemsToSync) {
         await updateOutboxItem(item.id, { status: 'syncing' });
 
         try {
-          await apiRequest(item.method, item.url, item.body);
+          const payload = { ...item.body } as Record<string, unknown>;
+          if (typeof payload.clientCreatedAt === 'string') {
+            payload.clientCreatedAt = new Date(payload.clientCreatedAt);
+          }
+          await apiRequest(item.method, item.url, payload);
           await removeFromOutbox(item.id);
         } catch (error: unknown) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
