@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocations, useTrucks, useResolvePrice, useDefaultLocation, useCreateSaleTrip, useSaleTrips, useCreateTruck, useUpdateSaleTrip, useDeleteSaleTrip } from "@/hooks/use-api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -38,8 +38,7 @@ export default function Sales() {
   const t = useTranslate();
   const { data: locations, isLoading: locationsLoading } = useLocations();
   const { data: defaultLocationData } = useDefaultLocation();
-  const [searchPlate, setSearchPlate] = useState("");
-  const { data: trucks } = useTrucks(searchPlate);
+  const { data: trucks } = useTrucks();
   
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [locationId, setLocationId] = useState<string>("");
@@ -128,8 +127,8 @@ export default function Sales() {
       // Check if truck with this plate already exists
       const truckExists = trucks?.some(t => t.plateNumber.toUpperCase() === upperPlate);
       
-      // If truck doesn't exist, create it automatically when online
-      if (!truckExists && navigator.onLine) {
+      // If truck doesn't exist, create it automatically
+      if (!truckExists) {
         try {
           await createTruck.mutateAsync({
             plateNumber: upperPlate,
@@ -175,6 +174,11 @@ export default function Sales() {
 
   const discount = Math.max(0, basePrice - appliedPrice);
   const isDiscounted = discount > 0;
+  const plateSuggestions = useMemo(() => {
+    if (!trucks) return [];
+    const term = plate.toUpperCase();
+    return trucks.filter(t => t.plateNumber.toUpperCase().includes(term));
+  }, [trucks, plate]);
 
   const handleEditTrip = (trip: SaleTrip) => {
     setEditingTrip(trip);
@@ -286,7 +290,6 @@ export default function Sales() {
                         value={plate}
                         onChange={e => {
                           setPlate(e.target.value);
-                          setSearchPlate(e.target.value);
                         }}
                         placeholder="B 1234 XYZ"
                         className="pl-10 h-12 text-lg font-mono uppercase"
@@ -298,9 +301,9 @@ export default function Sales() {
                   <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]" align="start">
                     <Command>
                       <CommandList>
-                        {trucks && trucks.filter(t => t.plateNumber.toUpperCase().includes(plate.toUpperCase())).length > 0 ? (
+                        {plateSuggestions.length > 0 ? (
                           <CommandGroup heading="Suggestions">
-                            {trucks.filter(t => t.plateNumber.toUpperCase().includes(plate.toUpperCase())).map(t => (
+                            {plateSuggestions.map(t => (
                               <CommandItem 
                                 key={t.id} 
                                 onSelect={() => {

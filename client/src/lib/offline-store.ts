@@ -1,8 +1,9 @@
 import { openDB, type IDBPDatabase } from 'idb';
+import type { Truck } from '@shared/schema';
 
 export interface OutboxItem {
   id: string;
-  entityType: 'saleTrip' | 'expense';
+  entityType: 'saleTrip' | 'expense' | 'truck';
   action: 'create' | 'update' | 'delete';
   url: string;
   method: 'POST' | 'PATCH' | 'DELETE';
@@ -15,19 +16,23 @@ export interface OutboxItem {
 }
 
 const DB_NAME = 'logitrack-offline';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const OUTBOX_STORE = 'outbox';
+const TRUCKS_STORE = 'trucks';
 
 let dbPromise: Promise<IDBPDatabase> | null = null;
 
 export async function getDB(): Promise<IDBPDatabase> {
   if (!dbPromise) {
     dbPromise = openDB(DB_NAME, DB_VERSION, {
-      upgrade(db) {
+      upgrade(db, oldVersion) {
         if (!db.objectStoreNames.contains(OUTBOX_STORE)) {
           const store = db.createObjectStore(OUTBOX_STORE, { keyPath: 'id' });
           store.createIndex('status', 'status');
           store.createIndex('createdAt', 'createdAt');
+        }
+        if (oldVersion < 2 && !db.objectStoreNames.contains(TRUCKS_STORE)) {
+          db.createObjectStore(TRUCKS_STORE, { keyPath: 'plateNumber' });
         }
       },
     });
@@ -96,4 +101,24 @@ export function generateIdempotencyKeys(): { clientId: string; clientCreatedAt: 
     clientId: crypto.randomUUID(),
     clientCreatedAt: new Date().toISOString(),
   };
+}
+
+export async function getCachedTrucks(): Promise<Truck[]> {
+  const db = await getDB();
+  return db.getAll(TRUCKS_STORE);
+}
+
+export async function setCachedTrucks(trucks: Truck[]): Promise<void> {
+  const db = await getDB();
+  const tx = db.transaction(TRUCKS_STORE, 'readwrite');
+  await tx.objectStore(TRUCKS_STORE).clear();
+  for (const truck of trucks) {
+    await tx.objectStore(TRUCKS_STORE).put(truck);
+  }
+  await tx.done;
+}
+
+export async function upsertCachedTruck(truck: Truck | Omit<Truck, 'id'>): Promise<void> {
+  const db = await getDB();
+  await db.put(TRUCKS_STORE, truck);
 }

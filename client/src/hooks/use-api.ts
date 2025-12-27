@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { addToOutbox, generateIdempotencyKeys } from "@/lib/offline-store";
+import { addToOutbox, generateIdempotencyKeys, getCachedTrucks, setCachedTrucks, upsertCachedTruck } from "@/lib/offline-store";
 import type { Location, Truck, PriceRule, ExpenseCategory, Expense, SaleTrip } from "@shared/schema";
 
 const addItemToQueryCache = <T extends { id: string }>(
@@ -95,10 +95,31 @@ export function useTrucks(search?: string) {
   return useQuery<Truck[]>({
     queryKey,
     queryFn: async () => {
+      if (!navigator.onLine) {
+        const cached = await getCachedTrucks();
+        if (!search) return cached;
+        const term = search.toLowerCase();
+        return cached.filter((truck) =>
+          truck.plateNumber.toLowerCase().includes(term) ||
+          (truck.contactName ?? "").toLowerCase().includes(term)
+        );
+      }
       const url = search ? `/api/trucks?search=${encodeURIComponent(search)}` : "/api/trucks";
       const res = await fetch(url, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch trucks");
-      return res.json();
+      if (!res.ok) {
+        const cached = await getCachedTrucks();
+        if (!search) return cached;
+        const term = search.toLowerCase();
+        return cached.filter((truck) =>
+          truck.plateNumber.toLowerCase().includes(term) ||
+          (truck.contactName ?? "").toLowerCase().includes(term)
+        );
+      }
+      const data = await res.json();
+      if (!search) {
+        await setCachedTrucks(data);
+      }
+      return data;
     },
   });
 }
@@ -131,8 +152,34 @@ export function useCreateTruck() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: { plateNumber: string; contactName?: string; contactPhone?: string; note?: string; isActive?: boolean }) => {
+      if (!navigator.onLine) {
+        const keys = generateIdempotencyKeys();
+        const body = { ...data, ...keys };
+        await addToOutbox({
+          entityType: "truck",
+          action: "create",
+          url: "/api/trucks",
+          method: "POST",
+          body,
+          clientId: keys.clientId,
+          clientCreatedAt: keys.clientCreatedAt,
+        });
+        const optimisticTruck: Truck = {
+          id: `offline-${crypto.randomUUID()}`,
+          plateNumber: data.plateNumber,
+          contactName: data.contactName ?? null,
+          contactPhone: data.contactPhone ?? null,
+          note: data.note ?? null,
+          isActive: data.isActive ?? true,
+        };
+        await upsertCachedTruck(optimisticTruck);
+        addItemToQueryCache<Truck>(queryClient, "/api/trucks", optimisticTruck);
+        return optimisticTruck;
+      }
       const res = await apiRequest("POST", "/api/trucks", data);
-      return res.json();
+      const created = await res.json();
+      await upsertCachedTruck(created);
+      return created;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/trucks"] });
@@ -145,7 +192,12 @@ export function useUpdateTruck() {
   return useMutation({
     mutationFn: async ({ id, ...data }: { id: string; plateNumber?: string; contactName?: string; contactPhone?: string; note?: string; isActive?: boolean }) => {
       const res = await apiRequest("PATCH", `/api/trucks/${id}`, data);
-      return res.json();
+      const updated = await res.json();
+      const cached = await getCachedTrucks();
+      const next = cached.filter((truck) => truck.id !== updated.id);
+      next.push(updated);
+      await setCachedTrucks(next);
+      return updated;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/trucks"] });
@@ -158,6 +210,9 @@ export function useDeleteTruck() {
   return useMutation({
     mutationFn: async (id: string) => {
       await apiRequest("DELETE", `/api/trucks/${id}`);
+      const cached = await getCachedTrucks();
+      const next = cached.filter((truck) => truck.id !== id);
+      await setCachedTrucks(next);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/trucks"] });
