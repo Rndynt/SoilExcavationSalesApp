@@ -53,6 +53,19 @@ export async function getPendingItems(): Promise<OutboxItem[]> {
   return items.sort((a, b) => a.createdAt - b.createdAt);
 }
 
+export async function findPendingCreateItem(
+  entityType: OutboxItem['entityType'],
+  clientId: string,
+): Promise<OutboxItem | undefined> {
+  const items = await getPendingItems();
+  return items.find(
+    (item) =>
+      item.entityType === entityType &&
+      item.action === 'create' &&
+      item.clientId === clientId,
+  );
+}
+
 export async function getFailedItems(): Promise<OutboxItem[]> {
   const db = await getDB();
   return db.getAllFromIndex(OUTBOX_STORE, 'status', 'failed');
