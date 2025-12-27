@@ -55,8 +55,13 @@ const getCachedItemById = <T extends { id: string }>(
   queryKey: string,
   id: string,
 ) => {
-  const items = queryClient.getQueryData<T[]>([queryKey]);
-  return items?.find((item) => item.id === id);
+  const cachedQueries = queryClient.getQueriesData<T[]>({ queryKey: [queryKey] });
+  for (const [, items] of cachedQueries) {
+    if (!Array.isArray(items)) continue;
+    const found = items.find((item) => item.id === id);
+    if (found) return found;
+  }
+  return undefined;
 };
 
 export function useLocations() {
