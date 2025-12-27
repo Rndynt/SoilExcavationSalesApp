@@ -735,6 +735,33 @@ export async function registerRoutes(app: Express): Promise<void> {
     }
   });
 
+  app.get("/api/settings/default-location", async (_req: Request, res: Response) => {
+    try {
+      const defaultLocationId = await storage.getDefaultLocation();
+      res.json({ defaultLocationId });
+    } catch (error) {
+      logRouteError("GET /api/settings/default-location", error);
+      res.status(500).json({ message: "Failed to fetch default location" });
+    }
+  });
+
+  app.put("/api/settings/default-location", async (req: Request, res: Response) => {
+    try {
+      const { locationId } = req.body;
+      if (locationId !== null && locationId !== undefined) {
+        const location = await storage.getLocation(locationId);
+        if (!location) {
+          return res.status(400).json({ message: "Invalid location" });
+        }
+      }
+      await storage.setDefaultLocation(locationId ?? null);
+      res.json({ defaultLocationId: locationId ?? null });
+    } catch (error) {
+      logRouteError("PUT /api/settings/default-location", error);
+      res.status(500).json({ message: "Failed to update default location" });
+    }
+  });
+
   app.patch("/api/settings", async (req: Request, res: Response) => {
     try {
       const { defaultLocationId } = req.body;
