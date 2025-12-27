@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Receipt, DollarSign, Truck, Menu, X, History, MapPin, Tags, Settings } from "lucide-react";
+import { LayoutDashboard, Receipt, DollarSign, Truck, Menu, X, History, MapPin, Tags, Settings, CloudUpload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { href: "/trucks", icon: Truck, label: t('nav.trucks') },
     { href: "/locations", icon: MapPin, label: t('nav.locations') },
     { href: "/pricing", icon: Tags, label: t('nav.pricing') },
+    { href: "/sync-queue", icon: CloudUpload, label: t('nav.syncqueue') },
     { href: "/settings", icon: Settings, label: t('nav.settings') },
   ];
 
