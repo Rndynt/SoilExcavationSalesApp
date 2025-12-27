@@ -82,7 +82,20 @@ export const saleTrips = pgTable("sale_trips", {
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
 });
 
-export const insertSaleTripSchema = createInsertSchema(saleTrips).omit({ id: true, createdAt: true });
+const coerceDate = z.preprocess((value) => {
+  if (typeof value === "string" || value instanceof Date) {
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+  return value;
+}, z.date());
+
+export const insertSaleTripSchema = createInsertSchema(saleTrips, {
+  transDate: coerceDate,
+  clientCreatedAt: coerceDate.optional(),
+}).omit({ id: true, createdAt: true });
 export type InsertSaleTrip = z.infer<typeof insertSaleTripSchema>;
 export type SaleTrip = typeof saleTrips.$inferSelect;
 
@@ -100,7 +113,10 @@ export const expenses = pgTable("expenses", {
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
 });
 
-export const insertExpenseSchema = createInsertSchema(expenses).omit({ id: true, createdAt: true });
+export const insertExpenseSchema = createInsertSchema(expenses, {
+  expenseDate: coerceDate,
+  clientCreatedAt: coerceDate.optional(),
+}).omit({ id: true, createdAt: true });
 export type InsertExpense = z.infer<typeof insertExpenseSchema>;
 export type Expense = typeof expenses.$inferSelect;
 
