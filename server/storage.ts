@@ -17,12 +17,12 @@ if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is not set");
 }
 
-const sql = neon(process.env.DATABASE_URL);
+const neonClient = neon(process.env.DATABASE_URL);
 const client = Object.assign(
   (query: string, params: unknown[], options?: unknown) =>
-    sql.query(query, params, options),
+    neonClient.query(query, params, options),
   {
-    transaction: sql.transaction.bind(sql),
+    transaction: neonClient.transaction.bind(neonClient),
   },
 );
 
@@ -454,23 +454,26 @@ export class DatabaseStorage implements IStorage {
     totalPaid: number;
     totalUnpaid: number;
   }> {
-    let conditions = [
-      gte(saleTrips.transDate, dateFrom),
-      lte(saleTrips.transDate, dateTo)
-    ];
-    
-    if (locationId) {
-      conditions.push(eq(saleTrips.locationId, locationId));
-    }
+    const result = await db.execute<{
+      rows: {
+        totalTrips: number;
+        basePrice: number;
+        totalRevenue: number;
+        totalPaid: number;
+      }[];
+    }>(sql`
+      select
+        count(*)::int as "totalTrips",
+        coalesce(sum(${saleTrips.basePrice}), 0)::int as "basePrice",
+        coalesce(sum(${saleTrips.appliedPrice}), 0)::int as "totalRevenue",
+        coalesce(sum(${saleTrips.paidAmount}), 0)::int as "totalPaid"
+      from ${saleTrips}
+      where ${saleTrips.transDate} >= ${dateFrom}
+        and ${saleTrips.transDate} <= ${dateTo}
+        ${locationId ? sql`and ${saleTrips.locationId} = ${locationId}` : sql``}
+    `);
 
-    const result = await db.select({
-      totalTrips: sql<number>`count(*)::int`,
-      basePrice: sql<number>`coalesce(sum(${saleTrips.basePrice}), 0)::int`,
-      totalRevenue: sql<number>`coalesce(sum(${saleTrips.appliedPrice}), 0)::int`,
-      totalPaid: sql<number>`coalesce(sum(${saleTrips.paidAmount}), 0)::int`,
-    }).from(saleTrips).where(and(...conditions));
-
-    const data = result[0];
+    const data = result.rows[0];
     return {
       totalTrips: data?.totalTrips ?? 0,
       basePrice: data?.basePrice ?? 0,
@@ -485,39 +488,50 @@ export class DatabaseStorage implements IStorage {
     totalOperational: number;
     byCategory: { categoryId: string; categoryName: string; total: number }[];
   }> {
-    let conditions = [
-      gte(expenses.expenseDate, dateFrom),
-      lte(expenses.expenseDate, dateTo)
-    ];
-    
-    if (locationId) {
-      conditions.push(eq(expenses.locationId, locationId));
-    }
+    const totalResult = await db.execute<{
+      rows: { total: number }[];
+    }>(sql`
+      select coalesce(sum(${expenses.amount}), 0)::int as "total"
+      from ${expenses}
+      where ${expenses.expenseDate} >= ${dateFrom}
+        and ${expenses.expenseDate} <= ${dateTo}
+        ${locationId ? sql`and ${expenses.locationId} = ${locationId}` : sql``}
+    `);
 
-    const totalResult = await db.select({
-      total: sql<number>`coalesce(sum(${expenses.amount}), 0)::int`
-    }).from(expenses).where(and(...conditions));
+    const operationalResult = await db.execute<{
+      rows: { total: number }[];
+    }>(sql`
+      select coalesce(sum(${expenses.amount}), 0)::int as "total"
+      from ${expenses}
+      inner join ${expenseCategories}
+        on ${expenses.categoryId} = ${expenseCategories.id}
+      where ${expenses.expenseDate} >= ${dateFrom}
+        and ${expenses.expenseDate} <= ${dateTo}
+        ${locationId ? sql`and ${expenses.locationId} = ${locationId}` : sql``}
+        and ${expenseCategories.type} = 'OPERATIONAL'
+    `);
 
-    const operationalResult = await db.select({
-      total: sql<number>`coalesce(sum(${expenses.amount}), 0)::int`
-    })
-    .from(expenses)
-    .innerJoin(expenseCategories, eq(expenses.categoryId, expenseCategories.id))
-    .where(and(...conditions, eq(expenseCategories.type, 'OPERATIONAL')));
+    const byCategoryResult = await db.execute<{
+      rows: { categoryId: string; categoryName: string; total: number }[];
+    }>(sql`
+      select
+        ${expenses.categoryId} as "categoryId",
+        ${expenseCategories.name} as "categoryName",
+        coalesce(sum(${expenses.amount}), 0)::int as "total"
+      from ${expenses}
+      inner join ${expenseCategories}
+        on ${expenses.categoryId} = ${expenseCategories.id}
+      where ${expenses.expenseDate} >= ${dateFrom}
+        and ${expenses.expenseDate} <= ${dateTo}
+        ${locationId ? sql`and ${expenses.locationId} = ${locationId}` : sql``}
+      group by ${expenses.categoryId}, ${expenseCategories.name}
+    `);
 
-    const byCategory = await db.select({
-      categoryId: expenses.categoryId,
-      categoryName: expenseCategories.name,
-      total: sql<number>`coalesce(sum(${expenses.amount}), 0)::int`
-    })
-    .from(expenses)
-    .innerJoin(expenseCategories, eq(expenses.categoryId, expenseCategories.id))
-    .where(and(...conditions))
-    .groupBy(expenses.categoryId, expenseCategories.name);
+    const byCategory = byCategoryResult.rows ?? [];
 
     return {
-      totalExpenses: totalResult[0]?.total ?? 0,
-      totalOperational: operationalResult[0]?.total ?? 0,
+      totalExpenses: totalResult.rows[0]?.total ?? 0,
+      totalOperational: operationalResult.rows[0]?.total ?? 0,
       byCategory: byCategory.map(c => ({
         categoryId: c.categoryId,
         categoryName: c.categoryName,
