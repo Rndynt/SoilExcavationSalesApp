@@ -70,7 +70,7 @@ export default function SyncQueue() {
         <div className="flex items-center gap-3">
           <Badge variant="secondary">{t("syncqueue.pending")}: {pendingCount}</Badge>
           <Badge variant={failedCount > 0 ? "destructive" : "secondary"}>{t("syncqueue.failed")}: {failedCount}</Badge>
-          <Button onClick={syncNow} disabled={!isOnline || isSyncing}>
+          <Button onClick={() => syncNow(true)} disabled={!isOnline || isSyncing}>
             {isSyncing ? t("syncqueue.syncing") : t("syncqueue.syncnow")}
           </Button>
         </div>
