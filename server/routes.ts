@@ -1,5 +1,4 @@
 import type { Express, Request, Response } from "express";
-import { type Server } from "http";
 import { storage } from "./storage";
 import { insertLocationSchema, insertTruckSchema, insertPriceRuleSchema, insertExpenseCategorySchema, insertExpenseSchema, insertSaleTripSchema } from "@shared/schema";
 import { z } from "zod";
@@ -44,10 +43,7 @@ function getDateRange(preset: string): { dateFrom: string; dateTo: string } {
   };
 }
 
-export async function registerRoutes(
-  httpServer: Server,
-  app: Express
-): Promise<Server> {
+export async function registerRoutes(app: Express): Promise<void> {
 
   app.get("/api/locations", async (_req: Request, res: Response) => {
     try {
@@ -715,5 +711,4 @@ export async function registerRoutes(
     }
   });
 
-  return httpServer;
 }
