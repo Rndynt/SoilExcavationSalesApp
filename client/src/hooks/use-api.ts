@@ -1,6 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { addToOutbox, generateIdempotencyKeys } from "@/lib/offline-store";
+import {
+  addToOutbox,
+  findPendingCreateItem,
+  generateIdempotencyKeys,
+  removeFromOutbox,
+  updateOutboxItem,
+} from "@/lib/offline-store";
 import type { Location, Truck, PriceRule, ExpenseCategory, Expense, SaleTrip } from "@shared/schema";
 
 const addItemToQueryCache = <T extends { id: string }>(
@@ -37,6 +43,20 @@ const removeItemFromQueryCache = <T extends { id: string }>(
     if (!Array.isArray(oldData)) return oldData;
     return (oldData as T[]).filter((item) => item.id !== id);
   });
+};
+
+const cleanUpdates = <T extends Record<string, unknown>>(updates: T): Partial<T> =>
+  Object.fromEntries(
+    Object.entries(updates).filter(([, value]) => value !== undefined),
+  ) as Partial<T>;
+
+const getCachedItemById = <T extends { id: string }>(
+  queryClient: ReturnType<typeof useQueryClient>,
+  queryKey: string,
+  id: string,
+) => {
+  const items = queryClient.getQueryData<T[]>([queryKey]);
+  return items?.find((item) => item.id === id);
 };
 
 export function useLocations() {
@@ -360,18 +380,30 @@ export function useUpdateExpense() {
   return useMutation({
     mutationFn: async ({ id, ...data }: { id: string; locationId?: string; expenseDate?: string; amount?: number; categoryId?: string; note?: string; relatedPlateNumber?: string }) => {
       if (!navigator.onLine) {
+        const cachedExpense = getCachedItemById<Expense>(queryClient, "/api/expenses", id);
+        const cleanedUpdates = cleanUpdates(data);
+        if (cachedExpense?.id.startsWith("offline-") && cachedExpense.clientId) {
+          const pendingCreate = await findPendingCreateItem("expense", cachedExpense.clientId);
+          if (pendingCreate) {
+            await updateOutboxItem(pendingCreate.id, {
+              body: { ...pendingCreate.body, ...cleanedUpdates },
+            });
+            updateItemInQueryCache<Expense>(queryClient, "/api/expenses", id, cleanedUpdates);
+            return { id, ...cleanedUpdates } as Expense;
+          }
+        }
         const keys = generateIdempotencyKeys();
         await addToOutbox({
           entityType: "expense",
           action: "update",
           url: `/api/expenses/${id}`,
           method: "PATCH",
-          body: { ...data },
+          body: cleanedUpdates,
           clientId: keys.clientId,
           clientCreatedAt: keys.clientCreatedAt,
         });
-        updateItemInQueryCache<Expense>(queryClient, "/api/expenses", id, data);
-        return { id, ...data } as Expense;
+        updateItemInQueryCache<Expense>(queryClient, "/api/expenses", id, cleanedUpdates);
+        return { id, ...cleanedUpdates } as Expense;
       }
       const res = await apiRequest("PATCH", `/api/expenses/${id}`, data);
       return res.json();
@@ -390,6 +422,15 @@ export function useDeleteExpense() {
   return useMutation({
     mutationFn: async (id: string) => {
       if (!navigator.onLine) {
+        const cachedExpense = getCachedItemById<Expense>(queryClient, "/api/expenses", id);
+        if (cachedExpense?.id.startsWith("offline-") && cachedExpense.clientId) {
+          const pendingCreate = await findPendingCreateItem("expense", cachedExpense.clientId);
+          if (pendingCreate) {
+            await removeFromOutbox(pendingCreate.id);
+            removeItemFromQueryCache<Expense>(queryClient, "/api/expenses", id);
+            return;
+          }
+        }
         const keys = generateIdempotencyKeys();
         await addToOutbox({
           entityType: "expense",
@@ -528,18 +569,30 @@ export function useUpdateSaleTrip() {
       note?: string;
     }) => {
       if (!navigator.onLine) {
+        const cachedTrip = getCachedItemById<SaleTrip>(queryClient, "/api/sale-trips", id);
+        const cleanedUpdates = cleanUpdates(data);
+        if (cachedTrip?.id.startsWith("offline-") && cachedTrip.clientId) {
+          const pendingCreate = await findPendingCreateItem("saleTrip", cachedTrip.clientId);
+          if (pendingCreate) {
+            await updateOutboxItem(pendingCreate.id, {
+              body: { ...pendingCreate.body, ...cleanedUpdates },
+            });
+            updateItemInQueryCache<SaleTrip>(queryClient, "/api/sale-trips", id, cleanedUpdates);
+            return { id, ...cleanedUpdates } as SaleTrip;
+          }
+        }
         const keys = generateIdempotencyKeys();
         await addToOutbox({
           entityType: "saleTrip",
           action: "update",
           url: `/api/sale-trips/${id}`,
           method: "PATCH",
-          body: { ...data },
+          body: cleanedUpdates,
           clientId: keys.clientId,
           clientCreatedAt: keys.clientCreatedAt,
         });
-        updateItemInQueryCache<SaleTrip>(queryClient, "/api/sale-trips", id, data);
-        return { id, ...data } as SaleTrip;
+        updateItemInQueryCache<SaleTrip>(queryClient, "/api/sale-trips", id, cleanedUpdates);
+        return { id, ...cleanedUpdates } as SaleTrip;
       }
       const res = await apiRequest("PATCH", `/api/sale-trips/${id}`, data);
       return res.json();
@@ -558,6 +611,15 @@ export function useDeleteSaleTrip() {
   return useMutation({
     mutationFn: async (id: string) => {
       if (!navigator.onLine) {
+        const cachedTrip = getCachedItemById<SaleTrip>(queryClient, "/api/sale-trips", id);
+        if (cachedTrip?.id.startsWith("offline-") && cachedTrip.clientId) {
+          const pendingCreate = await findPendingCreateItem("saleTrip", cachedTrip.clientId);
+          if (pendingCreate) {
+            await removeFromOutbox(pendingCreate.id);
+            removeItemFromQueryCache<SaleTrip>(queryClient, "/api/sale-trips", id);
+            return;
+          }
+        }
         const keys = generateIdempotencyKeys();
         await addToOutbox({
           entityType: "saleTrip",
