@@ -201,7 +201,9 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
     'syncqueue.empty': 'No pending data to sync.',
     'syncqueue.createdat': 'Created at',
     'syncqueue.lasterror': 'Last error',
-    'syncqueue.endpoint': 'Endpoint',
+    'syncqueue.plate': 'Plate',
+    'syncqueue.amount': 'Amount',
+    'syncqueue.expensetype': 'Expense type',
   },
 
   id: {
@@ -404,7 +406,9 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
     'syncqueue.empty': 'Tidak ada data yang menunggu sinkron.',
     'syncqueue.createdat': 'Dibuat pada',
     'syncqueue.lasterror': 'Error terakhir',
-    'syncqueue.endpoint': 'Endpoint',
+    'syncqueue.plate': 'Plat',
+    'syncqueue.amount': 'Nominal',
+    'syncqueue.expensetype': 'Tipe pengeluaran',
   }
 };
 

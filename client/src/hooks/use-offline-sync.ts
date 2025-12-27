@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { 
   addToOutbox, 
   getPendingItems, 
+  getFailedItems,
   updateOutboxItem, 
   removeFromOutbox, 
   getOutboxCount,
@@ -19,6 +20,20 @@ export interface SyncState {
   lastSyncTime: Date | null;
   lastError: string | null;
 }
+
+const normalizeOutboxPayload = (body: Record<string, unknown>) => {
+  const payload = { ...body };
+  if (typeof payload.clientCreatedAt === 'string') {
+    payload.clientCreatedAt = new Date(payload.clientCreatedAt);
+  }
+  if (typeof payload.transDate === 'string') {
+    payload.transDate = new Date(payload.transDate);
+  }
+  if (typeof payload.expenseDate === 'string') {
+    payload.expenseDate = new Date(payload.expenseDate);
+  }
+  return payload;
+};
 
 export function useOnlineStatus() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -74,19 +89,22 @@ export function useOfflineSync() {
     setSyncState(prev => ({ ...prev, isOnline }));
   }, [isOnline]);
 
-  const syncNow = useCallback(async () => {
+  const syncNow = useCallback(async (includeFailed = false) => {
     if (!isOnline || syncState.isSyncing) return;
 
     setSyncState(prev => ({ ...prev, isSyncing: true, lastError: null }));
 
     try {
       const pendingItems = await getPendingItems();
+      const failedItems = includeFailed ? await getFailedItems() : [];
+      const itemsToSync = [...pendingItems, ...failedItems];
 
-      for (const item of pendingItems) {
+      for (const item of itemsToSync) {
         await updateOutboxItem(item.id, { status: 'syncing' });
 
         try {
-          await apiRequest(item.method, item.url, item.body);
+          const payload = normalizeOutboxPayload(item.body as Record<string, unknown>);
+          await apiRequest(item.method, item.url, payload);
           await removeFromOutbox(item.id);
         } catch (error: unknown) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
