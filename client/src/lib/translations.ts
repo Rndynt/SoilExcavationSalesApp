@@ -11,6 +11,7 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
     'nav.trucks': 'Trucks',
     'nav.locations': 'Locations',
     'nav.pricing': 'Pricing Rules',
+    'nav.syncqueue': 'Sync Queue',
     'nav.settings': 'Settings',
 
     // Dashboard
@@ -188,6 +189,19 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
     'settings.english': 'English',
     'settings.indonesian': 'Indonesian',
     'settings.languagechanged': 'Language changed successfully',
+
+    // Sync Queue
+    'syncqueue.title': 'Sync Queue',
+    'syncqueue.subtitle': 'Review data waiting to be synced when online',
+    'syncqueue.pending': 'Pending',
+    'syncqueue.failed': 'Failed',
+    'syncqueue.syncnow': 'Sync Now',
+    'syncqueue.syncing': 'Syncing...',
+    'syncqueue.loading': 'Loading sync queue...',
+    'syncqueue.empty': 'No pending data to sync.',
+    'syncqueue.createdat': 'Created at',
+    'syncqueue.lasterror': 'Last error',
+    'syncqueue.endpoint': 'Endpoint',
   },
 
   id: {
@@ -200,6 +214,7 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
     'nav.trucks': 'Truk',
     'nav.locations': 'Lokasi',
     'nav.pricing': 'Harga',
+    'nav.syncqueue': 'Antrian Sinkronisasi',
     'nav.settings': 'Pengaturan',
 
     // Dashboard
@@ -377,6 +392,19 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
     'settings.english': 'English',
     'settings.indonesian': 'Bahasa Indonesia',
     'settings.languagechanged': 'Bahasa berhasil diubah',
+
+    // Sync Queue
+    'syncqueue.title': 'Antrian Sinkronisasi',
+    'syncqueue.subtitle': 'Lihat data yang menunggu untuk disinkron saat online',
+    'syncqueue.pending': 'Tertunda',
+    'syncqueue.failed': 'Gagal',
+    'syncqueue.syncnow': 'Sinkronkan Sekarang',
+    'syncqueue.syncing': 'Menyinkronkan...',
+    'syncqueue.loading': 'Memuat antrian...',
+    'syncqueue.empty': 'Tidak ada data yang menunggu sinkron.',
+    'syncqueue.createdat': 'Dibuat pada',
+    'syncqueue.lasterror': 'Error terakhir',
+    'syncqueue.endpoint': 'Endpoint',
   }
 };
 

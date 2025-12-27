@@ -1,6 +1,43 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { addToOutbox, generateIdempotencyKeys } from "@/lib/offline-store";
 import type { Location, Truck, PriceRule, ExpenseCategory, Expense, SaleTrip } from "@shared/schema";
+
+const addItemToQueryCache = <T extends { id: string }>(
+  queryClient: ReturnType<typeof useQueryClient>,
+  queryKey: string,
+  item: T,
+) => {
+  queryClient.setQueriesData({ queryKey: [queryKey] }, (oldData: unknown) => {
+    if (!Array.isArray(oldData)) return oldData;
+    return [item, ...oldData] as T[];
+  });
+};
+
+const updateItemInQueryCache = <T extends { id: string }>(
+  queryClient: ReturnType<typeof useQueryClient>,
+  queryKey: string,
+  id: string,
+  updates: Partial<T>,
+) => {
+  queryClient.setQueriesData({ queryKey: [queryKey] }, (oldData: unknown) => {
+    if (!Array.isArray(oldData)) return oldData;
+    return (oldData as T[]).map((item) =>
+      item.id === id ? { ...item, ...updates } : item,
+    );
+  });
+};
+
+const removeItemFromQueryCache = <T extends { id: string }>(
+  queryClient: ReturnType<typeof useQueryClient>,
+  queryKey: string,
+  id: string,
+) => {
+  queryClient.setQueriesData({ queryKey: [queryKey] }, (oldData: unknown) => {
+    if (!Array.isArray(oldData)) return oldData;
+    return (oldData as T[]).filter((item) => item.id !== id);
+  });
+};
 
 export function useLocations() {
   return useQuery<Location[]>({
@@ -278,12 +315,42 @@ export function useCreateExpense() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: { locationId: string; expenseDate: string; amount: number; categoryId: string; note?: string; relatedPlateNumber?: string }) => {
+      if (!navigator.onLine) {
+        const keys = generateIdempotencyKeys();
+        const body = { ...data, ...keys };
+        await addToOutbox({
+          entityType: "expense",
+          action: "create",
+          url: "/api/expenses",
+          method: "POST",
+          body,
+          clientId: keys.clientId,
+          clientCreatedAt: keys.clientCreatedAt,
+        });
+        const optimisticExpense: Expense = {
+          id: `offline-${crypto.randomUUID()}`,
+          locationId: data.locationId,
+          expenseDate: data.expenseDate,
+          amount: data.amount,
+          categoryId: data.categoryId,
+          note: data.note ?? null,
+          saleTripId: null,
+          relatedPlateNumber: data.relatedPlateNumber ?? null,
+          clientId: keys.clientId,
+          clientCreatedAt: new Date(keys.clientCreatedAt),
+          createdAt: new Date(),
+        };
+        addItemToQueryCache<Expense>(queryClient, "/api/expenses", optimisticExpense);
+        return optimisticExpense;
+      }
       const res = await apiRequest("POST", "/api/expenses", data);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/reports/summary"] });
+      if (navigator.onLine) {
+        queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/reports/summary"] });
+      }
     },
   });
 }
@@ -292,12 +359,28 @@ export function useUpdateExpense() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...data }: { id: string; locationId?: string; expenseDate?: string; amount?: number; categoryId?: string; note?: string; relatedPlateNumber?: string }) => {
+      if (!navigator.onLine) {
+        const keys = generateIdempotencyKeys();
+        await addToOutbox({
+          entityType: "expense",
+          action: "update",
+          url: `/api/expenses/${id}`,
+          method: "PATCH",
+          body: { ...data },
+          clientId: keys.clientId,
+          clientCreatedAt: keys.clientCreatedAt,
+        });
+        updateItemInQueryCache<Expense>(queryClient, "/api/expenses", id, data);
+        return { id, ...data } as Expense;
+      }
       const res = await apiRequest("PATCH", `/api/expenses/${id}`, data);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/reports/summary"] });
+      if (navigator.onLine) {
+        queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/reports/summary"] });
+      }
     },
   });
 }
@@ -306,11 +389,27 @@ export function useDeleteExpense() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      if (!navigator.onLine) {
+        const keys = generateIdempotencyKeys();
+        await addToOutbox({
+          entityType: "expense",
+          action: "delete",
+          url: `/api/expenses/${id}`,
+          method: "DELETE",
+          body: {},
+          clientId: keys.clientId,
+          clientCreatedAt: keys.clientCreatedAt,
+        });
+        removeItemFromQueryCache<Expense>(queryClient, "/api/expenses", id);
+        return;
+      }
       await apiRequest("DELETE", `/api/expenses/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/reports/summary"] });
+      if (navigator.onLine) {
+        queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/reports/summary"] });
+      }
     },
   });
 }
@@ -371,12 +470,44 @@ export function useCreateSaleTrip() {
       paymentMethod?: "CASH" | "TRANSFER" | "QRIS" | "OTHER";
       note?: string;
     }) => {
+      if (!navigator.onLine) {
+        const keys = generateIdempotencyKeys();
+        const body = { ...data, ...keys };
+        await addToOutbox({
+          entityType: "saleTrip",
+          action: "create",
+          url: "/api/sale-trips",
+          method: "POST",
+          body,
+          clientId: keys.clientId,
+          clientCreatedAt: keys.clientCreatedAt,
+        });
+        const optimisticTrip: SaleTrip = {
+          id: `offline-${crypto.randomUUID()}`,
+          locationId: data.locationId,
+          transDate: data.transDate,
+          plateNumber: data.plateNumber,
+          basePrice: data.basePrice ?? data.appliedPrice ?? 0,
+          appliedPrice: data.appliedPrice ?? data.basePrice ?? 0,
+          paymentStatus: data.paymentStatus ?? "PAID",
+          paidAmount: data.paidAmount ?? 0,
+          paymentMethod: data.paymentMethod ?? null,
+          note: data.note ?? null,
+          clientId: keys.clientId,
+          clientCreatedAt: new Date(keys.clientCreatedAt),
+          createdAt: new Date(),
+        };
+        addItemToQueryCache<SaleTrip>(queryClient, "/api/sale-trips", optimisticTrip);
+        return optimisticTrip;
+      }
       const res = await apiRequest("POST", "/api/sale-trips", data);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sale-trips"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/reports/summary"] });
+      if (navigator.onLine) {
+        queryClient.invalidateQueries({ queryKey: ["/api/sale-trips"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/reports/summary"] });
+      }
     },
   });
 }
@@ -396,12 +527,28 @@ export function useUpdateSaleTrip() {
       paymentMethod?: "CASH" | "TRANSFER" | "QRIS" | "OTHER";
       note?: string;
     }) => {
+      if (!navigator.onLine) {
+        const keys = generateIdempotencyKeys();
+        await addToOutbox({
+          entityType: "saleTrip",
+          action: "update",
+          url: `/api/sale-trips/${id}`,
+          method: "PATCH",
+          body: { ...data },
+          clientId: keys.clientId,
+          clientCreatedAt: keys.clientCreatedAt,
+        });
+        updateItemInQueryCache<SaleTrip>(queryClient, "/api/sale-trips", id, data);
+        return { id, ...data } as SaleTrip;
+      }
       const res = await apiRequest("PATCH", `/api/sale-trips/${id}`, data);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sale-trips"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/reports/summary"] });
+      if (navigator.onLine) {
+        queryClient.invalidateQueries({ queryKey: ["/api/sale-trips"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/reports/summary"] });
+      }
     },
   });
 }
@@ -410,11 +557,27 @@ export function useDeleteSaleTrip() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      if (!navigator.onLine) {
+        const keys = generateIdempotencyKeys();
+        await addToOutbox({
+          entityType: "saleTrip",
+          action: "delete",
+          url: `/api/sale-trips/${id}`,
+          method: "DELETE",
+          body: {},
+          clientId: keys.clientId,
+          clientCreatedAt: keys.clientCreatedAt,
+        });
+        removeItemFromQueryCache<SaleTrip>(queryClient, "/api/sale-trips", id);
+        return;
+      }
       await apiRequest("DELETE", `/api/sale-trips/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sale-trips"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/reports/summary"] });
+      if (navigator.onLine) {
+        queryClient.invalidateQueries({ queryKey: ["/api/sale-trips"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/reports/summary"] });
+      }
     },
   });
 }

@@ -128,8 +128,8 @@ export default function Sales() {
       // Check if truck with this plate already exists
       const truckExists = trucks?.some(t => t.plateNumber.toUpperCase() === upperPlate);
       
-      // If truck doesn't exist, create it automatically
-      if (!truckExists) {
+      // If truck doesn't exist, create it automatically when online
+      if (!truckExists && navigator.onLine) {
         try {
           await createTruck.mutateAsync({
             plateNumber: upperPlate,

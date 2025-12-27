@@ -13,6 +13,7 @@ import Trucks from "@/pages/trucks";
 import Locations from "@/pages/locations";
 import Pricing from "@/pages/pricing";
 import Settings from "@/pages/settings";
+import SyncQueue from "@/pages/sync-queue";
 import { LanguageProvider } from "@/contexts/language-context";
 
 function Router() {
@@ -26,6 +27,7 @@ function Router() {
         <Route path="/trucks" component={Trucks} />
         <Route path="/locations" component={Locations} />
         <Route path="/pricing" component={Pricing} />
+        <Route path="/sync-queue" component={SyncQueue} />
         <Route path="/settings" component={Settings} />
         <Route component={NotFound} />
       </Switch>
