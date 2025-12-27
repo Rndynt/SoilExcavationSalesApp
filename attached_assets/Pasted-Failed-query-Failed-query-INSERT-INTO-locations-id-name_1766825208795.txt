@@ -1,0 +1,43 @@
+Failed query:
+-- -- Failed query:
+-- -- INSERT INTO locations (id, name, note, is_active) VALUES
+-- -- ('b9bb288c-c16a-448e-a095-60993b27b720', 'Site A', 'Main excavation site', true),
+-- -- ('90ac25df-8bc3-4331-ae45-f32ae77dd1e4', 'Site B', 'Secondary site', true)
+-- -- ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, note = EXCLUDED.note, is_active = EXCLUDED.is_active;
+-- -- 
+-- -- 
+-- -- INSERT INTO price_rules (id, location_id, price_per_trip, start_date, is_active) VALUES
+-- -- ('9c8bf16b-c08b-4897-a4e2-2e49d95ec45d', 'b9bb288c-c16a-448e-a095-60993b27b720', 150000, '2024-01-01', true),
+-- -- ('40d2c8e8-83a6-443d-bd8b-e37aafcba17b', '90ac25df-8bc3-4331-ae45-f32ae77dd1e4', 175000, '2024-01-01', true)
+-- -- ON CONFLICT (id) DO UPDATE SET price_per_trip = EXCLUDED.price_per_trip, is_active = EXCLUDED.is_active;
+-- -- 
+-- -- INSERT INTO expense_categories (id, name, type, is_active, is_system) VALUES
+-- -- ('59ebbbcb-753b-4b4a-8211-b562c77c4fd0', 'Discount', 'DISCOUNT', true, true),
+-- -- ('58ae50c8-e1b3-4868-b28c-3aa345805631', 'Fuel', 'OPERATIONAL', true, false),
+-- -- ('1836dd32-12f6-4141-ac45-34877ee2330f', 'Maintenance', 'OPERATIONAL', true, false),
+-- -- ('3d9a7cc5-2795-4195-9ba2-2ac0ff9d321b', 'Driver Payment', 'PAYABLE', true, false),
+-- -- ('5b30f469-a489-43f7-90af-590d66e8085f', 'Food & Beverage', 'OPERATIONAL', true, false),
+-- -- ('eb8e150c-1362-4d9c-8660-5fcefeafd54f', 'Labor & Wages', 'OPERATIONAL', true, false),
+-- -- ('d4288ea5-9738-4f57-99bb-798f49332af0', 'Security & Public Relations', 'OPERATIONAL', true, false)
+-- -- ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, type = EXCLUDED.type;
+-- -- 
+-- -- INSERT INTO sale_trips (id, location_id, trans_date, plate_number, base_price, applied_price, payment_status, paid_amount, payment_method, note, created_at) VALUES
+-- -- ('40bda9e0-8b8e-4a8f-9dea-353e3cad791e', 'b9bb288c-c16a-448e-a095-60993b27b720', '2025-12-22', 'TRUCK-1', 270000, 270000, 'PAID', 270000, 'CASH', 'Trip 1', '2025-12-27 07:13:19.540'),
+-- -- -- ... (Total 27 trip lainnya mengikuti format yang sama)
+-- -- ('b31429ff-5958-474f-9539-d05367d3fad3', 'b9bb288c-c16a-448e-a095-60993b27b720', '2025-12-22', 'TRUCK-27', 270000, 390000, 'PAID', 390000, 'CASH', 'Trip 27', '2025-12-27 07:13:19.540')
+-- -- ON CONFLICT (id) DO NOTHING;
+-- -- 
+-- -- INSERT INTO expenses (id, location_id, expense_date, amount, category_id, note, created_at) VALUEStions' table first with the appropriate columns (id, name, note, is_active) before executing the INSERT statement.
+-- -- ('68cf91a2-b90b-49c7-b2fe-3382cba94c59', 'b9bb288c-c16a-448e-a095-60993b27b720', '2025-12-22', 30000, '5b30f469-a489-43f7-90af-590d66e8085f', 'Rokok OP', '2025-12-27 07:13:19.540'),
+-- -- ('e5093aab-9a09-491d-a324-77280340a99e', 'b9bb288c-c16a-448e-a095-60993b27b720', '2025-12-22', 20000, '5b30f469-a489-43f7-90af-590d66e8085f', 'Kopi kue', '2025-12-27 07:13:19.540'),
+-- -- ('cc54c6ee-abfe-49a8-905a-787c073719dc', 'b9bb288c-c16a-448e-a095-60993b27b720', '2025-12-22', 68000, '5b30f469-a489-43f7-90af-590d66e8085f', 'Nasi (4)', '2025-12-27 07:13:19.540')
+-- -- -- ... (Item lainnya mengikuti format yang sama)
+-- -- ON CONFLICT (id) DO NOTHING;
+-- -- 
+-- -- INSERT INTO app_settings (id, default_location_id) VALUES
+-- -- ('e3a894a0-2e8c-437d-b9bd-be8c83c38d3e', 'b9bb288c-c16a-448e-a095-60993b27b720')
+-- -- ON CONFLICT (id) DO UPDATE SET default_location_id = EXCLUDED.default_location_id;
+-- -- Query can't be composed effectively.
+-- -- The query cannot be effectively fixed because the 'locations' table does not exist in the provided database schema. The schema dump does not contain any table definitions, including the 'locations' table. To resolve this issue, you need to create the 'loca
+-- Query can't be composed effectively.
+-- The query cannot be fixed because the "locations" table does not exist in the provided database schema. The schema dump does not contain any table definitions, including the "locations" table. To 
