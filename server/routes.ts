@@ -43,6 +43,10 @@ function getDateRange(preset: string): { dateFrom: string; dateTo: string } {
   };
 }
 
+function logRouteError(route: string, error: unknown) {
+  console.error(`[api] ${route} failed`, error);
+}
+
 export async function registerRoutes(app: Express): Promise<void> {
 
   app.get("/api/locations", async (_req: Request, res: Response) => {
@@ -50,6 +54,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       const locations = await storage.getLocations();
       res.json(locations);
     } catch (error) {
+      logRouteError("GET /api/locations", error);
       res.status(500).json({ message: "Failed to fetch locations" });
     }
   });
@@ -62,6 +67,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       }
       res.json(location);
     } catch (error) {
+      logRouteError("GET /api/locations/:id", error);
       res.status(500).json({ message: "Failed to fetch location" });
     }
   });
@@ -75,6 +81,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
+      logRouteError("POST /api/locations", error);
       res.status(500).json({ message: "Failed to create location" });
     }
   });
@@ -91,6 +98,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
+      logRouteError("PATCH /api/locations/:id", error);
       res.status(500).json({ message: "Failed to update location" });
     }
   });
@@ -103,6 +111,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       }
       res.status(204).send();
     } catch (error) {
+      logRouteError("DELETE /api/locations/:id", error);
       res.status(500).json({ message: "Failed to delete location" });
     }
   });
@@ -117,6 +126,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       const trucks = await storage.getTrucks();
       res.json(trucks);
     } catch (error) {
+      logRouteError("GET /api/trucks", error);
       res.status(500).json({ message: "Failed to fetch trucks" });
     }
   });
@@ -129,6 +139,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       }
       res.json(truck);
     } catch (error) {
+      logRouteError("GET /api/trucks/:id", error);
       res.status(500).json({ message: "Failed to fetch truck" });
     }
   });
@@ -143,6 +154,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       );
       res.json(summary);
     } catch (error) {
+      logRouteError("GET /api/trucks/:id/summary", error);
       res.status(500).json({ message: "Failed to fetch truck summary" });
     }
   });
@@ -160,6 +172,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
+      logRouteError("POST /api/trucks", error);
       res.status(500).json({ message: "Failed to create truck" });
     }
   });
@@ -182,6 +195,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
+      logRouteError("PATCH /api/trucks/:id", error);
       res.status(500).json({ message: "Failed to update truck" });
     }
   });
@@ -194,6 +208,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       }
       res.status(204).send();
     } catch (error) {
+      logRouteError("DELETE /api/trucks/:id", error);
       res.status(500).json({ message: "Failed to delete truck" });
     }
   });
@@ -204,6 +219,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       const rules = await storage.getPriceRules(locationId as string | undefined);
       res.json(rules);
     } catch (error) {
+      logRouteError("GET /api/price-rules", error);
       res.status(500).json({ message: "Failed to fetch price rules" });
     }
   });
@@ -217,6 +233,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       const price = await storage.resolveBasePrice(locationId as string, date as string);
       res.json({ price });
     } catch (error) {
+      logRouteError("GET /api/price-rules/resolve", error);
       res.status(500).json({ message: "Failed to resolve price" });
     }
   });
@@ -229,6 +246,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       }
       res.json(rule);
     } catch (error) {
+      logRouteError("GET /api/price-rules/:id", error);
       res.status(500).json({ message: "Failed to fetch price rule" });
     }
   });
@@ -242,6 +260,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
+      logRouteError("POST /api/price-rules", error);
       res.status(500).json({ message: "Failed to create price rule" });
     }
   });
@@ -258,6 +277,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
+      logRouteError("PATCH /api/price-rules/:id", error);
       res.status(500).json({ message: "Failed to update price rule" });
     }
   });
@@ -270,6 +290,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       }
       res.status(204).send();
     } catch (error) {
+      logRouteError("DELETE /api/price-rules/:id", error);
       res.status(500).json({ message: "Failed to delete price rule" });
     }
   });
@@ -279,6 +300,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       const categories = await storage.getCategories();
       res.json(categories);
     } catch (error) {
+      logRouteError("GET /api/expense-categories", error);
       res.status(500).json({ message: "Failed to fetch expense categories" });
     }
   });
@@ -291,6 +313,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       }
       res.json(category);
     } catch (error) {
+      logRouteError("GET /api/expense-categories/:id", error);
       res.status(500).json({ message: "Failed to fetch expense category" });
     }
   });
@@ -307,6 +330,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
+      logRouteError("POST /api/expense-categories", error);
       res.status(500).json({ message: "Failed to create expense category" });
     }
   });
@@ -330,6 +354,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
+      logRouteError("PATCH /api/expense-categories/:id", error);
       res.status(500).json({ message: "Failed to update expense category" });
     }
   });
@@ -346,6 +371,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       const deleted = await storage.deleteCategory(req.params.id);
       res.status(204).send();
     } catch (error) {
+      logRouteError("DELETE /api/expense-categories/:id", error);
       res.status(500).json({ message: "Failed to delete expense category" });
     }
   });
@@ -361,6 +387,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       });
       res.json(expenses);
     } catch (error) {
+      logRouteError("GET /api/expenses", error);
       res.status(500).json({ message: "Failed to fetch expenses" });
     }
   });
@@ -378,6 +405,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       );
       res.json(summary);
     } catch (error) {
+      logRouteError("GET /api/expenses/summary", error);
       res.status(500).json({ message: "Failed to fetch expense summary" });
     }
   });
@@ -390,6 +418,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       }
       res.json(expense);
     } catch (error) {
+      logRouteError("GET /api/expenses/:id", error);
       res.status(500).json({ message: "Failed to fetch expense" });
     }
   });
@@ -422,6 +451,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
+      logRouteError("POST /api/expenses", error);
       res.status(500).json({ message: "Failed to create expense" });
     }
   });
@@ -449,6 +479,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
+      logRouteError("PATCH /api/expenses/:id", error);
       res.status(500).json({ message: "Failed to update expense" });
     }
   });
@@ -466,6 +497,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       const deleted = await storage.deleteExpense(req.params.id);
       res.status(204).send();
     } catch (error) {
+      logRouteError("DELETE /api/expenses/:id", error);
       res.status(500).json({ message: "Failed to delete expense" });
     }
   });
@@ -482,6 +514,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       });
       res.json(trips);
     } catch (error) {
+      logRouteError("GET /api/sale-trips", error);
       res.status(500).json({ message: "Failed to fetch sale trips" });
     }
   });
@@ -499,6 +532,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       );
       res.json(summary);
     } catch (error) {
+      logRouteError("GET /api/sale-trips/summary", error);
       res.status(500).json({ message: "Failed to fetch sale trips summary" });
     }
   });
@@ -511,6 +545,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       }
       res.json(trip);
     } catch (error) {
+      logRouteError("GET /api/sale-trips/:id", error);
       res.status(500).json({ message: "Failed to fetch sale trip" });
     }
   });
@@ -572,6 +607,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
+      logRouteError("POST /api/sale-trips", error);
       res.status(500).json({ message: "Failed to create sale trip" });
     }
   });
@@ -619,6 +655,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
+      logRouteError("PATCH /api/sale-trips/:id", error);
       res.status(500).json({ message: "Failed to update sale trip" });
     }
   });
@@ -631,6 +668,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       }
       res.status(204).send();
     } catch (error) {
+      logRouteError("DELETE /api/sale-trips/:id", error);
       res.status(500).json({ message: "Failed to delete sale trip" });
     }
   });
@@ -681,6 +719,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         netIncome: saleSummary.totalRevenue - expenseSummary.totalOperational
       });
     } catch (error) {
+      logRouteError("GET /api/reports/summary", error);
       res.status(500).json({ message: "Failed to fetch report summary" });
     }
   });
@@ -691,6 +730,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       const defaultLocationId = await storage.getDefaultLocation();
       res.json({ defaultLocationId, ...settings });
     } catch (error) {
+      logRouteError("GET /api/settings", error);
       res.status(500).json({ message: "Failed to fetch settings" });
     }
   });
@@ -707,6 +747,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       await storage.setDefaultLocation(defaultLocationId ?? null);
       res.json({ defaultLocationId: defaultLocationId ?? null });
     } catch (error) {
+      logRouteError("PATCH /api/settings", error);
       res.status(500).json({ message: "Failed to update settings" });
     }
   });
