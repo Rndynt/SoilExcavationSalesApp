@@ -21,6 +21,20 @@ export interface SyncState {
   lastError: string | null;
 }
 
+const normalizeOutboxPayload = (body: Record<string, unknown>) => {
+  const payload = { ...body };
+  if (typeof payload.clientCreatedAt === 'string') {
+    payload.clientCreatedAt = new Date(payload.clientCreatedAt);
+  }
+  if (typeof payload.transDate === 'string') {
+    payload.transDate = new Date(payload.transDate);
+  }
+  if (typeof payload.expenseDate === 'string') {
+    payload.expenseDate = new Date(payload.expenseDate);
+  }
+  return payload;
+};
+
 export function useOnlineStatus() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
@@ -89,10 +103,7 @@ export function useOfflineSync() {
         await updateOutboxItem(item.id, { status: 'syncing' });
 
         try {
-          const payload = { ...item.body } as Record<string, unknown>;
-          if (typeof payload.clientCreatedAt === 'string') {
-            payload.clientCreatedAt = new Date(payload.clientCreatedAt);
-          }
+          const payload = normalizeOutboxPayload(item.body as Record<string, unknown>);
           await apiRequest(item.method, item.url, payload);
           await removeFromOutbox(item.id);
         } catch (error: unknown) {
