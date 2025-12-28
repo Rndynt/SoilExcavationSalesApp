@@ -481,93 +481,125 @@ export default function Sales() {
           </Badge>
         </div>
 
-        <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-muted/50 text-muted-foreground border-b">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Time</th>
-                  <th className="px-4 py-3 font-medium">Plate</th>
-                  <th className="px-4 py-3 font-medium">Location</th>
-                  <th className="px-4 py-3 font-medium text-right">Applied</th>
-                  <th className="px-4 py-3 font-medium text-right">Status</th>
-                  <th className="px-4 py-3 font-medium text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {tripsLoading ? (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center">
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                    </td>
-                  </tr>
-                ) : todayTrips?.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground italic">
-                      No trips logged yet today.
-                    </td>
-                  </tr>
-                ) : (
-                  todayTrips?.slice(0, 10).map((trip) => {
-                     const tripDiscount = Math.max(0, trip.basePrice - trip.appliedPrice);
-                     const locName = locations?.find(l => l.id === trip.locationId)?.name || 'Unknown';
-                     
-                    return (
-                      <tr key={trip.id} className="group" data-testid={`row-trip-${trip.id}`}>
-                        <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                          {trip.createdAt ? format(new Date(trip.createdAt), "HH:mm") : "-"}
-                        </td>
-                        <td className="px-4 py-3 font-mono font-medium">
-                          {trip.plateNumber}
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {locName}
-                        </td>
-                        <td className="px-4 py-3 text-right font-mono">
-                          {new Intl.NumberFormat('id-ID').format(trip.appliedPrice)}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          {tripDiscount > 0 ? (
-                            <Badge variant="outline" className="text-[10px]">
-                              - {new Intl.NumberFormat('id-ID', { notation: "compact" }).format(tripDiscount)}
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary" className="text-[10px]">
-                              Full
-                            </Badge>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-right whitespace-nowrap">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEditTrip(trip)}
-                              data-testid={`button-edit-trip-${trip.id}`}
-                              className="h-7"
-                            >
-                              <Edit className="h-3 w-3 mr-1" />
-                              Edit
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setDeleteConfirmId(trip.id)}
-                              data-testid={`button-delete-trip-${trip.id}`}
-                              className="h-7 text-destructive"
-                            >
-                              <Trash2 className="h-3 w-3 mr-1" />
-                              Delete
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+        <div className="space-y-4">
+          {tripsLoading ? (
+            <Card className="p-8">
+              <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+            </Card>
+          ) : todayTrips?.length === 0 ? (
+            <Card className="p-8 text-center text-muted-foreground italic">
+              No trips logged yet today.
+            </Card>
+          ) : (
+            (() => {
+              const groupedByLocation = todayTrips?.reduce((acc, trip) => {
+                const locName = locations?.find(l => l.id === trip.locationId)?.name || 'Unknown';
+                if (!acc[locName]) acc[acc[locName] = []]; // fixed logic
+                if (!acc[locName]) acc[locName] = [];
+                acc[locName].push(trip);
+                return acc;
+              }, {} as Record<string, typeof todayTrips>);
+
+              return Object.entries(groupedByLocation || {}).map(([locationName, trips]) => (
+                <div key={locationName} className="space-y-3">
+                  <div className="flex items-center gap-2 px-1 pt-2">
+                    <MapPin className="h-4 w-4 text-primary" />
+                    <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">{locationName}</h3>
+                    <div className="h-px flex-1 bg-border ml-2" />
+                  </div>
+                  
+                  <div className="grid gap-3">
+                    {trips.map((trip) => {
+                      const tripDiscount = Math.max(0, trip.basePrice - trip.appliedPrice);
+                      const truck = trucks?.find(t => t.plateNumber.toUpperCase() === trip.plateNumber.toUpperCase());
+                      const driverName = truck?.contactName || "-";
+
+                      return (
+                        <Card key={trip.id} className="group hover-elevate overflow-hidden border-l-4 border-l-primary/10 hover:border-l-primary transition-all" data-testid={`card-trip-${trip.id}`}>
+                          <CardContent className="p-3">
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="flex items-center gap-4">
+                                <div className="text-center min-w-[45px] py-1 bg-muted/50 rounded-md">
+                                  <div className="text-xs font-medium text-muted-foreground uppercase">
+                                    {trip.createdAt ? format(new Date(trip.createdAt), "HH:mm") : "-"}
+                                  </div>
+                                </div>
+                                
+                                <div className="space-y-0.5">
+                                  <div className="font-mono font-bold text-base leading-none tracking-tight">
+                                    {trip.plateNumber}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                    <Truck className="h-3 w-3" />
+                                    {driverName}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-4 ml-auto">
+                                <div className="text-right space-y-0.5">
+                                  <div className={cn(
+                                    "font-mono font-bold text-base",
+                                    trip.paymentStatus === 'UNPAID' ? "text-destructive" : "text-foreground"
+                                  )}>
+                                    {new Intl.NumberFormat('id-ID').format(trip.appliedPrice)}
+                                  </div>
+                                  <div className="flex items-center justify-end gap-1.5">
+                                    {trip.paymentStatus === 'UNPAID' && (
+                                      <Badge variant="destructive" className="text-[10px] h-4 px-1 uppercase leading-none">
+                                        Unpaid
+                                      </Badge>
+                                    )}
+                                    {tripDiscount > 0 ? (
+                                      <Badge variant="outline" className="text-[10px] h-4 px-1 leading-none text-amber-600 border-amber-200 bg-amber-50">
+                                        -{new Intl.NumberFormat('id-ID', { notation: "compact" }).format(tripDiscount)}
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="secondary" className="text-[10px] h-4 px-1 leading-none opacity-70">
+                                        Full
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-1 border-l pl-3">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                    onClick={() => handleEditTrip(trip as SaleTrip)}
+                                    data-testid={`button-edit-trip-${trip.id}`}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                    onClick={() => setDeleteConfirmId(trip.id)}
+                                    data-testid={`button-delete-trip-${trip.id}`}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {trip.note && (
+                              <div className="mt-2 pt-2 border-t text-[11px] text-muted-foreground italic flex items-start gap-1">
+                                <div className="mt-0.5">Note:</div>
+                                <div className="flex-1">{trip.note}</div>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
+              ));
+            })()
+          )}
         </div>
       </div>
 
