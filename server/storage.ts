@@ -17,16 +17,8 @@ if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is not set");
 }
 
-const neonClient = neon(process.env.DATABASE_URL);
-const client = Object.assign(
-  (query: string, params: unknown[], options?: unknown) =>
-    neonClient.query(query, params, options),
-  {
-    transaction: neonClient.transaction.bind(neonClient),
-  },
-);
-
-export const db = drizzle(client);
+const sqlClient = neon(process.env.DATABASE_URL);
+export const db = drizzle(sqlClient);
 
 export interface ExpenseFilters {
   locationId?: string;
