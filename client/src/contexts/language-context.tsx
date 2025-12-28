@@ -9,12 +9,12 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<LanguageCode>(() => {
-    const saved = localStorage.getItem('app-language');
+  const [language, setLanguageState] = React.useState<LanguageCode>(() => {
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('app-language') : null;
     return (saved as LanguageCode) || 'id';
   });
 
-  useEffect(() => {
+  React.useEffect(() => {
     localStorage.setItem('app-language', language);
   }, [language]);
 
