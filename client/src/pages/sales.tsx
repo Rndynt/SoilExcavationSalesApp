@@ -566,7 +566,7 @@ export default function Sales() {
                                     size="icon"
                                     variant="ghost"
                                     className="h-8 w-8 text-muted-foreground hover:text-primary"
-                                    onClick={() => handleEditTrip(trip as SaleTrip)}
+                                    onClick={() => handleEditTrip(trip as any)}
                                     data-testid={`button-edit-trip-${trip.id}`}
                                   >
                                     <Edit className="h-4 w-4" />
