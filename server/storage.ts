@@ -13,11 +13,19 @@ import {
   users, locations, trucks, priceRules, expenseCategories, expenses, saleTrips, appSettings
 } from "@shared/schema";
 
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL is not set");
+const databaseUrl =
+  process.env.DATABASE_URL ||
+  process.env.NETLIFY_DATABASE_URL ||
+  process.env.NEON_DATABASE_URL ||
+  process.env.POSTGRES_URL;
+
+if (!databaseUrl) {
+  throw new Error(
+    "DATABASE_URL is not set (checked DATABASE_URL, NETLIFY_DATABASE_URL, NEON_DATABASE_URL, POSTGRES_URL)"
+  );
 }
 
-const neonClient = neon(process.env.DATABASE_URL);
+const neonClient = neon(databaseUrl);
 const sqlClient = Object.assign(
   ((query, params, options) => neonClient.query(query, params, options)) as NeonQueryFunction,
   neonClient
