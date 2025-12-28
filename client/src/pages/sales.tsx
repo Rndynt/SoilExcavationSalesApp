@@ -312,7 +312,9 @@ export default function Sales() {
                         value={plate}
                         onChange={e => {
                           setPlate(e.target.value);
+                          setPlateOpen(true);
                         }}
+                        onFocus={() => setPlateOpen(true)}
                         placeholder="B 1234 XYZ"
                         className="pl-10 h-12 text-lg font-mono uppercase"
                         autoFocus
