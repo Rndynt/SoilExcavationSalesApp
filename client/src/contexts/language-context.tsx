@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { LanguageCode } from '@/lib/translations';
 
 interface LanguageContextType {
@@ -8,14 +8,19 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = React.useState<LanguageCode>(() => {
-    const saved = typeof window !== 'undefined' ? localStorage.getItem('app-language') : null;
-    return (saved as LanguageCode) || 'id';
+export function LanguageProvider({ children }: { children: ReactNode }) {
+  const [language, setLanguageState] = useState<LanguageCode>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('app-language');
+      return (saved as LanguageCode) || 'id';
+    }
+    return 'id';
   });
 
-  React.useEffect(() => {
-    localStorage.setItem('app-language', language);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('app-language', language);
+    }
   }, [language]);
 
   const setLanguage = (lang: LanguageCode) => {
