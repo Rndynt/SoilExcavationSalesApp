@@ -494,7 +494,6 @@ export default function Sales() {
             (() => {
               const groupedByLocation = todayTrips?.reduce((acc, trip) => {
                 const locName = locations?.find(l => l.id === trip.locationId)?.name || 'Unknown';
-                if (!acc[locName]) acc[acc[locName] = []]; // fixed logic
                 if (!acc[locName]) acc[locName] = [];
                 acc[locName].push(trip);
                 return acc;
