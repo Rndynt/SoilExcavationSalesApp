@@ -314,7 +314,7 @@ export default function Sales() {
                           setPlate(e.target.value);
                           setPlateOpen(true);
                         }}
-                        onFocus={() => setPlateOpen(true)}
+                        onClick={() => setPlateOpen(true)}
                         placeholder="B 1234 XYZ"
                         className="pl-10 h-12 text-lg font-mono uppercase"
                         autoFocus
@@ -322,7 +322,11 @@ export default function Sales() {
                       />
                     </div>
                   </PopoverTrigger>
-                  <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]" align="start">
+                  <PopoverContent
+                    className="p-0 w-[var(--radix-popover-trigger-width)]"
+                    align="start"
+                    onOpenAutoFocus={(event) => event.preventDefault()}
+                  >
                     <Command>
                       <CommandList>
                         {plateSuggestions.length > 0 ? (
