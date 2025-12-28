@@ -1,4 +1,4 @@
-import { neon } from "@neondatabase/serverless";
+import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import { eq, and, or, gte, lte, ilike, sql, desc, isNull } from "drizzle-orm";
 import {
@@ -17,7 +17,11 @@ if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is not set");
 }
 
-const sqlClient = neon(process.env.DATABASE_URL);
+const neonClient = neon(process.env.DATABASE_URL);
+const sqlClient = Object.assign(
+  ((query, params, options) => neonClient.query(query, params, options)) as NeonQueryFunction,
+  neonClient
+);
 export const db = drizzle(sqlClient);
 
 export interface ExpenseFilters {
