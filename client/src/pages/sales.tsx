@@ -10,13 +10,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
-import { Plus, Minus, Truck, Calendar, MapPin, ArrowRight, CreditCard, Loader2, Edit, Trash2 } from "lucide-react";
+import { Plus, Minus, Truck, Calendar, MapPin, ArrowRight, CreditCard, Loader2, Edit, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { useTranslate } from "@/hooks/use-translate";
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface SaleTrip {
   id: string;
@@ -45,6 +46,7 @@ export default function Sales() {
   const [plate, setPlate] = useState("");
   const [plateOpen, setPlateOpen] = useState(false);
   const [note, setNote] = useState("");
+  const [configOpen, setConfigOpen] = useState(false);
   
   const [paymentStatus, setPaymentStatus] = useState<"PAID" | "PARTIAL" | "UNPAID">("PAID");
   const [paidAmount, setPaidAmount] = useState<number>(0);
@@ -247,38 +249,58 @@ export default function Sales() {
           <CardContent className="pt-6 space-y-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Date</Label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      type="date" 
-                      value={date} 
-                      onChange={e => setDate(e.target.value)}
-                      className="pl-9"
-                      data-testid="input-date"
-                    />
+              <Collapsible open={configOpen} onOpenChange={setConfigOpen} className="space-y-4">
+                <div className="flex items-center justify-between gap-4 px-1">
+                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                    <Calendar className="h-3 w-3" />
+                    {format(new Date(date), "dd MMM yyyy")}
+                    <span className="text-muted-foreground/30">•</span>
+                    <MapPin className="h-3 w-3" />
+                    {locations?.find(l => l.id === locationId)?.name || "Select Location"}
                   </div>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
+                      {configOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                      {configOpen ? "Close" : "Change"}
+                    </Button>
+                  </CollapsibleTrigger>
                 </div>
-                
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Location</Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground z-10" />
-                    <Select value={locationId} onValueChange={handleLocationChange}>
-                      <SelectTrigger className="pl-9" data-testid="select-location">
-                        <SelectValue placeholder="Select location" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {locations?.map(l => (
-                          <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+
+                <CollapsibleContent className="space-y-4 pt-2 border-t border-dashed animate-in fade-in slide-in-from-top-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Date</Label>
+                      <div className="relative">
+                        <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                          type="date" 
+                          value={date} 
+                          onChange={e => setDate(e.target.value)}
+                          className="pl-9"
+                          data-testid="input-date"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Location</Label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground z-10" />
+                        <Select value={locationId} onValueChange={handleLocationChange}>
+                          <SelectTrigger className="pl-9" data-testid="select-location">
+                            <SelectValue placeholder="Select location" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {locations?.map(l => (
+                              <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
+                </CollapsibleContent>
+              </Collapsible>
 
               <div className="space-y-2">
                 <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Truck Plate</Label>
