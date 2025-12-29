@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useExpenses, useExpenseCategories, useCreateExpense, useCreateExpenseCategory, useLocations, useDefaultLocation } from "@/hooks/use-api";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -171,60 +171,56 @@ export default function Expenses() {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight" data-testid="text-page-title">{t('expenses.title')}</h2>
-          <p className="text-muted-foreground mt-1">{t('expenses.subtitle')}</p>
-        </div>
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight" data-testid="text-page-title">{t('expenses.title')}</h2>
+        <p className="text-muted-foreground mt-1">{t('expenses.subtitle')}</p>
+      </div>
 
-        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-          <DialogTrigger asChild>
-            <Button data-testid="button-add-expense">
-              <Plus className="w-4 h-4 mr-2" />
-              {t('expenses.addexpense')}
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Record New Expense</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4 pt-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Date</Label>
-                  <Input 
-                    type="date" 
-                    value={newDate} 
-                    onChange={e => setNewDate(e.target.value)} 
-                    data-testid="input-expense-date"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Amount (IDR)</Label>
-                  <Input 
-                    type="number" 
-                    value={newAmount} 
-                    onChange={e => setNewAmount(e.target.value)} 
-                    required 
-                    data-testid="input-amount"
-                  />
-                </div>
+      <Card className="border-border shadow-sm bg-accent/20">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">{t('expenses.addexpense')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+              <div className="md:col-span-1 space-y-2">
+                <Label className="text-xs font-semibold">{t('expenses.date')}</Label>
+                <Input 
+                  type="date" 
+                  value={newDate} 
+                  onChange={e => setNewDate(e.target.value)} 
+                  data-testid="input-expense-date"
+                  className="h-9"
+                />
               </div>
 
-              <div className="space-y-2">
-                <Label className="flex justify-between">
-                  Category
+              <div className="md:col-span-1 space-y-2">
+                <Label className="text-xs font-semibold">{t('expenses.amount')}</Label>
+                <Input 
+                  type="number" 
+                  value={newAmount} 
+                  onChange={e => setNewAmount(e.target.value)} 
+                  required 
+                  data-testid="input-amount"
+                  placeholder="0"
+                  className="h-9"
+                />
+              </div>
+
+              <div className="md:col-span-2 space-y-2">
+                <Label className="text-xs font-semibold flex justify-between">
+                  {t('expenses.category')}
                   <span 
-                    className="text-xs text-emerald-600 cursor-pointer hover:underline"
+                    className="text-xs text-primary cursor-pointer hover:underline font-normal"
                     onClick={() => setIsAddCatOpen(true)}
                     data-testid="link-new-category"
                   >
-                    + New Category
+                    + {t('expenses.addnewcategory')}
                   </span>
                 </Label>
                 <Select value={newCatId} onValueChange={setNewCatId}>
-                  <SelectTrigger data-testid="select-category">
-                    <SelectValue placeholder="Select Category" />
+                  <SelectTrigger data-testid="select-category" className="h-9">
+                    <SelectValue placeholder={t('expenses.selectcategory')} />
                   </SelectTrigger>
                   <SelectContent>
                     {categories.filter(c => !c.isSystem).map(c => (
@@ -237,85 +233,91 @@ export default function Expenses() {
               </div>
 
               {(selectedCatType === 'PAYABLE' || selectedCatType === 'LOAN') && (
-                <div className="space-y-2 p-3 bg-muted rounded-md border border-border">
-                  <Label className="text-xs font-semibold text-muted-foreground uppercase">Loan/Payable Details</Label>
-                  <div>
-                    <Label className="text-xs">Related Plate</Label>
-                    <Input 
-                      value={newPlate} 
-                      onChange={e => setNewPlate(e.target.value)} 
-                      className="h-8 text-xs uppercase" 
-                      placeholder="Optional" 
-                      data-testid="input-related-plate"
-                    />
-                  </div>
+                <div className="md:col-span-1 space-y-2">
+                  <Label className="text-xs font-semibold">Plat</Label>
+                  <Input 
+                    value={newPlate} 
+                    onChange={e => setNewPlate(e.target.value)} 
+                    className="h-9 text-xs uppercase" 
+                    placeholder="Opt" 
+                    data-testid="input-related-plate"
+                  />
                 </div>
               )}
 
-              <div className="space-y-2">
-                <Label>Note</Label>
-                <Textarea 
+              <div className={`space-y-2 ${selectedCatType === 'PAYABLE' || selectedCatType === 'LOAN' ? 'md:col-span-1' : 'md:col-span-2'}`}>
+                <Label className="text-xs font-semibold">Catatan</Label>
+                <Input 
                   value={newNote} 
                   onChange={e => setNewNote(e.target.value)} 
-                  placeholder="Description..." 
+                  placeholder="..." 
                   data-testid="input-note"
+                  className="h-9 text-xs"
                 />
               </div>
 
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={createExpense.isPending}
-                data-testid="button-submit-expense"
-              >
-                {createExpense.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Save Expense
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+              <div className="md:col-span-1 flex items-end">
+                <Button 
+                  type="submit" 
+                  className="w-full h-9" 
+                  disabled={createExpense.isPending}
+                  data-testid="button-submit-expense"
+                >
+                  {createExpense.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4 mr-1" />
+                      Catat
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
 
-        <Dialog open={isAddCatOpen} onOpenChange={setIsAddCatOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add Category</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleAddCategory} className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label>Name</Label>
-                <Input 
-                  value={newCatName} 
-                  onChange={e => setNewCatName(e.target.value)} 
-                  required 
-                  data-testid="input-category-name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Type</Label>
-                <Select value={newCatType} onValueChange={setNewCatType}>
-                  <SelectTrigger data-testid="select-category-type">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="OPERATIONAL">Operational</SelectItem>
-                    <SelectItem value="PAYABLE">Payable (Driver)</SelectItem>
-                    <SelectItem value="LOAN">Loan (Bank)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button 
-                type="submit" 
-                className="w-full bg-emerald-600 hover:bg-emerald-700"
-                disabled={createCategory.isPending}
-                data-testid="button-submit-category"
-              >
-                {createCategory.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Create Category
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+      <Dialog open={isAddCatOpen} onOpenChange={setIsAddCatOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('expenses.addnewcategory')}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddCategory} className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label>{t('expenses.categoryname')}</Label>
+              <Input 
+                value={newCatName} 
+                onChange={e => setNewCatName(e.target.value)} 
+                required 
+                data-testid="input-category-name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Type</Label>
+              <Select value={newCatType} onValueChange={setNewCatType}>
+                <SelectTrigger data-testid="select-category-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="OPERATIONAL">{t('expenses.operational')}</SelectItem>
+                  <SelectItem value="PAYABLE">{t('expenses.payable')}</SelectItem>
+                  <SelectItem value="LOAN">{t('expenses.loan')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button 
+              type="submit" 
+              className="w-full bg-primary"
+              disabled={createCategory.isPending}
+              data-testid="button-submit-category"
+            >
+              {createCategory.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {t('expenses.save')}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <div className="flex items-center gap-2 flex-wrap">
         {TIME_PRESETS.map(p => (
@@ -344,10 +346,10 @@ export default function Expenses() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="OPERATIONAL">Operational</SelectItem>
-              <SelectItem value="DISCOUNT">Discount</SelectItem>
-              <SelectItem value="PAYABLE">Payable</SelectItem>
-              <SelectItem value="LOAN">Loan</SelectItem>
+              <SelectItem value="OPERATIONAL">{t('expenses.operational')}</SelectItem>
+              <SelectItem value="DISCOUNT">{t('expenses.discount')}</SelectItem>
+              <SelectItem value="PAYABLE">{t('expenses.payable')}</SelectItem>
+              <SelectItem value="LOAN">{t('expenses.loan')}</SelectItem>
             </SelectContent>
           </Select>
 
