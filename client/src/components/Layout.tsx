@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Receipt, DollarSign, Truck, Menu, X, History, MapPin, Tags, Settings, CloudUpload } from "lucide-react";
+import { LayoutDashboard, Receipt, DollarSign, Truck, Menu, X, History, MapPin, Tags, Settings, CloudUpload, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { href: "/", icon: LayoutDashboard, label: t('nav.dashboard') },
     { href: "/sales", icon: Truck, label: t('nav.quicklog') },
     { href: "/sales-history", icon: History, label: t('nav.saleshistory') },
+    { href: "/receivables", icon: AlertCircle, label: "Receivables" },
     { href: "/expenses", icon: Receipt, label: t('nav.expenses') },
     { href: "/trucks", icon: Truck, label: t('nav.trucks') },
     { href: "/locations", icon: MapPin, label: t('nav.locations') },

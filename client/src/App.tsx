@@ -9,6 +9,7 @@ import Layout from "@/components/Layout";
 import Dashboard from "@/pages/dashboard";
 import Sales from "@/pages/sales";
 import SalesHistory from "@/pages/sales-history";
+import Receivables from "@/pages/receivables";
 import Expenses from "@/pages/expenses";
 import Trucks from "@/pages/trucks";
 import Locations from "@/pages/locations";
@@ -24,6 +25,7 @@ function Router() {
         <Route path="/" component={Dashboard} />
         <Route path="/sales" component={Sales} />
         <Route path="/sales-history" component={SalesHistory} />
+        <Route path="/receivables" component={Receivables} />
         <Route path="/expenses" component={Expenses} />
         <Route path="/trucks" component={Trucks} />
         <Route path="/locations" component={Locations} />
