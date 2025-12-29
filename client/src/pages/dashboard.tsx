@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useReportsSummary, useLocations, useSaleTrips } from "@/hooks/use-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DollarSign, TrendingDown, TrendingUp, Wallet, ArrowUpRight, Truck, Receipt, CreditCard, Loader2, Download } from "lucide-react";
 import { ExportRecapModal } from "@/components/export-recap-modal";
@@ -21,12 +22,14 @@ const TIME_PRESETS: { value: TimePreset; label: string }[] = [
 
 export default function Dashboard() {
   const t = useTranslate();
-  const [preset, setPreset] = useState<TimePreset>("TODAY");
+  const [preset, setPreset] = useState<TimePreset | "CUSTOM">("TODAY");
+  const [customDateFrom, setCustomDateFrom] = useState("");
+  const [customDateTo, setCustomDateTo] = useState("");
   const [locationId, setLocationId] = useState<string | undefined>(undefined);
   const [exportOpen, setExportOpen] = useState(false);
   
   const { data: locations } = useLocations();
-  const { data: report, isLoading } = useReportsSummary(preset, locationId);
+  const { data: report, isLoading } = useReportsSummary(preset === "CUSTOM" ? undefined : (preset as any), locationId, preset === "CUSTOM" ? customDateFrom : undefined, preset === "CUSTOM" ? customDateTo : undefined);
   const { data: trips } = useSaleTrips({ locationId, dateFrom: report?.dateFrom, dateTo: report?.dateTo });
 
   const fmtMoney = (n: number) => 
@@ -78,6 +81,33 @@ export default function Dashboard() {
             {t(p.label)}
           </Button>
         ))}
+        <Button
+          variant={preset === "CUSTOM" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setPreset("CUSTOM")}
+          data-testid="button-preset-custom"
+        >
+          {t("dashboard.customrange")}
+        </Button>
+        {preset === "CUSTOM" && (
+          <div className="flex gap-2 items-center">
+            <Input
+              type="date"
+              value={customDateFrom}
+              onChange={e => setCustomDateFrom(e.target.value)}
+              className="w-32 h-9"
+              data-testid="input-custom-date-from"
+            />
+            <span className="text-sm text-muted-foreground">{t("dashboard.to")}</span>
+            <Input
+              type="date"
+              value={customDateTo}
+              onChange={e => setCustomDateTo(e.target.value)}
+              className="w-32 h-9"
+              data-testid="input-custom-date-to"
+            />
+          </div>
+        )}
         {isLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
         <Button onClick={() => setExportOpen(true)} variant="outline" size="sm" data-testid="button-export">
           <Download className="w-4 h-4 mr-2" />

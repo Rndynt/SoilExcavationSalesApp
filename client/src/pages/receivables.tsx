@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { AlertCircle, ChevronDown, ChevronUp, Check, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useTranslate } from "@/hooks/use-translate";
 
 interface ReceivableGroup {
   plateNumber: string;
@@ -23,6 +24,7 @@ interface ReceivableGroup {
 }
 
 export default function Receivables() {
+  const t = useTranslate();
   const [filterLocation, setFilterLocation] = useState("all");
   const [filterPlate, setFilterPlate] = useState("");
   const [expandedPlates, setExpandedPlates] = useState<Set<string>>(new Set());
@@ -99,7 +101,7 @@ export default function Receivables() {
         paymentStatus: "PAID",
         paidAmount: trip.appliedPrice,
       });
-      toast({ title: "Transaction marked as paid" });
+      toast({ title: t('receivables.paymentRecorded') });
       setIsPaymentDialogOpen(false);
       setSelectedTrip(null);
       setPaymentAmount("");
@@ -130,13 +132,13 @@ export default function Receivables() {
         paymentStatus: newStatus,
         paidAmount: newPaidAmount,
       });
-      toast({ title: "Payment recorded successfully" });
+      toast({ title: t('receivables.paymentRecorded') });
       setIsPaymentDialogOpen(false);
       setSelectedTrip(null);
       setPaymentAmount("");
     } catch (error: any) {
       toast({
-        title: "Failed to record payment",
+        title: t('receivables.failedToRecordPayment'),
         description: error?.message || "Unknown error",
         variant: "destructive",
       });
@@ -149,38 +151,38 @@ export default function Receivables() {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Receivables</h2>
-        <p className="text-muted-foreground mt-1">Monitor and manage outstanding payments from sales transactions.</p>
+        <h2 className="text-3xl font-bold tracking-tight">{t('receivables.title')}</h2>
+        <p className="text-muted-foreground mt-1">{t('receivables.subtitle')}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Outstanding</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('receivables.totaloutstanding')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">Rp {new Intl.NumberFormat('id-ID').format(totalOutstanding)}</div>
-            <p className="text-xs text-muted-foreground mt-1">{outstandingTrips.length} transactions</p>
+            <p className="text-xs text-muted-foreground mt-1">{outstandingTrips.length} {t('receivables.transactions')}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Vehicles With Debt</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('receivables.vehiclesWithDebt')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{groupedReceivables.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">Unique plates</p>
+            <p className="text-xs text-muted-foreground mt-1">{t('receivables.uniquePlates')}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Pending Transactions</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('receivables.pendingTransactions')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{outstandingTrips.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">Transactions</p>
+            <p className="text-xs text-muted-foreground mt-1">{t('receivables.transactions')}</p>
           </CardContent>
         </Card>
       </div>
@@ -188,23 +190,23 @@ export default function Receivables() {
       <Card>
         <CardContent className="p-4 flex flex-col md:flex-row gap-4 items-end flex-wrap">
           <div className="w-full md:w-48 space-y-2">
-            <span className="text-xs font-semibold text-muted-foreground uppercase">Search Plate</span>
+            <span className="text-xs font-semibold text-muted-foreground uppercase">{t('sales.searchplate')}</span>
             <Input
               data-testid="input-search-plate"
-              placeholder="Search plate..."
+              placeholder={t('receivables.searchplate')}
               value={filterPlate}
               onChange={e => setFilterPlate(e.target.value)}
             />
           </div>
 
           <div className="w-full md:w-48 space-y-2">
-            <span className="text-xs font-semibold text-muted-foreground uppercase">Location</span>
+            <span className="text-xs font-semibold text-muted-foreground uppercase">{t('sales.location')}</span>
             <Select value={filterLocation} onValueChange={setFilterLocation}>
               <SelectTrigger data-testid="select-location-trigger">
-                <SelectValue placeholder="All Locations" />
+                <SelectValue placeholder={t('sales.selectlocation')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Locations</SelectItem>
+                <SelectItem value="all">{t('history.all')} {t('sales.location').toLowerCase()}</SelectItem>
                 {locations.map(loc => (
                   <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
                 ))}
@@ -216,10 +218,10 @@ export default function Receivables() {
             {isLoading ? (
               <span className="flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Loading...
+                {t('syncqueue.loading')}
               </span>
             ) : (
-              <span>{outstandingTrips.length} outstanding transactions</span>
+              <span>{outstandingTrips.length} {t('receivables.outstandingtransactions')}</span>
             )}
           </div>
         </CardContent>
@@ -238,7 +240,7 @@ export default function Receivables() {
           <Card>
             <CardContent className="p-12 text-center">
               <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-              <p className="text-muted-foreground">No outstanding receivables</p>
+              <p className="text-muted-foreground">{t('receivables.nooutstandingReceivables')}</p>
             </CardContent>
           </Card>
         ) : (
@@ -325,42 +327,42 @@ export default function Receivables() {
                                     variant="outline"
                                     onClick={() => handlePaymentClick(trip)}
                                   >
-                                    Record Payment
+                                    {t('receivables.recordPayment')}
                                   </Button>
                                 </DialogTrigger>
                                 <DialogContent>
                                   <DialogHeader>
-                                    <DialogTitle>Record Payment</DialogTitle>
+                                    <DialogTitle>{t('receivables.recordPayment')}</DialogTitle>
                                   </DialogHeader>
                                   {selectedTrip && (
                                     <div className="space-y-4 pt-4">
                                       <div>
-                                        <span className="text-sm text-muted-foreground">Transaction Date:</span>
+                                        <span className="text-sm text-muted-foreground">{t('receivables.transactionDate')}:</span>
                                         <div className="font-medium">{format(new Date(selectedTrip.transDate), "dd MMM yyyy")}</div>
                                       </div>
                                       <div>
-                                        <span className="text-sm text-muted-foreground">Price:</span>
+                                        <span className="text-sm text-muted-foreground">{t('receivables.price')}:</span>
                                         <div className="font-medium">Rp {new Intl.NumberFormat('id-ID').format(selectedTrip.appliedPrice)}</div>
                                       </div>
                                       <div>
-                                        <span className="text-sm text-muted-foreground">Already Paid:</span>
+                                        <span className="text-sm text-muted-foreground">{t('receivables.alreadyPaid')}:</span>
                                         <div className="font-medium">Rp {new Intl.NumberFormat('id-ID').format(selectedTrip.paidAmount)}</div>
                                       </div>
                                       <div className="bg-muted p-3 rounded">
-                                        <span className="text-sm text-muted-foreground">Outstanding:</span>
+                                        <span className="text-sm text-muted-foreground">{t('receivables.outstanding')}:</span>
                                         <div className="font-bold text-red-600 dark:text-red-500">
                                           Rp {new Intl.NumberFormat('id-ID').format(selectedTrip.appliedPrice - selectedTrip.paidAmount)}
                                         </div>
                                       </div>
 
                                       <div className="space-y-2">
-                                        <Label>Payment Amount</Label>
+                                        <Label>{t('receivables.paymentAmount')}</Label>
                                         <Input
                                           data-testid="input-payment-amount"
                                           type="number"
                                           value={paymentAmount}
                                           onChange={(e) => setPaymentAmount(e.target.value)}
-                                          placeholder="Enter amount"
+                                          placeholder={t('expenses.enteramount')}
                                           min="0"
                                         />
                                       </div>
@@ -375,12 +377,12 @@ export default function Receivables() {
                                           {updateSaleTrip.isPending ? (
                                             <>
                                               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                              Recording...
+                                              {t('sales.updating')}
                                             </>
                                           ) : (
                                             <>
                                               <Check className="h-4 w-4 mr-2" />
-                                              Record Payment
+                                              {t('receivables.recordPayment')}
                                             </>
                                           )}
                                         </Button>
@@ -390,7 +392,7 @@ export default function Receivables() {
                                           onClick={() => handleMarkAsPaid(selectedTrip)}
                                           disabled={updateSaleTrip.isPending}
                                         >
-                                          Mark as Paid
+                                          {t('receivables.markAsPaid')}
                                         </Button>
                                       </div>
                                     </div>

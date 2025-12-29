@@ -181,6 +181,32 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
     'history.all': 'All',
     'history.nohistoryfound': 'No history found',
 
+    // Receivables
+    'receivables.title': 'Receivables',
+    'receivables.subtitle': 'Monitor and manage outstanding payments from sales transactions.',
+    'receivables.totaloutstanding': 'Total Outstanding',
+    'receivables.transactions': 'transactions',
+    'receivables.vehiclesWithDebt': 'Vehicles With Debt',
+    'receivables.uniquePlates': 'Unique plates',
+    'receivables.pendingTransactions': 'Pending Transactions',
+    'receivables.searchplate': 'Search plate...',
+    'receivables.outstandingtransactions': 'outstanding transactions',
+    'receivables.nooutstandingReceivables': 'No outstanding receivables',
+    'receivables.recordPayment': 'Record Payment',
+    'receivables.paymentAmount': 'Payment Amount',
+    'receivables.markAsPaid': 'Mark as Paid',
+    'receivables.transactionDate': 'Transaction Date',
+    'receivables.price': 'Price',
+    'receivables.alreadyPaid': 'Already Paid',
+    'receivables.outstanding': 'Outstanding',
+    'receivables.paymentRecorded': 'Payment recorded successfully',
+    'receivables.failedToRecordPayment': 'Failed to record payment',
+
+    // Dashboard - Custom Date Range
+    'dashboard.customrange': 'Custom Range',
+    'dashboard.datefrom': 'Date From',
+    'dashboard.dateto': 'Date To',
+
     // Settings
     'settings.title': 'Settings',
     'settings.subtitle': 'Manage application settings',
@@ -385,6 +411,32 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
     'history.subtitle': 'Lihat semua transaksi penjualan',
     'history.all': 'Semua',
     'history.nohistoryfound': 'Riwayat tidak ditemukan',
+
+    // Receivables
+    'receivables.title': 'Piutang',
+    'receivables.subtitle': 'Pantau dan kelola pembayaran outstanding dari transaksi penjualan.',
+    'receivables.totaloutstanding': 'Total Jatuh Tempo',
+    'receivables.transactions': 'transaksi',
+    'receivables.vehiclesWithDebt': 'Kendaraan Dengan Hutang',
+    'receivables.uniquePlates': 'Plat unik',
+    'receivables.pendingTransactions': 'Transaksi Tertunda',
+    'receivables.searchplate': 'Cari plat...',
+    'receivables.outstandingtransactions': 'transaksi jatuh tempo',
+    'receivables.nooutstandingReceivables': 'Tidak ada piutang yang jatuh tempo',
+    'receivables.recordPayment': 'Catat Pembayaran',
+    'receivables.paymentAmount': 'Jumlah Pembayaran',
+    'receivables.markAsPaid': 'Tandai Sebagai Lunas',
+    'receivables.transactionDate': 'Tanggal Transaksi',
+    'receivables.price': 'Harga',
+    'receivables.alreadyPaid': 'Sudah Dibayar',
+    'receivables.outstanding': 'Jatuh Tempo',
+    'receivables.paymentRecorded': 'Pembayaran berhasil dicatat',
+    'receivables.failedToRecordPayment': 'Gagal mencatat pembayaran',
+
+    // Dashboard - Custom Date Range
+    'dashboard.customrange': 'Jangkauan Kustom',
+    'dashboard.datefrom': 'Dari Tanggal',
+    'dashboard.dateto': 'Sampai Tanggal',
 
     // Settings
     'settings.title': 'Pengaturan',
