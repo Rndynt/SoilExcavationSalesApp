@@ -12,6 +12,7 @@ interface ExportRecapModalProps {
   dateTo: string;
   sales: { totalTrips: number; grossRevenue: number; totalDiscounts: number; netRevenue: number; cashCollected: number; receivables: number };
   expenses: { totalExpenses: number; totalOperational: number; byCategory: Array<{ category: string; amount: number }> };
+  detailExpenses: Array<{ expenseDate: string; categoryId?: string; category?: string; categoryName?: string; amount: number; note?: string }>;
   profit: number;
   cashBasisProfit: number;
   trips: Array<{ transDate: string; plateNumber: string; appliedPrice: number; note?: string; paymentStatus: string }>;
@@ -25,6 +26,7 @@ export function ExportRecapModal({
   dateTo,
   sales,
   expenses,
+  detailExpenses,
   profit,
   cashBasisProfit,
   trips,
@@ -187,34 +189,42 @@ export function ExportRecapModal({
             </table>
           </div>
 
-          {/* Expenses Table */}
-          {expenses.byCategory && expenses.byCategory.length > 0 && (
+          {/* Expenses Detail Table */}
+          {detailExpenses && detailExpenses.length > 0 && (
             <div style={{ marginBottom: "8px" }}>
               <div style={{ fontWeight: "bold", fontSize: "11px", marginBottom: "4px", borderBottom: "1px solid #000" }}>
-                PENGELUARAN ({expenses.byCategory.length} kategori)
+                PENGELUARAN DETAIL ({detailExpenses.length} entry)
               </div>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10px", marginBottom: "6px" }}>
+                <thead>
+                  <tr style={{ background: "#f5f5f5" }}>
+                    <th style={{ padding: "3px 4px", borderBottom: "1px solid #ddd", fontWeight: "bold" }}>Tgl</th>
+                    <th style={{ padding: "3px 4px", borderBottom: "1px solid #ddd", fontWeight: "bold" }}>Kategori</th>
+                    <th style={{ padding: "3px 4px", borderBottom: "1px solid #ddd", fontWeight: "bold", textAlign: "right" }}>Jumlah</th>
+                    <th style={{ padding: "3px 4px", borderBottom: "1px solid #ddd", fontWeight: "bold" }}>Catatan</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  {expenses.byCategory.map((exp, idx) => (
+                  {detailExpenses.map((exp, idx) => (
                     <tr key={idx}>
-                      <td style={{ padding: "3px 4px", borderBottom: "1px solid #ddd" }}>
-                        {exp.category}
+                      <td style={{ padding: "3px 4px", borderBottom: "1px solid #ddd", fontSize: "9px" }}>
+                        {format(new Date(exp.expenseDate), "dd/MM")}
                       </td>
-                      <td style={{ padding: "3px 4px", borderBottom: "1px solid #ddd", textAlign: "right", fontFamily: "monospace", width: "100px" }}>
+                      <td style={{ padding: "3px 4px", borderBottom: "1px solid #ddd", fontSize: "9px" }}>
+                        {exp.categoryName || exp.category}
+                      </td>
+                      <td style={{ padding: "3px 4px", borderBottom: "1px solid #ddd", textAlign: "right", fontFamily: "monospace", fontSize: "9px" }}>
                         {fmtMoney(exp.amount)}
+                      </td>
+                      <td style={{ padding: "3px 4px", borderBottom: "1px solid #ddd", fontSize: "9px" }}>
+                        {exp.note ? exp.note.substring(0, 20) : "-"}
                       </td>
                     </tr>
                   ))}
                   <tr style={{ fontWeight: "bold", background: "#f5f5f5" }}>
-                    <td style={{ padding: "3px 4px", borderBottom: "1px solid #000" }}>TOTAL PENGELUARAN</td>
+                    <td colSpan={3} style={{ padding: "3px 4px", borderBottom: "1px solid #000" }}>TOTAL PENGELUARAN</td>
                     <td style={{ padding: "3px 4px", borderBottom: "1px solid #000", textAlign: "right", fontFamily: "monospace" }}>
                       {fmtMoney(expenses.totalExpenses)}
-                    </td>
-                  </tr>
-                  <tr style={{ fontSize: "9px", color: "#666" }}>
-                    <td style={{ padding: "3px 4px" }}>Beban Operasional</td>
-                    <td style={{ padding: "3px 4px", textAlign: "right", fontFamily: "monospace" }}>
-                      {fmtMoney(expenses.totalOperational)}
                     </td>
                   </tr>
                 </tbody>

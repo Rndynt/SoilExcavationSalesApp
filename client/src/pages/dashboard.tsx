@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useReportsSummary, useLocations, useSaleTrips } from "@/hooks/use-api";
+import { useReportsSummary, useLocations, useSaleTrips, useExpenses } from "@/hooks/use-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,7 @@ export default function Dashboard() {
   const { data: locations } = useLocations();
   const { data: report, isLoading } = useReportsSummary(preset === "CUSTOM" ? undefined : (preset as any), locationId, preset === "CUSTOM" ? customDateFrom : undefined, preset === "CUSTOM" ? customDateTo : undefined);
   const { data: trips } = useSaleTrips({ locationId, dateFrom: report?.dateFrom, dateTo: report?.dateTo });
+  const { data: detailExpenses = [] } = useExpenses({ locationId, dateFrom: report?.dateFrom, dateTo: report?.dateTo });
 
   const fmtMoney = (n: number) => 
     new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
@@ -281,6 +282,7 @@ export default function Dashboard() {
               amount: item.total
             }))
           }}
+          detailExpenses={detailExpenses}
           profit={profit}
           cashBasisProfit={cashBasisProfit}
           trips={trips || []}
