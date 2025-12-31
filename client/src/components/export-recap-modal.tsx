@@ -38,135 +38,31 @@ export function ExportRecapModal({
 
   const handlePrint = () => {
     if (!contentRef.current) return;
-    const printWindow = window.open("", "PRINT", "width=900,height=800");
+    const printWindow = window.open("", "PRINT", "width=800,height=600");
     if (!printWindow) return;
     const html = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Laporan Rekapitulasi Harian</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1a1a1a; line-height: 1.6; }
-    body { padding: 40px; background: white; }
-    @media print {
-      body { padding: 20px; }
-      .no-print { display: none !important; }
-      .print-page-break { page-break-after: always; }
-    }
-    
-    /* Header */
-    .header { margin-bottom: 30px; border-bottom: 3px solid #2c3e50; padding-bottom: 20px; }
-    .header h1 { font-size: 24px; font-weight: 700; color: #2c3e50; margin-bottom: 5px; }
-    .header .meta { display: flex; justify-content: space-between; font-size: 13px; color: #666; margin-top: 10px; }
-    .header .location { font-weight: 600; color: #333; }
-    
-    /* Section */
-    .section { margin-bottom: 35px; }
-    .section-title { 
-      font-size: 14px; 
-      font-weight: 700; 
-      color: white; 
-      background: #34495e; 
-      padding: 10px 15px; 
-      margin-bottom: 15px;
-      border-radius: 4px;
-    }
-    
-    /* Summary Grid */
-    .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-    .summary-card { 
-      background: #f8f9fa; 
-      border: 1px solid #e0e0e0;
-      padding: 15px; 
-      border-radius: 4px;
-    }
-    .summary-card .label { font-size: 12px; color: #666; font-weight: 600; text-transform: uppercase; margin-bottom: 5px; }
-    .summary-card .value { font-size: 18px; font-weight: 700; color: #2c3e50; font-family: 'Courier New', monospace; }
-    
-    /* Table */
-    table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
-    th { 
-      background: #ecf0f1; 
-      padding: 12px 10px; 
-      text-align: left; 
-      font-size: 12px; 
-      font-weight: 700;
-      color: #2c3e50;
-      border-bottom: 2px solid #34495e;
-    }
-    td { 
-      padding: 10px; 
-      font-size: 12px; 
-      border-bottom: 1px solid #ecf0f1;
-    }
-    tr:hover { background: #f8f9fa; }
-    .text-right { text-align: right; }
-    .text-mono { font-family: 'Courier New', monospace; font-weight: 600; }
-    .total-row { background: #ecf0f1; font-weight: 700; }
-    .total-row td { border-bottom: 2px solid #34495e; }
-    
-    /* Results Section */
-    .results-box {
-      background: #f8f9fa;
-      border-left: 4px solid #27ae60;
-      padding: 20px;
-      border-radius: 4px;
-      margin-top: 15px;
-    }
-    .result-item {
-      display: flex;
-      justify-content: space-between;
-      padding: 10px 0;
-      border-bottom: 1px solid #e0e0e0;
-      font-size: 13px;
-    }
-    .result-item:last-child { border-bottom: none; }
-    .result-item .label { font-weight: 600; color: #2c3e50; }
-    .result-item .value { font-family: 'Courier New', monospace; font-weight: 700; }
-    
-    .profit-highlight {
-      display: flex;
-      justify-content: space-between;
-      padding: 15px;
-      background: #27ae60;
-      color: white;
-      border-radius: 4px;
-      font-size: 16px;
-      font-weight: 700;
-      margin-top: 15px;
-    }
-    .profit-highlight .value { font-family: 'Courier New', monospace; }
-    
-    /* Footer */
-    .footer { 
-      margin-top: 40px; 
-      padding-top: 20px; 
-      border-top: 1px solid #e0e0e0;
-      font-size: 11px;
-      color: #999;
-      text-align: center;
-    }
-    
-    /* Page Break */
-    @media print {
-      .section { page-break-inside: avoid; }
-    }
-    
-    /* Responsive */
-    @media (max-width: 600px) {
-      body { padding: 20px; }
-      .summary-grid { grid-template-columns: 1fr; }
-      .header { margin-bottom: 20px; padding-bottom: 15px; }
-    }
+    body { font-family: Arial, sans-serif; font-size: 11px; color: #000; line-height: 1.3; padding: 15px; }
+    h1 { font-size: 14px; margin-bottom: 5px; }
+    .meta { font-size: 10px; color: #666; margin-bottom: 10px; }
+    .sec-title { font-weight: bold; font-size: 11px; margin-top: 8px; margin-bottom: 4px; border-bottom: 1px solid #000; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+    td, th { padding: 3px 4px; border-bottom: 1px solid #ddd; text-align: left; }
+    th { font-weight: bold; background: #f5f5f5; }
+    .amount { text-align: right; font-family: monospace; }
+    .total-row { font-weight: bold; background: #f5f5f5; }
+    .summary { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 3px; }
+    .profit-box { margin-top: 8px; border: 1px solid #000; padding: 6px; }
+    .profit-item { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 2px; }
   </style>
 </head>
 <body>
   ${contentRef.current?.innerHTML || ""}
-  <div class="footer">
-    <p>Laporan ini dihasilkan secara otomatis oleh LogiTrack • ${new Date().toLocaleString('id-ID')}</p>
-  </div>
 </body>
 </html>`;
     printWindow.document.write(html);
@@ -183,374 +79,199 @@ export function ExportRecapModal({
 <html>
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Laporan Rekapitulasi Harian</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1a1a1a; line-height: 1.6; }
-    body { padding: 40px; background: white; }
-    @media print {
-      body { padding: 20px; }
-      .no-print { display: none !important; }
-      .print-page-break { page-break-after: always; }
-    }
-    
-    /* Header */
-    .header { margin-bottom: 30px; border-bottom: 3px solid #2c3e50; padding-bottom: 20px; }
-    .header h1 { font-size: 24px; font-weight: 700; color: #2c3e50; margin-bottom: 5px; }
-    .header .meta { display: flex; justify-content: space-between; font-size: 13px; color: #666; margin-top: 10px; }
-    .header .location { font-weight: 600; color: #333; }
-    
-    /* Section */
-    .section { margin-bottom: 35px; }
-    .section-title { 
-      font-size: 14px; 
-      font-weight: 700; 
-      color: white; 
-      background: #34495e; 
-      padding: 10px 15px; 
-      margin-bottom: 15px;
-      border-radius: 4px;
-    }
-    
-    /* Summary Grid */
-    .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-    .summary-card { 
-      background: #f8f9fa; 
-      border: 1px solid #e0e0e0;
-      padding: 15px; 
-      border-radius: 4px;
-    }
-    .summary-card .label { font-size: 12px; color: #666; font-weight: 600; text-transform: uppercase; margin-bottom: 5px; }
-    .summary-card .value { font-size: 18px; font-weight: 700; color: #2c3e50; font-family: 'Courier New', monospace; }
-    
-    /* Table */
-    table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
-    th { 
-      background: #ecf0f1; 
-      padding: 12px 10px; 
-      text-align: left; 
-      font-size: 12px; 
-      font-weight: 700;
-      color: #2c3e50;
-      border-bottom: 2px solid #34495e;
-    }
-    td { 
-      padding: 10px; 
-      font-size: 12px; 
-      border-bottom: 1px solid #ecf0f1;
-    }
-    tr:hover { background: #f8f9fa; }
-    .text-right { text-align: right; }
-    .text-mono { font-family: 'Courier New', monospace; font-weight: 600; }
-    .total-row { background: #ecf0f1; font-weight: 700; }
-    .total-row td { border-bottom: 2px solid #34495e; }
-    
-    /* Results Section */
-    .results-box {
-      background: #f8f9fa;
-      border-left: 4px solid #27ae60;
-      padding: 20px;
-      border-radius: 4px;
-      margin-top: 15px;
-    }
-    .result-item {
-      display: flex;
-      justify-content: space-between;
-      padding: 10px 0;
-      border-bottom: 1px solid #e0e0e0;
-      font-size: 13px;
-    }
-    .result-item:last-child { border-bottom: none; }
-    .result-item .label { font-weight: 600; color: #2c3e50; }
-    .result-item .value { font-family: 'Courier New', monospace; font-weight: 700; }
-    
-    .profit-highlight {
-      display: flex;
-      justify-content: space-between;
-      padding: 15px;
-      background: #27ae60;
-      color: white;
-      border-radius: 4px;
-      font-size: 16px;
-      font-weight: 700;
-      margin-top: 15px;
-    }
-    .profit-highlight .value { font-family: 'Courier New', monospace; }
-    
-    /* Footer */
-    .footer { 
-      margin-top: 40px; 
-      padding-top: 20px; 
-      border-top: 1px solid #e0e0e0;
-      font-size: 11px;
-      color: #999;
-      text-align: center;
-    }
-    
-    /* Page Break */
-    @media print {
-      .section { page-break-inside: avoid; }
-    }
-    
-    /* Responsive */
-    @media (max-width: 600px) {
-      body { padding: 20px; }
-      .summary-grid { grid-template-columns: 1fr; }
-      .header { margin-bottom: 20px; padding-bottom: 15px; }
-    }
+    body { font-family: Arial, sans-serif; font-size: 11px; color: #000; line-height: 1.3; padding: 15px; }
+    h1 { font-size: 14px; margin-bottom: 5px; }
+    .meta { font-size: 10px; color: #666; margin-bottom: 10px; }
+    .sec-title { font-weight: bold; font-size: 11px; margin-top: 8px; margin-bottom: 4px; border-bottom: 1px solid #000; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+    td, th { padding: 3px 4px; border-bottom: 1px solid #ddd; text-align: left; }
+    th { font-weight: bold; background: #f5f5f5; }
+    .amount { text-align: right; font-family: monospace; }
+    .total-row { font-weight: bold; background: #f5f5f5; }
+    .summary { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 3px; }
+    .profit-box { margin-top: 8px; border: 1px solid #000; padding: 6px; }
+    .profit-item { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 2px; }
   </style>
 </head>
 <body>
   ${contentRef.current?.innerHTML || ""}
-  <div class="footer">
-    <p>Laporan ini dihasilkan secara otomatis oleh LogiTrack • ${new Date().toLocaleString('id-ID')}</p>
-  </div>
 </body>
 </html>`;
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `Laporan_Rekapitulasi_${format(new Date(dateFrom), "dd-MMM-yyyy")}_s.d_${format(new Date(dateTo), "dd-MMM-yyyy")}.html`;
+    a.download = `Rekap_${format(new Date(dateFrom), "ddMMMyyy")}_sd_${format(new Date(dateTo), "ddMMMyyy")}.html`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  const nonOperationalExpenses = expenses.totalExpenses - expenses.totalOperational;
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
-        <DialogHeader className="p-6 pb-4 border-b">
-          <DialogTitle className="text-2xl">{t("dashboard.export")} - {t("dashboard.recap")}</DialogTitle>
+      <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto p-0">
+        <DialogHeader className="sticky top-0 bg-white p-4 border-b z-10">
+          <DialogTitle className="text-lg">Laporan Rekapitulasi Harian</DialogTitle>
         </DialogHeader>
 
-        <div ref={contentRef} style={{ padding: "40px", background: "white", color: "#1a1a1a", fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}>
+        <div ref={contentRef} style={{ fontSize: "11px", lineHeight: "1.3", fontFamily: "Arial, sans-serif", padding: "15px", color: "#000" }}>
           {/* Header */}
-          <div style={{ marginBottom: "30px", borderBottom: "3px solid #2c3e50", paddingBottom: "20px" }}>
-            <h1 style={{ fontSize: "24px", fontWeight: "700", color: "#2c3e50", marginBottom: "5px" }}>
-              {t("dashboard.recap")}
-            </h1>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#666", marginTop: "10px" }}>
-              <div>
-                <strong>Periode:</strong> {format(new Date(dateFrom), "dd MMMM yyyy")} {" - "} {format(new Date(dateTo), "dd MMMM yyyy")}
-              </div>
-              {locationName && <div style={{ fontWeight: "600", color: "#333" }}>{locationName}</div>}
-            </div>
+          <h1 style={{ fontSize: "14px", marginBottom: "5px", fontWeight: "bold" }}>Laporan Rekapitulasi Harian</h1>
+          <div style={{ fontSize: "10px", color: "#666", marginBottom: "10px" }}>
+            <div>{format(new Date(dateFrom), "dd MMMM yyyy")} s.d. {format(new Date(dateTo), "dd MMMM yyyy")}</div>
+            {locationName && <div>{locationName}</div>}
           </div>
 
-          {/* Summary Section */}
-          <div style={{ marginBottom: "35px" }}>
-            <div style={{ fontSize: "14px", fontWeight: "700", color: "white", background: "#34495e", padding: "10px 15px", marginBottom: "15px", borderRadius: "4px" }}>
-              {t("dashboard.summary")}
+          {/* Summary Grid */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", marginBottom: "10px", fontSize: "10px" }}>
+            <div style={{ padding: "6px", border: "1px solid #ddd" }}>
+              <div style={{ fontWeight: "bold" }}>Trip: {sales.totalTrips}</div>
+              <div>Kotor: {fmtMoney(sales.grossRevenue)}</div>
+              <div>Diskon: ({fmtMoney(sales.totalDiscounts)})</div>
+              <div style={{ fontWeight: "bold" }}>Bersih: {fmtMoney(sales.netRevenue)}</div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
-              <div style={{ background: "#f8f9fa", border: "1px solid #e0e0e0", padding: "15px", borderRadius: "4px" }}>
-                <div style={{ fontSize: "12px", color: "#666", fontWeight: "600", textTransform: "uppercase", marginBottom: "5px" }}>
-                  {t("dashboard.totaltrips")}
-                </div>
-                <div style={{ fontSize: "18px", fontWeight: "700", color: "#2c3e50", fontFamily: "'Courier New', monospace" }}>
-                  {sales.totalTrips}
-                </div>
+            <div style={{ padding: "6px", border: "1px solid #ddd" }}>
+              <div style={{ fontWeight: "bold" }}>Kas: {fmtMoney(sales.cashCollected)}</div>
+              <div>Piutang: {fmtMoney(sales.receivables)}</div>
+              <div style={{ marginTop: "4px", paddingTop: "4px", borderTop: "1px solid #ddd" }}>
+                <div>Pengeluaran: {fmtMoney(expenses.totalExpenses)}</div>
               </div>
-              <div style={{ background: "#f8f9fa", border: "1px solid #e0e0e0", padding: "15px", borderRadius: "4px" }}>
-                <div style={{ fontSize: "12px", color: "#666", fontWeight: "600", textTransform: "uppercase", marginBottom: "5px" }}>
-                  {t("dashboard.grossrevenue")}
-                </div>
-                <div style={{ fontSize: "18px", fontWeight: "700", color: "#2c3e50", fontFamily: "'Courier New', monospace" }}>
-                  {fmtMoney(sales.grossRevenue)}
-                </div>
-              </div>
-              <div style={{ background: "#f8f9fa", border: "1px solid #e0e0e0", padding: "15px", borderRadius: "4px" }}>
-                <div style={{ fontSize: "12px", color: "#666", fontWeight: "600", textTransform: "uppercase", marginBottom: "5px" }}>
-                  {t("dashboard.discountsgiven")}
-                </div>
-                <div style={{ fontSize: "18px", fontWeight: "700", color: "#2c3e50", fontFamily: "'Courier New', monospace" }}>
-                  {fmtMoney(sales.totalDiscounts)}
-                </div>
-              </div>
-              <div style={{ background: "#f8f9fa", border: "1px solid #e0e0e0", padding: "15px", borderRadius: "4px" }}>
-                <div style={{ fontSize: "12px", color: "#666", fontWeight: "600", textTransform: "uppercase", marginBottom: "5px" }}>
-                  {t("dashboard.netrevenue")}
-                </div>
-                <div style={{ fontSize: "18px", fontWeight: "700", color: "#27ae60", fontFamily: "'Courier New', monospace" }}>
-                  {fmtMoney(sales.netRevenue)}
-                </div>
-              </div>
-              <div style={{ background: "#f8f9fa", border: "1px solid #e0e0e0", padding: "15px", borderRadius: "4px" }}>
-                <div style={{ fontSize: "12px", color: "#666", fontWeight: "600", textTransform: "uppercase", marginBottom: "5px" }}>
-                  {t("dashboard.cashcollected")}
-                </div>
-                <div style={{ fontSize: "18px", fontWeight: "700", color: "#2c3e50", fontFamily: "'Courier New', monospace" }}>
-                  {fmtMoney(sales.cashCollected)}
-                </div>
-              </div>
-              <div style={{ background: "#f8f9fa", border: "1px solid #e0e0e0", padding: "15px", borderRadius: "4px" }}>
-                <div style={{ fontSize: "12px", color: "#666", fontWeight: "600", textTransform: "uppercase", marginBottom: "5px" }}>
-                  {t("dashboard.receivables")}
-                </div>
-                <div style={{ fontSize: "18px", fontWeight: "700", color: "#e67e22", fontFamily: "'Courier New', monospace" }}>
-                  {fmtMoney(sales.receivables)}
-                </div>
+            </div>
+            <div style={{ padding: "6px", border: "1px solid #000", fontWeight: "bold" }}>
+              <div style={{ marginBottom: "4px" }}>Laba (Akrual):</div>
+              <div style={{ fontSize: "12px" }}>{fmtMoney(profit)}</div>
+              <div style={{ marginTop: "4px", paddingTop: "4px", borderTop: "1px solid #000", fontSize: "10px", fontWeight: "normal" }}>
+                Laba (Kas): {fmtMoney(cashBasisProfit)}
               </div>
             </div>
           </div>
 
-          {/* Sales Details */}
-          <div style={{ marginBottom: "35px" }}>
-            <div style={{ fontSize: "14px", fontWeight: "700", color: "white", background: "#34495e", padding: "10px 15px", marginBottom: "15px", borderRadius: "4px" }}>
-              {t("dashboard.detailsales")}
-            </div>
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ background: "#ecf0f1" }}>
-                    <th style={{ padding: "12px 10px", textAlign: "left", fontSize: "12px", fontWeight: "700", color: "#2c3e50", borderBottom: "2px solid #34495e" }}>No</th>
-                    <th style={{ padding: "12px 10px", textAlign: "left", fontSize: "12px", fontWeight: "700", color: "#2c3e50", borderBottom: "2px solid #34495e" }}>Tgl</th>
-                    <th style={{ padding: "12px 10px", textAlign: "left", fontSize: "12px", fontWeight: "700", color: "#2c3e50", borderBottom: "2px solid #34495e" }}>Plat</th>
-                    <th style={{ padding: "12px 10px", textAlign: "right", fontSize: "12px", fontWeight: "700", color: "#2c3e50", borderBottom: "2px solid #34495e" }}>Tarif</th>
-                    <th style={{ padding: "12px 10px", textAlign: "left", fontSize: "12px", fontWeight: "700", color: "#2c3e50", borderBottom: "2px solid #34495e" }}>Catatan</th>
+          {/* Sales Table */}
+          <div style={{ marginBottom: "8px" }}>
+            <div style={{ fontWeight: "bold", fontSize: "11px", marginBottom: "4px", borderBottom: "1px solid #000" }}>PENJUALAN ({trips.length} trips)</div>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10px", marginBottom: "6px" }}>
+              <thead>
+                <tr style={{ background: "#f5f5f5" }}>
+                  <th style={{ padding: "3px 4px", borderBottom: "1px solid #ddd", fontWeight: "bold" }}>Tgl</th>
+                  <th style={{ padding: "3px 4px", borderBottom: "1px solid #ddd", fontWeight: "bold" }}>Plat</th>
+                  <th style={{ padding: "3px 4px", borderBottom: "1px solid #ddd", fontWeight: "bold", textAlign: "right" }}>Tarif</th>
+                  <th style={{ padding: "3px 4px", borderBottom: "1px solid #ddd", fontWeight: "bold" }}>Note</th>
+                </tr>
+              </thead>
+              <tbody>
+                {trips.map((trip, idx) => (
+                  <tr key={idx}>
+                    <td style={{ padding: "3px 4px", borderBottom: "1px solid #ddd", fontSize: "9px" }}>
+                      {format(new Date(trip.transDate), "dd/MM")}
+                    </td>
+                    <td style={{ padding: "3px 4px", borderBottom: "1px solid #ddd", fontFamily: "monospace", fontSize: "9px" }}>
+                      {trip.plateNumber}
+                    </td>
+                    <td style={{ padding: "3px 4px", borderBottom: "1px solid #ddd", textAlign: "right", fontFamily: "monospace", fontSize: "9px" }}>
+                      {fmtMoney(trip.appliedPrice)}
+                    </td>
+                    <td style={{ padding: "3px 4px", borderBottom: "1px solid #ddd", fontSize: "9px" }}>
+                      {trip.note ? trip.note.substring(0, 20) : "-"}
+                    </td>
                   </tr>
-                </thead>
+                ))}
+                <tr style={{ fontWeight: "bold", background: "#f5f5f5" }}>
+                  <td colSpan={3} style={{ padding: "3px 4px", borderBottom: "1px solid #000" }}>TOTAL PENJUALAN</td>
+                  <td style={{ padding: "3px 4px", borderBottom: "1px solid #000", textAlign: "right", fontFamily: "monospace" }}>
+                    {fmtMoney(sales.netRevenue)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Expenses Table */}
+          {expenses.byCategory && expenses.byCategory.length > 0 && (
+            <div style={{ marginBottom: "8px" }}>
+              <div style={{ fontWeight: "bold", fontSize: "11px", marginBottom: "4px", borderBottom: "1px solid #000" }}>
+                PENGELUARAN ({expenses.byCategory.length} kategori)
+              </div>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10px", marginBottom: "6px" }}>
                 <tbody>
-                  {trips.map((trip, idx) => (
-                    <tr key={idx} style={{ borderBottom: "1px solid #ecf0f1" }}>
-                      <td style={{ padding: "10px", fontSize: "12px" }}>{idx + 1}</td>
-                      <td style={{ padding: "10px", fontSize: "12px" }}>{format(new Date(trip.transDate), "dd MMM")}</td>
-                      <td style={{ padding: "10px", fontSize: "12px", fontFamily: "'Courier New', monospace", fontWeight: "600" }}>
-                        {trip.plateNumber}
+                  {expenses.byCategory.map((exp, idx) => (
+                    <tr key={idx}>
+                      <td style={{ padding: "3px 4px", borderBottom: "1px solid #ddd" }}>
+                        {exp.category}
                       </td>
-                      <td style={{ padding: "10px", fontSize: "12px", textAlign: "right", fontFamily: "'Courier New', monospace", fontWeight: "600" }}>
-                        {fmtMoney(trip.appliedPrice)}
+                      <td style={{ padding: "3px 4px", borderBottom: "1px solid #ddd", textAlign: "right", fontFamily: "monospace", width: "100px" }}>
+                        {fmtMoney(exp.amount)}
                       </td>
-                      <td style={{ padding: "10px", fontSize: "12px", color: "#666" }}>{trip.note || "-"}</td>
                     </tr>
                   ))}
-                  <tr style={{ background: "#ecf0f1", fontWeight: "700" }}>
-                    <td colSpan={4} style={{ padding: "10px", fontSize: "12px", textAlign: "right" }}>
-                      Total Penjualan:
+                  <tr style={{ fontWeight: "bold", background: "#f5f5f5" }}>
+                    <td style={{ padding: "3px 4px", borderBottom: "1px solid #000" }}>TOTAL PENGELUARAN</td>
+                    <td style={{ padding: "3px 4px", borderBottom: "1px solid #000", textAlign: "right", fontFamily: "monospace" }}>
+                      {fmtMoney(expenses.totalExpenses)}
                     </td>
-                    <td style={{ padding: "10px", fontSize: "12px", fontFamily: "'Courier New', monospace", fontWeight: "700", color: "#27ae60" }}>
-                      {fmtMoney(sales.netRevenue)}
+                  </tr>
+                  <tr style={{ fontSize: "9px", color: "#666" }}>
+                    <td style={{ padding: "3px 4px" }}>Beban Operasional</td>
+                    <td style={{ padding: "3px 4px", textAlign: "right", fontFamily: "monospace" }}>
+                      {fmtMoney(expenses.totalOperational)}
                     </td>
                   </tr>
                 </tbody>
               </table>
             </div>
-          </div>
-
-          {/* Expenses Details */}
-          {expenses.byCategory && expenses.byCategory.length > 0 && (
-            <div style={{ marginBottom: "35px" }}>
-              <div style={{ fontSize: "14px", fontWeight: "700", color: "white", background: "#34495e", padding: "10px 15px", marginBottom: "15px", borderRadius: "4px" }}>
-                {t("dashboard.expenses")} - {t("dashboard.byCategory")}
-              </div>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr style={{ background: "#ecf0f1" }}>
-                      <th style={{ padding: "12px 10px", textAlign: "left", fontSize: "12px", fontWeight: "700", color: "#2c3e50", borderBottom: "2px solid #34495e" }}>
-                        {t("expenses.category")}
-                      </th>
-                      <th style={{ padding: "12px 10px", textAlign: "right", fontSize: "12px", fontWeight: "700", color: "#2c3e50", borderBottom: "2px solid #34495e" }}>
-                        {t("expenses.amount")}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {expenses.byCategory.map((exp, idx) => (
-                      <tr key={idx} style={{ borderBottom: "1px solid #ecf0f1" }}>
-                        <td style={{ padding: "10px", fontSize: "12px" }}>{exp.category}</td>
-                        <td style={{ padding: "10px", fontSize: "12px", textAlign: "right", fontFamily: "'Courier New', monospace", fontWeight: "600" }}>
-                          {fmtMoney(exp.amount)}
-                        </td>
-                      </tr>
-                    ))}
-                    <tr style={{ background: "#ecf0f1", fontWeight: "700" }}>
-                      <td style={{ padding: "10px", fontSize: "12px" }}>Total Pengeluaran</td>
-                      <td style={{ padding: "10px", fontSize: "12px", textAlign: "right", fontFamily: "'Courier New', monospace", fontWeight: "700", borderBottom: "2px solid #34495e" }}>
-                        {fmtMoney(expenses.totalExpenses)}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
           )}
 
-          {/* Final Results */}
-          <div style={{ marginBottom: "35px" }}>
-            <div style={{ fontSize: "14px", fontWeight: "700", color: "white", background: "#34495e", padding: "10px 15px", marginBottom: "15px", borderRadius: "4px" }}>
-              {t("dashboard.finalresults")}
-            </div>
-            <div style={{ background: "#f8f9fa", borderLeft: "4px solid #27ae60", padding: "20px", borderRadius: "4px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #e0e0e0", fontSize: "13px" }}>
-                <div style={{ fontWeight: "600", color: "#2c3e50" }}>{t("dashboard.netrevenue")}</div>
-                <div style={{ fontFamily: "'Courier New', monospace", fontWeight: "700", color: "#27ae60" }}>
-                  {fmtMoney(sales.netRevenue)}
-                </div>
-              </div>
-              
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #e0e0e0", fontSize: "13px" }}>
-                <div style={{ fontWeight: "600", color: "#2c3e50" }}>
-                  {t("dashboard.operationalexpenses")} (Beban Rutin)
-                </div>
-                <div style={{ fontFamily: "'Courier New', monospace", fontWeight: "700", color: "#e74c3c" }}>
-                  ({fmtMoney(expenses.totalOperational)})
-                </div>
-              </div>
-
-              {nonOperationalExpenses > 0 && (
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #e0e0e0", fontSize: "13px" }}>
-                  <div style={{ fontWeight: "600", color: "#2c3e50" }}>Pengeluaran Lainnya</div>
-                  <div style={{ fontFamily: "'Courier New', monospace", fontWeight: "700", color: "#e74c3c" }}>
-                    ({fmtMoney(nonOperationalExpenses)})
-                  </div>
-                </div>
-              )}
-
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #e0e0e0", fontSize: "13px" }}>
-                <div style={{ fontWeight: "600", color: "#2c3e50" }}>Total Pengeluaran</div>
-                <div style={{ fontFamily: "'Courier New', monospace", fontWeight: "700", color: "#e74c3c" }}>
-                  ({fmtMoney(expenses.totalExpenses)})
-                </div>
-              </div>
-
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "15px", background: "#27ae60", color: "white", borderRadius: "4px", fontSize: "16px", fontWeight: "700", marginTop: "15px" }}>
-                <span>Laba Bersih (Akrual)</span>
-                <span style={{ fontFamily: "'Courier New', monospace" }}>{fmtMoney(profit)}</span>
-              </div>
-
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "15px", background: "#3498db", color: "white", borderRadius: "4px", fontSize: "16px", fontWeight: "700", marginTop: "10px" }}>
-                <span>Laba Bersih (Kas)</span>
-                <span style={{ fontFamily: "'Courier New', monospace" }}>{fmtMoney(cashBasisProfit)}</span>
-              </div>
-
-              <div style={{ fontSize: "11px", color: "#999", marginTop: "15px", paddingTop: "15px", borderTop: "1px solid #e0e0e0" }}>
-                <p style={{ marginBottom: "5px" }}>
-                  <strong>Catatan:</strong> Laporan ini menampilkan data penjualan vs pengeluaran
-                </p>
-                <p>
-                  • Laba Akrual: Selisih antara Penjualan Netto dan Total Pengeluaran<br />
-                  • Laba Kas: Selisih antara Kas Terkumpul dan Total Pengeluaran
-                </p>
-              </div>
-            </div>
+          {/* Summary Calc */}
+          <div style={{ marginTop: "8px", border: "1px solid #000", padding: "8px" }}>
+            <table style={{ width: "100%", fontSize: "10px" }}>
+              <tbody>
+                <tr>
+                  <td style={{ padding: "2px 0" }}>Penjualan Netto</td>
+                  <td style={{ textAlign: "right", fontFamily: "monospace", fontWeight: "bold" }}>
+                    {fmtMoney(sales.netRevenue)}
+                  </td>
+                </tr>
+                <tr style={{ borderTop: "1px solid #ddd" }}>
+                  <td style={{ padding: "2px 0" }}>Pengeluaran</td>
+                  <td style={{ textAlign: "right", fontFamily: "monospace", color: "#c00" }}>
+                    ({fmtMoney(expenses.totalExpenses)})
+                  </td>
+                </tr>
+                <tr style={{ fontWeight: "bold", fontSize: "11px", borderTop: "2px solid #000", paddingTop: "4px" }}>
+                  <td style={{ padding: "4px 0" }}>LABA BERSIH (AKRUAL)</td>
+                  <td style={{ textAlign: "right", fontFamily: "monospace", padding: "4px 0" }}>
+                    {fmtMoney(profit)}
+                  </td>
+                </tr>
+                <tr style={{ fontSize: "9px", borderTop: "1px solid #ddd" }}>
+                  <td style={{ padding: "2px 0", color: "#666" }}>Kas Terkumpul</td>
+                  <td style={{ textAlign: "right", fontFamily: "monospace", color: "#666" }}>
+                    {fmtMoney(sales.cashCollected)}
+                  </td>
+                </tr>
+                <tr style={{ fontSize: "9px", fontWeight: "bold" }}>
+                  <td style={{ padding: "2px 0" }}>LABA BERSIH (KAS)</td>
+                  <td style={{ textAlign: "right", fontFamily: "monospace" }}>
+                    {fmtMoney(cashBasisProfit)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
-        <div style={{ padding: "16px", borderTop: "1px solid #e0e0e0", display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {t("sales.cancel")}
+        <div style={{ padding: "12px", borderTop: "1px solid #e0e0e0", display: "flex", gap: "6px", justifyContent: "flex-end" }}>
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+            Tutup
           </Button>
-          <Button variant="outline" onClick={handleDownload}>
-            <Download className="w-4 h-4 mr-2" />
-            {t("dashboard.downloadhtml")}
+          <Button variant="outline" size="sm" onClick={handleDownload}>
+            <Download className="w-3 h-3 mr-1" />
+            HTML
           </Button>
-          <Button onClick={handlePrint}>
-            <Printer className="w-4 h-4 mr-2" />
-            {t("dashboard.print")}
+          <Button size="sm" onClick={handlePrint}>
+            <Printer className="w-3 h-3 mr-1" />
+            Cetak
           </Button>
         </div>
       </DialogContent>
