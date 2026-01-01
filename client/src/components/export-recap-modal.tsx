@@ -179,7 +179,11 @@ export function ExportRecapModal({
                   </tr>
                 </thead>
                 <tbody>
-                  {detailExpenses.filter(exp => exp.categoryName !== 'DISCOUNT' && exp.category !== 'DISCOUNT').map((exp, idx) => (
+                  {detailExpenses.filter(exp => {
+                    const cat = (exp.categoryName || exp.category || "").toUpperCase();
+                    const note = (exp.note || "").toLowerCase();
+                    return cat !== 'DISCOUNT' && !note.includes('auto discount');
+                  }).map((exp, idx) => (
                     <tr key={idx}>
                       <td style={{ padding: "3px 4px", borderBottom: "1px solid #ddd", fontSize: "9px" }}>
                         {format(new Date(exp.expenseDate), "dd/MM")}
