@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { storage } from "./storage";
 import { insertLocationSchema, insertTruckSchema, insertPriceRuleSchema, insertExpenseCategorySchema, insertExpenseSchema, insertSaleTripSchema } from "@shared/schema";
 import { z } from "zod";
-import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, subMonths, format } from "date-fns";
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, subMonths, format, parseISO, isValid } from "date-fns";
 
 function getDateRange(preset: string): { dateFrom: string; dateTo: string } {
   const today = new Date();
@@ -721,6 +721,71 @@ export async function registerRoutes(app: Express): Promise<void> {
     } catch (error) {
       logRouteError("GET /api/reports/summary", error);
       res.status(500).json({ message: "Failed to fetch report summary" });
+    }
+  });
+
+  app.get("/api/reports/dashboard", async (req: Request, res: Response) => {
+    try {
+      const { from, to, locationId } = req.query;
+      if (!from || !to) {
+        return res.status(400).json({ message: "from and to are required" });
+      }
+
+      const parsedFrom = parseISO(from as string);
+      const parsedTo = parseISO(to as string);
+      if (!isValid(parsedFrom) || !isValid(parsedTo)) {
+        return res.status(400).json({ message: "from and to must be valid dates" });
+      }
+
+      const dateFrom = format(startOfDay(parsedFrom), "yyyy-MM-dd");
+      const dateTo = format(endOfDay(parsedTo), "yyyy-MM-dd");
+
+      const [saleSummary, expenseSummary, trips, expenses, categories] = await Promise.all([
+        storage.getSaleSummary(locationId as string | null, dateFrom, dateTo),
+        storage.getExpenseSummary(locationId as string | null, dateFrom, dateTo),
+        storage.getSaleTrips({
+          locationId: locationId as string | undefined,
+          dateFrom,
+          dateTo
+        }),
+        storage.getExpenses({
+          locationId: locationId as string | undefined,
+          dateFrom,
+          dateTo
+        }),
+        storage.getCategories()
+      ]);
+
+      const categoryMap = new Map(categories.map((category) => [category.id, category.name]));
+      const detailExpenses = expenses.map((expense) => ({
+        ...expense,
+        categoryName: categoryMap.get(expense.categoryId) ?? null
+      }));
+
+      const totalDiscounts = saleSummary.basePrice - saleSummary.totalRevenue;
+
+      res.json({
+        dateFrom,
+        dateTo,
+        sales: {
+          totalTrips: saleSummary.totalTrips,
+          grossRevenue: saleSummary.basePrice,
+          totalDiscounts: Math.max(0, totalDiscounts),
+          netRevenue: saleSummary.totalRevenue,
+          cashCollected: saleSummary.totalPaid,
+          receivables: saleSummary.totalUnpaid
+        },
+        expenses: {
+          totalExpenses: expenseSummary.totalExpenses,
+          totalOperational: expenseSummary.totalOperational,
+          byCategory: expenseSummary.byCategory
+        },
+        trips,
+        detailExpenses
+      });
+    } catch (error) {
+      logRouteError("GET /api/reports/dashboard", error);
+      res.status(500).json({ message: "Failed to fetch report dashboard" });
     }
   });
 
