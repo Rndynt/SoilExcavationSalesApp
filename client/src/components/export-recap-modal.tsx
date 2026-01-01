@@ -145,7 +145,7 @@ export function ExportRecapModal({
                 ))}
                 {sales.totalDiscounts > 0 && (
                   <tr style={{ color: "#666", fontSize: "9px" }}>
-                    <td colSpan={2} style={{ padding: "3px 4px", borderBottom: "1px solid #ddd" }}>Total Potongan/Diskon</td>
+                    <td colSpan={2} style={{ padding: "3px 4px", borderBottom: "1px solid #ddd" }}>Total Potongan/Diskon (Auto-populate)</td>
                     <td style={{ padding: "3px 4px", borderBottom: "1px solid #ddd", textAlign: "right", fontFamily: "monospace" }}>
                       - {fmtMoney(sales.totalDiscounts)}
                     </td>
@@ -179,7 +179,7 @@ export function ExportRecapModal({
                   </tr>
                 </thead>
                 <tbody>
-                  {detailExpenses.map((exp, idx) => (
+                  {detailExpenses.filter(exp => exp.categoryName !== 'DISCOUNT' && exp.category !== 'DISCOUNT').map((exp, idx) => (
                     <tr key={idx}>
                       <td style={{ padding: "3px 4px", borderBottom: "1px solid #ddd", fontSize: "9px" }}>
                         {format(new Date(exp.expenseDate), "dd/MM")}
@@ -196,9 +196,9 @@ export function ExportRecapModal({
                     </tr>
                   ))}
                   <tr style={{ fontWeight: "bold", background: "#f5f5f5" }}>
-                    <td colSpan={2} style={{ padding: "3px 4px", borderBottom: "1px solid #000" }}>TOTAL PENGELUARAN</td>
+                    <td colSpan={2} style={{ padding: "3px 4px", borderBottom: "1px solid #000" }}>TOTAL PENGELUARAN OPERASIONAL</td>
                     <td style={{ padding: "3px 4px", borderBottom: "1px solid #000", textAlign: "right", fontFamily: "monospace" }}>
-                      {fmtMoney(expenses.totalExpenses)}
+                      {fmtMoney(expenses.totalOperational)}
                     </td>
                     <td style={{ padding: "3px 4px", borderBottom: "1px solid #000" }}></td>
                   </tr>
@@ -216,12 +216,12 @@ export function ExportRecapModal({
                   <td style={{ textAlign: "right", fontFamily: "monospace" }}>{fmtMoney(sales.netRevenue)}</td>
                 </tr>
                 <tr>
-                  <td style={{ padding: "2px 0" }}>TOTAL PENGELUARAN</td>
-                  <td style={{ textAlign: "right", fontFamily: "monospace", color: "#c00" }}>- {fmtMoney(expenses.totalExpenses)}</td>
+                  <td style={{ padding: "2px 0" }}>TOTAL PENGELUARAN OPERASIONAL</td>
+                  <td style={{ textAlign: "right", fontFamily: "monospace", color: "#c00" }}>- {fmtMoney(expenses.totalOperational)}</td>
                 </tr>
                 <tr style={{ borderTop: "2px solid #000", fontWeight: "bold", fontSize: "11px" }}>
                   <td style={{ padding: "4px 0" }}>LABA BERSIH (PROFIT)</td>
-                  <td style={{ textAlign: "right", fontFamily: "monospace", padding: "4px 0" }}>{fmtMoney(sales.netRevenue - expenses.totalExpenses)}</td>
+                  <td style={{ textAlign: "right", fontFamily: "monospace", padding: "4px 0" }}>{fmtMoney(sales.netRevenue - expenses.totalOperational)}</td>
                 </tr>
                 <tr style={{ borderTop: "1px solid #ddd", fontSize: "9px", color: "#666" }}>
                   <td style={{ padding: "2px 0" }}>Total Piutang (Belum Tertagih)</td>
@@ -229,7 +229,7 @@ export function ExportRecapModal({
                 </tr>
                 <tr style={{ fontSize: "9px", color: "#666" }}>
                   <td style={{ padding: "2px 0" }}>Kas Diterima (Setelah Pengeluaran)</td>
-                  <td style={{ textAlign: "right", fontFamily: "monospace" }}>{fmtMoney(sales.cashCollected - expenses.totalExpenses)}</td>
+                  <td style={{ textAlign: "right", fontFamily: "monospace" }}>{fmtMoney(sales.cashCollected - expenses.totalOperational)}</td>
                 </tr>
               </tbody>
             </table>
