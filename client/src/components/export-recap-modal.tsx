@@ -77,89 +77,53 @@ export function ExportRecapModal({
 
   const handleDownload = () => {
     if (!contentRef.current) return;
-    const html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Laporan Rekapitulasi Harian</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; font-size: 11px; color: #000; line-height: 1.3; padding: 15px; }
-    h1 { font-size: 14px; margin-bottom: 5px; }
-    .meta { font-size: 10px; color: #666; margin-bottom: 10px; }
-    .sec-title { font-weight: bold; font-size: 11px; margin-top: 8px; margin-bottom: 4px; border-bottom: 1px solid #000; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
-    td, th { padding: 3px 4px; border-bottom: 1px solid #ddd; text-align: left; }
-    th { font-weight: bold; background: #f5f5f5; }
-    .amount { text-align: right; font-family: monospace; }
-    .total-row { font-weight: bold; background: #f5f5f5; }
-    .summary { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 3px; }
-    .profit-box { margin-top: 8px; border: 1px solid #000; padding: 6px; }
-    .profit-item { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 2px; }
-  </style>
-</head>
-<body>
-  ${contentRef.current?.innerHTML || ""}
-</body>
-</html>`;
-    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+      body { font-family: sans-serif; font-size: 12px; padding: 20px; max-width: 800px; margin: 0 auto; }
+      table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+      th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+      th { background-color: #f2f2f2; }
+      .text-right { text-align: right; }
+      .font-bold { font-weight: bold; }
+    </style></head><body>${contentRef.current.innerHTML}</body></html>`;
+    const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `Rekap_${format(new Date(dateFrom), "ddMMMyyy")}_sd_${format(new Date(dateTo), "ddMMMyyy")}.html`;
+    a.download = `rekap-${format(new Date(), "yyyy-MM-dd")}.html`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto p-0">
-        <DialogHeader className="sticky top-0 bg-white p-4 border-b z-10">
-          <DialogTitle className="text-lg">Laporan Rekapitulasi Harian</DialogTitle>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0 gap-0">
+        <DialogHeader className="p-4 border-b">
+          <DialogTitle className="flex items-center justify-between">
+            <span>Ekspor Rekapitulasi</span>
+          </DialogTitle>
         </DialogHeader>
 
-        <div ref={contentRef} style={{ fontSize: "11px", lineHeight: "1.3", fontFamily: "Arial, sans-serif", padding: "15px", color: "#000" }}>
-          {/* Header */}
-          <h1 style={{ fontSize: "14px", marginBottom: "5px", fontWeight: "bold" }}>Laporan Rekapitulasi Harian</h1>
-          <div style={{ fontSize: "10px", color: "#666", marginBottom: "10px" }}>
-            <div>{format(new Date(dateFrom), "dd MMMM yyyy")} s.d. {format(new Date(dateTo), "dd MMMM yyyy")}</div>
-            {locationName && <div>{locationName}</div>}
-          </div>
-
-          {/* Summary Grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", marginBottom: "10px", fontSize: "10px" }}>
-            <div style={{ padding: "6px", border: "1px solid #ddd" }}>
-              <div style={{ fontWeight: "bold" }}>Trip: {sales.totalTrips}</div>
-              <div>Kotor: {fmtMoney(sales.grossRevenue)}</div>
-              <div>Diskon: ({fmtMoney(sales.totalDiscounts)})</div>
-              <div style={{ fontWeight: "bold" }}>Bersih: {fmtMoney(sales.netRevenue)}</div>
-            </div>
-            <div style={{ padding: "6px", border: "1px solid #ddd" }}>
-              <div style={{ fontWeight: "bold" }}>Kas: {fmtMoney(sales.cashCollected)}</div>
-              <div>Piutang: {fmtMoney(sales.receivables)}</div>
-              <div style={{ marginTop: "4px", paddingTop: "4px", borderTop: "1px solid #ddd" }}>
-                <div>Pengeluaran: {fmtMoney(expenses.totalExpenses)}</div>
-              </div>
-            </div>
-            <div style={{ padding: "6px", border: "1px solid #000", fontWeight: "bold" }}>
-              <div style={{ marginBottom: "4px" }}>Laba (Akrual):</div>
-              <div style={{ fontSize: "12px" }}>{fmtMoney(profit)}</div>
-              <div style={{ marginTop: "4px", paddingTop: "4px", borderTop: "1px solid #000", fontSize: "10px", fontWeight: "normal" }}>
-                Laba (Kas): {fmtMoney(cashBasisProfit)}
-              </div>
+        <div ref={contentRef} style={{ padding: "20px", background: "#fff", color: "#000" }}>
+          <div style={{ textAlign: "center", marginBottom: "15px" }}>
+            <h1 style={{ margin: 0, fontSize: "16px", fontWeight: "bold", textTransform: "uppercase" }}>LOGITRACK REKAPITULASI</h1>
+            <div style={{ fontSize: "10px", color: "#666" }}>
+              Periode: {format(new Date(dateFrom), "dd MMM yyyy")} - {format(new Date(dateTo), "dd MMM yyyy")}
+              {locationName && ` | Lokasi: ${locationName}`}
             </div>
           </div>
 
-          {/* Sales Table */}
+          {/* Trips Table */}
           <div style={{ marginBottom: "8px" }}>
-            <div style={{ fontWeight: "bold", fontSize: "11px", marginBottom: "4px", borderBottom: "1px solid #000" }}>PENJUALAN ({trips.length} trips)</div>
+            <div style={{ fontWeight: "bold", fontSize: "11px", marginBottom: "4px", borderBottom: "1px solid #000" }}>
+              PENJUALAN ({trips.length} trip)
+            </div>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10px", marginBottom: "6px" }}>
               <thead>
                 <tr style={{ background: "#f5f5f5" }}>
                   <th style={{ padding: "3px 4px", borderBottom: "1px solid #ddd", fontWeight: "bold" }}>Tgl</th>
-                  <th style={{ padding: "3px 4px", borderBottom: "1px solid #ddd", fontWeight: "bold" }}>Plat</th>
-                  <th style={{ padding: "3px 4px", borderBottom: "1px solid #ddd", fontWeight: "bold", textAlign: "right" }}>Tarif</th>
-                  <th style={{ padding: "3px 4px", borderBottom: "1px solid #ddd", fontWeight: "bold" }}>Note</th>
+                  <th style={{ padding: "3px 4px", borderBottom: "1px solid #ddd", fontWeight: "bold" }}>Nopol</th>
+                  <th style={{ padding: "3px 4px", borderBottom: "1px solid #ddd", fontWeight: "bold", textAlign: "right" }}>Harga</th>
+                  <th style={{ padding: "3px 4px", borderBottom: "1px solid #ddd", fontWeight: "bold" }}>Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -175,15 +139,25 @@ export function ExportRecapModal({
                       {fmtMoney(trip.appliedPrice)}
                     </td>
                     <td style={{ padding: "3px 4px", borderBottom: "1px solid #ddd", fontSize: "9px" }}>
-                      {trip.note ? trip.note.substring(0, 20) : "-"}
+                      {trip.paymentStatus === "PAID" ? "Lunas" : "Piutang"}
                     </td>
                   </tr>
                 ))}
+                {sales.totalDiscounts > 0 && (
+                  <tr style={{ color: "#666", fontSize: "9px" }}>
+                    <td colSpan={2} style={{ padding: "3px 4px", borderBottom: "1px solid #ddd" }}>Total Potongan/Diskon</td>
+                    <td style={{ padding: "3px 4px", borderBottom: "1px solid #ddd", textAlign: "right", fontFamily: "monospace" }}>
+                      - {fmtMoney(sales.totalDiscounts)}
+                    </td>
+                    <td style={{ padding: "3px 4px", borderBottom: "1px solid #ddd" }}></td>
+                  </tr>
+                )}
                 <tr style={{ fontWeight: "bold", background: "#f5f5f5" }}>
-                  <td colSpan={3} style={{ padding: "3px 4px", borderBottom: "1px solid #000" }}>TOTAL PENJUALAN</td>
+                  <td colSpan={2} style={{ padding: "3px 4px", borderBottom: "1px solid #000" }}>TOTAL PENJUALAN (NET)</td>
                   <td style={{ padding: "3px 4px", borderBottom: "1px solid #000", textAlign: "right", fontFamily: "monospace" }}>
                     {fmtMoney(sales.netRevenue)}
                   </td>
+                  <td style={{ padding: "3px 4px", borderBottom: "1px solid #000" }}></td>
                 </tr>
               </tbody>
             </table>
@@ -222,10 +196,11 @@ export function ExportRecapModal({
                     </tr>
                   ))}
                   <tr style={{ fontWeight: "bold", background: "#f5f5f5" }}>
-                    <td colSpan={3} style={{ padding: "3px 4px", borderBottom: "1px solid #000" }}>TOTAL PENGELUARAN</td>
+                    <td colSpan={2} style={{ padding: "3px 4px", borderBottom: "1px solid #000" }}>TOTAL PENGELUARAN</td>
                     <td style={{ padding: "3px 4px", borderBottom: "1px solid #000", textAlign: "right", fontFamily: "monospace" }}>
                       {fmtMoney(expenses.totalExpenses)}
                     </td>
+                    <td style={{ padding: "3px 4px", borderBottom: "1px solid #000" }}></td>
                   </tr>
                 </tbody>
               </table>
@@ -236,35 +211,25 @@ export function ExportRecapModal({
           <div style={{ marginTop: "8px", border: "1px solid #000", padding: "8px" }}>
             <table style={{ width: "100%", fontSize: "10px" }}>
               <tbody>
+                <tr style={{ fontWeight: "bold" }}>
+                  <td style={{ padding: "2px 0" }}>TOTAL PENDAPATAN (NET)</td>
+                  <td style={{ textAlign: "right", fontFamily: "monospace" }}>{fmtMoney(sales.netRevenue)}</td>
+                </tr>
                 <tr>
-                  <td style={{ padding: "2px 0" }}>Penjualan Netto</td>
-                  <td style={{ textAlign: "right", fontFamily: "monospace", fontWeight: "bold" }}>
-                    {fmtMoney(sales.netRevenue)}
-                  </td>
+                  <td style={{ padding: "2px 0" }}>TOTAL PENGELUARAN</td>
+                  <td style={{ textAlign: "right", fontFamily: "monospace", color: "#c00" }}>- {fmtMoney(expenses.totalExpenses)}</td>
                 </tr>
-                <tr style={{ borderTop: "1px solid #ddd" }}>
-                  <td style={{ padding: "2px 0" }}>Pengeluaran</td>
-                  <td style={{ textAlign: "right", fontFamily: "monospace", color: "#c00" }}>
-                    ({fmtMoney(expenses.totalExpenses)})
-                  </td>
+                <tr style={{ borderTop: "2px solid #000", fontWeight: "bold", fontSize: "11px" }}>
+                  <td style={{ padding: "4px 0" }}>LABA BERSIH (PROFIT)</td>
+                  <td style={{ textAlign: "right", fontFamily: "monospace", padding: "4px 0" }}>{fmtMoney(sales.netRevenue - expenses.totalExpenses)}</td>
                 </tr>
-                <tr style={{ fontWeight: "bold", fontSize: "11px", borderTop: "2px solid #000", paddingTop: "4px" }}>
-                  <td style={{ padding: "4px 0" }}>LABA BERSIH (AKRUAL)</td>
-                  <td style={{ textAlign: "right", fontFamily: "monospace", padding: "4px 0" }}>
-                    {fmtMoney(profit)}
-                  </td>
+                <tr style={{ borderTop: "1px solid #ddd", fontSize: "9px", color: "#666" }}>
+                  <td style={{ padding: "2px 0" }}>Total Piutang (Belum Tertagih)</td>
+                  <td style={{ textAlign: "right", fontFamily: "monospace" }}>{fmtMoney(sales.receivables)}</td>
                 </tr>
-                <tr style={{ fontSize: "9px", borderTop: "1px solid #ddd" }}>
-                  <td style={{ padding: "2px 0", color: "#666" }}>Kas Terkumpul</td>
-                  <td style={{ textAlign: "right", fontFamily: "monospace", color: "#666" }}>
-                    {fmtMoney(sales.cashCollected)}
-                  </td>
-                </tr>
-                <tr style={{ fontSize: "9px", fontWeight: "bold" }}>
-                  <td style={{ padding: "2px 0" }}>LABA BERSIH (KAS)</td>
-                  <td style={{ textAlign: "right", fontFamily: "monospace" }}>
-                    {fmtMoney(cashBasisProfit)}
-                  </td>
+                <tr style={{ fontSize: "9px", color: "#666" }}>
+                  <td style={{ padding: "2px 0" }}>Kas Diterima (Setelah Pengeluaran)</td>
+                  <td style={{ textAlign: "right", fontFamily: "monospace" }}>{fmtMoney(sales.cashCollected - expenses.totalExpenses)}</td>
                 </tr>
               </tbody>
             </table>
