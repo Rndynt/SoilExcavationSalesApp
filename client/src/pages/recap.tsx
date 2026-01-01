@@ -56,6 +56,17 @@ export default function RecapPage() {
       to: dateRange.to.toISOString(),
       locationId: locationId === "all" ? undefined : locationId
     }],
+    queryFn: async ({ queryKey }) => {
+      const [_path, params] = queryKey as [string, any];
+      const searchParams = new URLSearchParams();
+      if (params.from) searchParams.append("from", params.from);
+      if (params.to) searchParams.append("to", params.to);
+      if (params.locationId) searchParams.append("locationId", params.locationId);
+      
+      const res = await fetch(`${_path}?${searchParams.toString()}`);
+      if (!res.ok) throw new Error("Failed to fetch report");
+      return res.json();
+    },
     enabled: !!dateRange.from && !!dateRange.to
   });
 
