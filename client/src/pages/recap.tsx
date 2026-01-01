@@ -3,11 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { format, startOfDay, endOfDay } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Printer, Calendar as CalendarIcon, Loader2 } from "lucide-react";
 import { useTranslate } from "@/hooks/use-translate";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 
 // Define preset functions directly instead of importing from non-existent utils member
 const PAGE_TIME_PRESETS = {
@@ -50,10 +49,13 @@ export default function RecapPage() {
 
   const { data: locations = [] } = useQuery<any[]>({ queryKey: ["/api/locations"] });
 
+  const fromDate = format(dateRange.from, "yyyy-MM-dd");
+  const toDate = format(dateRange.to, "yyyy-MM-dd");
+
   const { data: report, isLoading, error } = useQuery<any>({
     queryKey: ["/api/reports/dashboard", { 
-      from: dateRange.from.toISOString(), 
-      to: dateRange.to.toISOString(),
+      from: fromDate, 
+      to: toDate,
       locationId: locationId === "all" ? undefined : locationId
     }],
     queryFn: async ({ queryKey }) => {
@@ -92,7 +94,10 @@ export default function RecapPage() {
     const printContent = document.getElementById("recap-content");
     if (!printContent) return;
     const printWindow = window.open("", "PRINT", "width=800,height=600");
-    if (!printWindow) return;
+    if (!printWindow) {
+      window.print();
+      return;
+    }
     const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -113,12 +118,16 @@ export default function RecapPage() {
   ${printContent.innerHTML}
 </body>
 </html>`;
+    printWindow.document.open();
     printWindow.document.write(html);
     printWindow.document.close();
-    setTimeout(() => {
+    const handlePrintReady = () => {
+      printWindow.focus();
       printWindow.print();
       printWindow.close();
-    }, 250);
+    };
+    printWindow.addEventListener("load", handlePrintReady, { once: true });
+    setTimeout(handlePrintReady, 500);
   };
 
   if (isLoading) return (
@@ -165,39 +174,35 @@ export default function RecapPage() {
 
           {period === "CUSTOM" && (
             <div className="flex items-center gap-2">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="w-[130px] justify-start text-left font-normal">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {format(dateRange.from, "dd/MM/yy")}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dateRange.from}
-                    onSelect={(d) => d && setDateRange(prev => ({ ...prev, from: startOfDay(d) }))}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <div className="relative">
+                <CalendarIcon className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => {
+                    const next = new Date(e.target.value);
+                    if (!Number.isNaN(next.getTime())) {
+                      setDateRange((prev) => ({ ...prev, from: startOfDay(next) }));
+                    }
+                  }}
+                  className="w-[140px] pl-9"
+                />
+              </div>
               <span className="text-muted-foreground">-</span>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="w-[130px] justify-start text-left font-normal">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {format(dateRange.to, "dd/MM/yy")}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dateRange.to}
-                    onSelect={(d) => d && setDateRange(prev => ({ ...prev, to: endOfDay(d) }))}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <div className="relative">
+                <CalendarIcon className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => {
+                    const next = new Date(e.target.value);
+                    if (!Number.isNaN(next.getTime())) {
+                      setDateRange((prev) => ({ ...prev, to: endOfDay(next) }));
+                    }
+                  }}
+                  className="w-[140px] pl-9"
+                />
+              </div>
             </div>
           )}
 

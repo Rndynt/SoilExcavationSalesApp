@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { storage } from "./storage";
 import { insertLocationSchema, insertTruckSchema, insertPriceRuleSchema, insertExpenseCategorySchema, insertExpenseSchema, insertSaleTripSchema } from "@shared/schema";
 import { z } from "zod";
-import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, subMonths, format } from "date-fns";
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, subMonths, format, parseISO, isValid } from "date-fns";
 
 function getDateRange(preset: string): { dateFrom: string; dateTo: string } {
   const today = new Date();
@@ -731,9 +731,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         return res.status(400).json({ message: "from and to are required" });
       }
 
-      const parsedFrom = new Date(from as string);
-      const parsedTo = new Date(to as string);
-      if (Number.isNaN(parsedFrom.getTime()) || Number.isNaN(parsedTo.getTime())) {
+      const parsedFrom = parseISO(from as string);
+      const parsedTo = parseISO(to as string);
+      if (!isValid(parsedFrom) || !isValid(parsedTo)) {
         return res.status(400).json({ message: "from and to must be valid dates" });
       }
 
