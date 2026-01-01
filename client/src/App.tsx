@@ -15,6 +15,7 @@ import Trucks from "@/pages/trucks";
 import Locations from "@/pages/locations";
 import Pricing from "@/pages/pricing";
 import Settings from "@/pages/settings";
+import Recap from "@/pages/recap";
 import SyncQueue from "@/pages/sync-queue";
 import { LanguageProvider } from "@/contexts/language-context";
 
@@ -25,6 +26,7 @@ function Router() {
         <Route path="/" component={Dashboard} />
         <Route path="/sales" component={Sales} />
         <Route path="/sales-history" component={SalesHistory} />
+        <Route path="/recap" component={Recap} />
         <Route path="/receivables" component={Receivables} />
         <Route path="/expenses" component={Expenses} />
         <Route path="/trucks" component={Trucks} />

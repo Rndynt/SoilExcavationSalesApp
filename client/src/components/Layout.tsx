@@ -16,6 +16,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { href: "/", icon: LayoutDashboard, label: t('nav.dashboard') },
     { href: "/sales", icon: Truck, label: t('nav.quicklog') },
     { href: "/sales-history", icon: History, label: t('nav.saleshistory') },
+    { href: "/recap", icon: Receipt, label: "Rekapan" },
     { href: "/receivables", icon: AlertCircle, label: "Receivables" },
     { href: "/expenses", icon: Receipt, label: t('nav.expenses') },
     { href: "/trucks", icon: Truck, label: t('nav.trucks') },

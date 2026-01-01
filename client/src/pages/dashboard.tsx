@@ -110,10 +110,6 @@ export default function Dashboard() {
           </div>
         )}
         {isLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-        <Button onClick={() => setExportOpen(true)} variant="outline" size="sm" data-testid="button-export">
-          <Download className="w-4 h-4 mr-2" />
-          {t("dashboard.export")}
-        </Button>
       </div>
 
       {report && (
@@ -266,28 +262,6 @@ export default function Dashboard() {
              </Card>
           </div>
         </>
-      )}
-
-      {report && (
-        <ExportRecapModal
-          open={exportOpen}
-          onOpenChange={setExportOpen}
-          dateFrom={report.dateFrom}
-          dateTo={report.dateTo}
-          sales={report.sales}
-          expenses={{
-            ...report.expenses,
-            byCategory: report.expenses.byCategory.map(item => ({
-              category: item.categoryName,
-              amount: item.total
-            }))
-          }}
-          detailExpenses={detailExpenses}
-          profit={profit}
-          cashBasisProfit={cashBasisProfit}
-          trips={trips || []}
-          locationName={locationId ? locations?.find(l => l.id === locationId)?.name : undefined}
-        />
       )}
     </div>
   );
