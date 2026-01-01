@@ -50,7 +50,7 @@ export default function RecapPage() {
 
   const { data: locations = [] } = useQuery<any[]>({ queryKey: ["/api/locations"] });
 
-  const { data: report, isLoading } = useQuery<any>({
+  const { data: report, isLoading, error } = useQuery<any>({
     queryKey: ["/api/reports/dashboard", { 
       from: dateRange.from.toISOString(), 
       to: dateRange.to.toISOString(),
@@ -63,11 +63,17 @@ export default function RecapPage() {
       if (params.to) searchParams.append("to", params.to);
       if (params.locationId) searchParams.append("locationId", params.locationId);
       
-      const res = await fetch(`${_path}?${searchParams.toString()}`);
-      if (!res.ok) throw new Error("Failed to fetch report");
+      const url = `${_path}?${searchParams.toString()}`;
+      console.log("Fetching report from:", url);
+      const res = await fetch(url);
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Failed to fetch report: ${res.status} ${errText}`);
+      }
       return res.json();
     },
-    enabled: !!dateRange.from && !!dateRange.to
+    enabled: !!dateRange.from && !!dateRange.to,
+    retry: 1
   });
 
   const handlePeriodChange = (val: string) => {
@@ -115,9 +121,24 @@ export default function RecapPage() {
     }, 250);
   };
 
-  if (isLoading || !report) return (
+  if (isLoading) return (
     <div className="flex items-center justify-center h-64">
       <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <span className="ml-2">Memuat data rekapan...</span>
+    </div>
+  );
+
+  if (error) return (
+    <div className="p-8 text-center text-red-500">
+      <p>Gagal memuat data rekapan.</p>
+      <pre className="mt-2 text-xs">{(error as Error).message}</pre>
+      <Button className="mt-4" onClick={() => window.location.reload()}>Coba Lagi</Button>
+    </div>
+  );
+
+  if (!report) return (
+    <div className="p-8 text-center text-muted-foreground">
+      Tidak ada data untuk periode ini.
     </div>
   );
 
