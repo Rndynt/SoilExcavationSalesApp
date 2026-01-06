@@ -409,8 +409,7 @@ export default function RecapPage() {
                     <span className="font-mono">{fmtMoney(expenses.totalOperational)}</span>
                   </div>
                   {expenses.byCategory?.filter((c: any) => {
-                    const cat = detailExpenses.find((de: any) => de.categoryId === c.categoryId);
-                    return cat?.categoryType !== 'OPERATIONAL' && cat?.categoryType !== 'DISCOUNT';
+                    return c.categoryType !== 'OPERATIONAL' && c.categoryType !== 'DISCOUNT';
                   }).map((c: any) => (
                     <div key={c.categoryId} className="flex justify-between text-[10px] text-gray-500 italic pl-2">
                       <span>• {c.categoryName}</span>
