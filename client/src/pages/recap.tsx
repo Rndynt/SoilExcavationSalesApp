@@ -408,7 +408,16 @@ export default function RecapPage() {
                     <span>Beban Operasional</span>
                     <span className="font-mono">{fmtMoney(expenses.totalOperational)}</span>
                   </div>
-                  <div className="flex justify-between text-xs text-blue-600">
+                  {expenses.byCategory?.filter((c: any) => {
+                    const cat = detailExpenses.find((de: any) => de.categoryId === c.categoryId);
+                    return cat?.categoryType !== 'OPERATIONAL' && cat?.categoryType !== 'DISCOUNT';
+                  }).map((c: any) => (
+                    <div key={c.categoryId} className="flex justify-between text-[10px] text-gray-500 italic pl-2">
+                      <span>• {c.categoryName}</span>
+                      <span className="font-mono">{fmtMoney(c.total)}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between text-xs text-blue-600 border-t border-gray-200 pt-1 font-bold">
                     <span>Total Pengeluaran</span>
                     <span className="font-mono">{fmtMoney(expenses.totalExpenses)}</span>
                   </div>
