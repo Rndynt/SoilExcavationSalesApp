@@ -276,20 +276,30 @@ export default function RecapPage() {
                     groupedTrips[date].push(trip);
                   });
 
-                  return Object.entries(groupedTrips).map(([date, items]) => (
-                    <React.Fragment key={date}>
-                      <tr className="bg-gray-50/50">
-                        <td colSpan={3} className="p-2 font-bold border-b text-emerald-700">{date}</td>
-                      </tr>
-                      {items.map((trip, idx) => (
-                        <tr key={`${date}-${idx}`} className="border-b">
-                          <td className="p-2 pl-4 font-mono">{trip.plateNumber}</td>
-                          <td className="p-2 text-right font-mono">{fmtMoney(trip.appliedPrice)}</td>
-                          <td className="p-2">{trip.paymentStatus === "PAID" ? "Lunas" : "Piutang"}</td>
+                  return Object.entries(groupedTrips).map(([date, items]) => {
+                    const dailyTotal = items.reduce((sum, item) => sum + (item.appliedPrice || 0), 0);
+                    return (
+                      <React.Fragment key={date}>
+                        <tr className="bg-gray-50/50">
+                          <td colSpan={3} className="p-2 font-bold border-b">
+                            <div className="flex justify-between items-center text-emerald-700">
+                              <span>{date}</span>
+                              <span className="font-mono text-[10px] bg-emerald-100 px-2 py-0.5 rounded">
+                                Total: {fmtMoney(dailyTotal)}
+                              </span>
+                            </div>
+                          </td>
                         </tr>
-                      ))}
-                    </React.Fragment>
-                  ));
+                        {items.map((trip, idx) => (
+                          <tr key={`${date}-${idx}`} className="border-b">
+                            <td className="p-2 pl-4 font-mono">{trip.plateNumber}</td>
+                            <td className="p-2 text-right font-mono">{fmtMoney(trip.appliedPrice)}</td>
+                            <td className="p-2">{trip.paymentStatus === "PAID" ? "Lunas" : "Piutang"}</td>
+                          </tr>
+                        ))}
+                      </React.Fragment>
+                    );
+                  });
                 })()}
                 {sales.totalDiscounts > 0 && (
                   <tr className="text-gray-600 italic border-b">
@@ -336,20 +346,30 @@ export default function RecapPage() {
                       groupedExpenses[date].push(exp);
                     });
 
-                    return Object.entries(groupedExpenses).map(([date, items]) => (
-                      <React.Fragment key={date}>
-                        <tr className="bg-gray-50/50">
-                          <td colSpan={3} className="p-2 font-bold border-b text-blue-700">{date}</td>
-                        </tr>
-                        {items.map((exp, idx) => (
-                          <tr key={`${date}-${idx}`} className="border-b">
-                            <td className="p-2 pl-4">{exp.categoryName || exp.category}</td>
-                            <td className="p-2 text-right font-mono">{fmtMoney(exp.amount)}</td>
-                            <td className="p-2 truncate max-w-[200px]">{exp.note || "-"}</td>
+                    return Object.entries(groupedExpenses).map(([date, items]) => {
+                      const dailyTotal = items.reduce((sum, item) => sum + (item.amount || 0), 0);
+                      return (
+                        <React.Fragment key={date}>
+                          <tr className="bg-gray-50/50">
+                            <td colSpan={3} className="p-2 font-bold border-b">
+                              <div className="flex justify-between items-center text-blue-700">
+                                <span>{date}</span>
+                                <span className="font-mono text-[10px] bg-blue-100 px-2 py-0.5 rounded">
+                                  Total: {fmtMoney(dailyTotal)}
+                                </span>
+                              </div>
+                            </td>
                           </tr>
-                        ))}
-                      </React.Fragment>
-                    ));
+                          {items.map((exp, idx) => (
+                            <tr key={`${date}-${idx}`} className="border-b">
+                              <td className="p-2 pl-4">{exp.categoryName || exp.category}</td>
+                              <td className="p-2 text-right font-mono">{fmtMoney(exp.amount)}</td>
+                              <td className="p-2 truncate max-w-[200px]">{exp.note || "-"}</td>
+                            </tr>
+                          ))}
+                        </React.Fragment>
+                      );
+                    });
                   })()}
                   <tr className="font-bold bg-gray-50">
                     <td className="p-2 border-t-2 border-black">TOTAL PENGELUARAN OPERASIONAL</td>
