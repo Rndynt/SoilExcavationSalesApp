@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Printer, Calendar as CalendarIcon, Loader2, AlertCircle } from "lucide-react";
 import { useTranslate } from "@/hooks/use-translate";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 // Define preset functions directly instead of importing from non-existent utils member
 const PAGE_TIME_PRESETS = {
@@ -383,27 +384,57 @@ export default function RecapPage() {
 
           {/* Summary Calculation */}
           <div className="mt-8 border-2 border-black p-6 bg-gray-50">
-            <div className="space-y-2">
-              <div className="flex justify-between font-semibold">
-                <span>TOTAL PENDAPATAN (NET)</span>
-                <span className="font-mono">{fmtMoney(sales.netRevenue)}</span>
-              </div>
-              <div className="flex justify-between text-red-600">
-                <span>TOTAL PENGELUARAN OPERASIONAL</span>
-                <span className="font-mono">- {fmtMoney(expenses.totalOperational)}</span>
-              </div>
-              <div className="pt-4 border-t-2 border-black flex justify-between text-lg font-bold">
-                <span>LABA BERSIH (PROFIT)</span>
-                <span className="font-mono">{fmtMoney(sales.netRevenue - expenses.totalOperational)}</span>
-              </div>
-              <div className="pt-4 space-y-1 text-sm text-gray-600 border-t border-gray-300">
-                <div className="flex justify-between">
-                  <span>Total Piutang (Belum Tertagih)</span>
-                  <span className="font-mono">{fmtMoney(sales.receivables)}</span>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1 border-r border-gray-300 pr-4">
+                  <div className="text-[10px] text-gray-500 uppercase font-bold">Arus Kas Masuk (Sales)</div>
+                  <div className="flex justify-between text-xs">
+                    <span>Total Omzet (Applied)</span>
+                    <span className="font-mono">{fmtMoney(sales.netRevenue)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-emerald-600 font-medium">
+                    <span>Kas Diterima (Paid)</span>
+                    <span className="font-mono">{fmtMoney(sales.cashCollected)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-amber-600 font-medium border-t border-gray-200 pt-1">
+                    <span>Piutang (Unpaid)</span>
+                    <span className="font-mono">{fmtMoney(sales.receivables)}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span>Kas Diterima (Setelah Pengeluaran)</span>
-                  <span className="font-mono">{fmtMoney(sales.cashCollected - expenses.totalOperational)}</span>
+
+                <div className="space-y-1 pl-4">
+                  <div className="text-[10px] text-gray-500 uppercase font-bold">Arus Kas Keluar (Expenses)</div>
+                  <div className="flex justify-between text-xs text-red-600">
+                    <span>Beban Operasional</span>
+                    <span className="font-mono">{fmtMoney(expenses.totalOperational)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-blue-600">
+                    <span>Total Pengeluaran</span>
+                    <span className="font-mono">{fmtMoney(expenses.totalExpenses)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t-2 border-black">
+                <div className="flex justify-between text-lg font-bold">
+                  <span>POSISI KAS (Net Cash)</span>
+                  <span className={cn("font-mono", (sales.cashCollected - expenses.totalExpenses) >= 0 ? "text-emerald-700" : "text-red-700")}>
+                    {fmtMoney(sales.cashCollected - expenses.totalExpenses)}
+                  </span>
+                </div>
+                <div className="text-[10px] text-gray-500 italic">
+                  * Dihitung dari: Total Kas Diterima - Total Semua Pengeluaran
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-gray-300 grid grid-cols-2 gap-4 text-xs">
+                <div className="bg-white p-2 border rounded">
+                  <div className="text-[10px] text-gray-400 uppercase">Margin Laba (Omzet - Ops)</div>
+                  <div className="font-bold">{fmtMoney(sales.netRevenue - expenses.totalOperational)}</div>
+                </div>
+                <div className="bg-white p-2 border rounded">
+                  <div className="text-[10px] text-gray-400 uppercase">Estimasi Laba Akhir</div>
+                  <div className="font-bold">{fmtMoney(sales.netRevenue - expenses.totalExpenses)}</div>
                 </div>
               </div>
             </div>
