@@ -1,19 +1,21 @@
 import { useState } from "react";
-import { useExpenses, useExpenseCategories, useCreateExpense, useCreateExpenseCategory, useLocations, useDefaultLocation } from "@/hooks/use-api";
+import { useExpenses, useExpenseCategories, useCreateExpense, useUpdateExpense, useDeleteExpense, useCreateExpenseCategory, useLocations, useDefaultLocation } from "@/hooks/use-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays } from "date-fns";
-import { Receipt, Plus, Filter, Truck, Loader2 } from "lucide-react";
+import { Receipt, Plus, Filter, Truck, Loader2, MoreVertical, Edit2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { useTranslate } from "@/hooks/use-translate";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 type TimePeriod = "TODAY" | "YESTERDAY" | "THIS_WEEK" | "THIS_MONTH" | "LAST_MONTH";
 
@@ -64,6 +66,11 @@ export default function Expenses() {
   const [isAddCatOpen, setIsAddCatOpen] = useState(false);
   const [period, setPeriod] = useState<TimePeriod>("THIS_MONTH");
 
+  // Edit State
+  const [editingExpense, setEditingExpense] = useState<any>(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   // Filters
   const [filterType, setFilterType] = useState("all");
   const [filterCat, setFilterCat] = useState("all");
@@ -85,6 +92,8 @@ export default function Expenses() {
   const { data: locations = [] } = useLocations();
   const { data: defaultLocationData } = useDefaultLocation();
   const createExpense = useCreateExpense();
+  const updateExpense = useUpdateExpense();
+  const deleteExpense = useDeleteExpense();
   const createCategory = useCreateExpenseCategory();
 
   const isLoading = expensesLoading || categoriesLoading;
@@ -132,6 +141,50 @@ export default function Expenses() {
     } catch (error) {
       toast({ title: "Failed to record expense", variant: "destructive" });
     }
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingExpense || !newAmount || !newCatId) return;
+
+    try {
+      await updateExpense.mutateAsync({
+        id: editingExpense.id,
+        expenseDate: newDate,
+        amount: parseInt(newAmount),
+        categoryId: newCatId,
+        note: newNote || undefined,
+        relatedPlateNumber: newPlate || undefined,
+      });
+
+      setIsEditOpen(false);
+      setEditingExpense(null);
+      setNewAmount("");
+      setNewNote("");
+      setNewPlate("");
+      toast({ title: "Expense Updated" });
+    } catch (error) {
+      toast({ title: "Failed to update expense", variant: "destructive" });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteExpense.mutateAsync(id);
+      toast({ title: "Expense Deleted" });
+    } catch (error) {
+      toast({ title: "Failed to delete expense", variant: "destructive" });
+    }
+  };
+
+  const openEditDialog = (expense: any) => {
+    setEditingExpense(expense);
+    setNewDate(expense.expenseDate.split('T')[0]);
+    setNewAmount(expense.amount.toString());
+    setNewCatId(expense.categoryId);
+    setNewNote(expense.note || "");
+    setNewPlate(expense.relatedPlateNumber || "");
+    setIsEditOpen(true);
   };
 
   // Submit Category
@@ -319,6 +372,56 @@ export default function Expenses() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Pengeluaran</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4 pt-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Tanggal</Label>
+                <Input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} required />
+              </div>
+              <div className="space-y-2">
+                <Label>Jumlah (IDR)</Label>
+                <Input type="number" value={newAmount} onChange={e => setNewAmount(e.target.value)} required />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Kategori</Label>
+              <Select value={newCatId} onValueChange={setNewCatId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih Kategori" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.filter(c => !c.isSystem).map(c => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name} ({c.type})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Plat Nomor (Opsional)</Label>
+              <Input value={newPlate} onChange={e => setNewPlate(e.target.value)} placeholder="BK 1234 XX" />
+            </div>
+            <div className="space-y-2">
+              <Label>Catatan</Label>
+              <Textarea value={newNote} onChange={e => setNewNote(e.target.value)} placeholder="..." />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>Batal</Button>
+              <Button type="submit" disabled={updateExpense.isPending}>
+                {updateExpense.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Simpan Perubahan
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex items-center gap-2 flex-wrap">
         {TIME_PRESETS.map(p => (
           <Button
@@ -377,12 +480,13 @@ export default function Expenses() {
                 <th className="px-6 py-3 font-medium">Note</th>
                 <th className="px-6 py-3 font-medium">Details</th>
                 <th className="px-6 py-3 font-medium text-right">Amount</th>
+                <th className="px-6 py-3 font-medium text-right w-10"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filteredExpenses.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
+                  <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
                     <div className="flex flex-col items-center gap-2">
                       <Receipt className="h-8 w-8 text-muted-foreground/50" />
                       <p data-testid="text-no-expenses">No expenses found.</p>
@@ -394,6 +498,7 @@ export default function Expenses() {
                   const cat = categories.find(c => c.id === expense.categoryId);
                   const isDiscount = cat?.type === 'DISCOUNT';
                   const isPayableLoan = cat?.type === 'PAYABLE' || cat?.type === 'LOAN';
+                  const isSystem = cat?.isSystem || false;
 
                   return (
                     <tr key={expense.id} className="group hover:bg-muted/50 transition-colors" data-testid={`row-expense-${expense.id}`}>
@@ -428,6 +533,43 @@ export default function Expenses() {
                       </td>
                       <td className="px-6 py-4 text-right font-mono font-medium text-foreground">
                         {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(expense.amount)}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        {!isSystem && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 p-0" data-testid={`button-actions-${expense.id}`}>
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => openEditDialog(expense)} data-testid={`button-edit-${expense.id}`}>
+                                <Edit2 className="h-4 w-4 mr-2" /> Edit
+                              </DropdownMenuItem>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive" data-testid={`button-delete-trigger-${expense.id}`}>
+                                    <Trash2 className="h-4 w-4 mr-2" /> Hapus
+                                  </DropdownMenuItem>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Hapus Pengeluaran?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Tindakan ini tidak dapat dibatalkan. Pengeluaran ini akan dihapus permanen dari sistem.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Batal</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDelete(expense.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                      Hapus
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </td>
                     </tr>
                   );
