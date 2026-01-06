@@ -262,30 +262,44 @@ export default function RecapPage() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-gray-100">
-                  <th className="p-2 border-b text-left">Tanggal</th>
                   <th className="p-2 border-b text-left">Nopol</th>
                   <th className="p-2 border-b text-right">Harga</th>
                   <th className="p-2 border-b text-left">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {trips.map((trip: any, idx: number) => (
-                  <tr key={idx} className="border-b">
-                    <td className="p-2">{format(new Date(trip.transDate), "dd/MM/yyyy HH:mm")}</td>
-                    <td className="p-2 font-mono">{trip.plateNumber}</td>
-                    <td className="p-2 text-right font-mono">{fmtMoney(trip.appliedPrice)}</td>
-                    <td className="p-2">{trip.paymentStatus === "PAID" ? "Lunas" : "Piutang"}</td>
-                  </tr>
-                ))}
+                {(() => {
+                  const groupedTrips: { [key: string]: any[] } = {};
+                  trips.forEach((trip: any) => {
+                    const date = format(new Date(trip.transDate), "dd/MM/yyyy");
+                    if (!groupedTrips[date]) groupedTrips[date] = [];
+                    groupedTrips[date].push(trip);
+                  });
+
+                  return Object.entries(groupedTrips).map(([date, items]) => (
+                    <React.Fragment key={date}>
+                      <tr className="bg-gray-50/50">
+                        <td colSpan={3} className="p-2 font-bold border-b text-emerald-700">{date}</td>
+                      </tr>
+                      {items.map((trip, idx) => (
+                        <tr key={`${date}-${idx}`} className="border-b">
+                          <td className="p-2 pl-4 font-mono">{trip.plateNumber}</td>
+                          <td className="p-2 text-right font-mono">{fmtMoney(trip.appliedPrice)}</td>
+                          <td className="p-2">{trip.paymentStatus === "PAID" ? "Lunas" : "Piutang"}</td>
+                        </tr>
+                      ))}
+                    </React.Fragment>
+                  ));
+                })()}
                 {sales.totalDiscounts > 0 && (
                   <tr className="text-gray-600 italic border-b">
-                    <td colSpan={2} className="p-2">Total Potongan/Diskon (Auto-populate)</td>
+                    <td className="p-2 pl-4">Total Potongan/Diskon (Auto-populate)</td>
                     <td className="p-2 text-right font-mono">- {fmtMoney(sales.totalDiscounts)}</td>
                     <td></td>
                   </tr>
                 )}
                 <tr className="font-bold bg-gray-50">
-                  <td colSpan={2} className="p-2 border-t-2 border-black">TOTAL PENJUALAN (NET)</td>
+                  <td className="p-2 border-t-2 border-black">TOTAL PENJUALAN (NET)</td>
                   <td className="p-2 text-right font-mono border-t-2 border-black">{fmtMoney(sales.netRevenue)}</td>
                   <td className="p-2 border-t-2 border-black"></td>
                 </tr>
@@ -302,29 +316,43 @@ export default function RecapPage() {
               <table className="w-full text-xs">
                 <thead>
                   <tr className="bg-gray-100">
-                    <th className="p-2 border-b text-left">Tanggal</th>
                     <th className="p-2 border-b text-left">Kategori</th>
                     <th className="p-2 border-b text-right">Jumlah</th>
                     <th className="p-2 border-b text-left">Catatan</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {detailExpenses
-                    .filter((exp: any) => {
+                  {(() => {
+                    const filteredExpenses = detailExpenses.filter((exp: any) => {
                       const cat = (exp.categoryName || exp.category || "").toUpperCase();
                       const note = (exp.note || "").toLowerCase();
                       return cat !== 'DISCOUNT' && !note.includes('auto discount');
-                    })
-                    .map((exp: any, idx: number) => (
-                      <tr key={idx} className="border-b">
-                        <td className="p-2">{format(new Date(exp.expenseDate), "dd/MM/yyyy")}</td>
-                        <td className="p-2">{exp.categoryName || exp.category}</td>
-                        <td className="p-2 text-right font-mono">{fmtMoney(exp.amount)}</td>
-                        <td className="p-2 truncate max-w-[200px]">{exp.note || "-"}</td>
-                      </tr>
-                    ))}
+                    });
+
+                    const groupedExpenses: { [key: string]: any[] } = {};
+                    filteredExpenses.forEach((exp: any) => {
+                      const date = format(new Date(exp.expenseDate), "dd/MM/yyyy");
+                      if (!groupedExpenses[date]) groupedExpenses[date] = [];
+                      groupedExpenses[date].push(exp);
+                    });
+
+                    return Object.entries(groupedExpenses).map(([date, items]) => (
+                      <React.Fragment key={date}>
+                        <tr className="bg-gray-50/50">
+                          <td colSpan={3} className="p-2 font-bold border-b text-blue-700">{date}</td>
+                        </tr>
+                        {items.map((exp, idx) => (
+                          <tr key={`${date}-${idx}`} className="border-b">
+                            <td className="p-2 pl-4">{exp.categoryName || exp.category}</td>
+                            <td className="p-2 text-right font-mono">{fmtMoney(exp.amount)}</td>
+                            <td className="p-2 truncate max-w-[200px]">{exp.note || "-"}</td>
+                          </tr>
+                        ))}
+                      </React.Fragment>
+                    ));
+                  })()}
                   <tr className="font-bold bg-gray-50">
-                    <td colSpan={2} className="p-2 border-t-2 border-black">TOTAL PENGELUARAN OPERASIONAL</td>
+                    <td className="p-2 border-t-2 border-black">TOTAL PENGELUARAN OPERASIONAL</td>
                     <td className="p-2 text-right font-mono border-t-2 border-black">{fmtMoney(expenses.totalOperational)}</td>
                     <td className="p-2 border-t-2 border-black"></td>
                   </tr>
