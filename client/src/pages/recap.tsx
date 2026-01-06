@@ -4,7 +4,7 @@ import { format, startOfDay, endOfDay } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Printer, Calendar as CalendarIcon, Loader2 } from "lucide-react";
+import { Printer, Calendar as CalendarIcon, Loader2, AlertCircle } from "lucide-react";
 import { useTranslate } from "@/hooks/use-translate";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -131,27 +131,46 @@ export default function RecapPage() {
   };
 
   if (isLoading) return (
-    <div className="flex items-center justify-center h-64">
-      <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      <span className="ml-2">Memuat data rekapan...</span>
+    <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex flex-col items-center gap-4">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <span className="text-sm text-muted-foreground">Memuat data rekapan...</span>
+      </div>
     </div>
   );
 
   if (error) return (
-    <div className="p-8 text-center text-red-500">
-      <p>Gagal memuat data rekapan.</p>
-      <pre className="mt-2 text-xs">{(error as Error).message}</pre>
-      <Button className="mt-4" onClick={() => window.location.reload()}>Coba Lagi</Button>
+    <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex flex-col items-center gap-4 text-center max-w-md p-6">
+        <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+          <AlertCircle className="w-6 h-6 text-red-600" />
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-red-600">Gagal memuat data</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            Terjadi kesalahan saat mengambil data dari server. Silakan coba lagi.
+          </p>
+          <pre className="mt-4 p-2 bg-slate-100 rounded text-[10px] text-left overflow-auto max-h-32">
+            {(error as Error).message}
+          </pre>
+        </div>
+        <Button onClick={() => window.location.reload()}>Coba Lagi</Button>
+      </div>
     </div>
   );
 
-  if (!report) return (
-    <div className="p-8 text-center text-muted-foreground">
-      Tidak ada data untuk periode ini.
+  const { sales, expenses, trips, detailExpenses = [] } = report || {};
+
+  if (!report || !trips) return (
+    <div className="flex items-center justify-center min-h-[400px]">
+      <div className="text-center">
+        <p className="text-muted-foreground">Tidak ada data untuk periode ini.</p>
+        <Button variant="outline" className="mt-4" onClick={() => handlePeriodChange("TODAY")}>
+          Kembali ke Hari Ini
+        </Button>
+      </div>
     </div>
   );
-
-  const { sales, expenses, trips, detailExpenses = [] } = report;
   const locationName = locationId === "all" ? "" : locations.find(l => l.id.toString() === locationId)?.name;
 
   return (

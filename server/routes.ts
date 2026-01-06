@@ -566,8 +566,9 @@ export async function registerRoutes(app: Express): Promise<void> {
       }
       
       let basePrice = data.basePrice;
-      if (!basePrice) {
-        const resolvedPrice = await storage.resolveBasePrice(data.locationId, data.transDate);
+      if (data.transDate) {
+        const transDateStr = data.transDate instanceof Date ? format(data.transDate, 'yyyy-MM-dd') : String(data.transDate);
+        const resolvedPrice = await storage.resolveBasePrice(data.locationId, transDateStr);
         if (!resolvedPrice) {
           return res.status(400).json({ message: "No price rule found for this location and date" });
         }
