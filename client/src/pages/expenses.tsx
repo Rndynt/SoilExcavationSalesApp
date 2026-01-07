@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   useExpenses,
   useExpenseCategories,
@@ -21,12 +21,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays } from "date-fns";
-import { Receipt, Plus, Filter, Truck, Loader2, MoreVertical, Edit2, Trash2 } from "lucide-react";
+import { Receipt, Plus, Filter, Truck, Loader2, MoreVertical, Edit2, Trash2, Calendar, MapPin, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { useTranslate } from "@/hooks/use-translate";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 type TimePeriod = "TODAY" | "YESTERDAY" | "THIS_WEEK" | "THIS_MONTH" | "LAST_MONTH";
 
@@ -76,6 +77,7 @@ export default function Expenses() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isAddCatOpen, setIsAddCatOpen] = useState(false);
   const [period, setPeriod] = useState<TimePeriod>("THIS_MONTH");
+  const [configOpen, setConfigOpen] = useState(false);
 
   // Edit State
   const [editingExpense, setEditingExpense] = useState<any>(null);
@@ -88,10 +90,12 @@ export default function Expenses() {
 
   // Form
   const [newDate, setNewDate] = useState(new Date().toISOString().split('T')[0]);
+  const [newLocationId, setNewLocationId] = useState("");
   const [newAmount, setNewAmount] = useState("");
   const [newCatId, setNewCatId] = useState("");
   const [newNote, setNewNote] = useState("");
   const [newPlate, setNewPlate] = useState("");
+  const [editLocationId, setEditLocationId] = useState("");
 
   // Category Form
   const [newCatName, setNewCatName] = useState("");
@@ -112,6 +116,16 @@ export default function Expenses() {
 
   const isLoading = expensesLoading || categoriesLoading;
 
+  useEffect(() => {
+    if (!newLocationId) {
+      if (defaultLocationData?.defaultLocationId) {
+        setNewLocationId(defaultLocationData.defaultLocationId);
+      } else if (locations.length > 0) {
+        setNewLocationId(locations[0].id);
+      }
+    }
+  }, [defaultLocationData, locations, newLocationId]);
+
   // Filter Logic
   const [dateFrom, dateTo] = getDateRange(period);
   const filteredExpenses = expenses.filter(e => {
@@ -131,15 +145,14 @@ export default function Expenses() {
     e.preventDefault();
     if (!newAmount || !newCatId) return;
 
-    const locationId = defaultLocationData?.defaultLocationId || locations[0]?.id;
-    if (!locationId) {
+    if (!newLocationId) {
       toast({ title: "No location available", variant: "destructive" });
       return;
     }
 
     try {
       await createExpense.mutateAsync({
-        locationId,
+        locationId: newLocationId,
         expenseDate: newDate,
         amount: parseInt(newAmount),
         categoryId: newCatId,
@@ -164,6 +177,7 @@ export default function Expenses() {
     try {
       await updateExpense.mutateAsync({
         id: editingExpense.id,
+        locationId: editLocationId,
         expenseDate: newDate,
         amount: parseInt(newAmount),
         categoryId: newCatId,
@@ -198,6 +212,7 @@ export default function Expenses() {
     setNewCatId(expense.categoryId);
     setNewNote(expense.note || "");
     setNewPlate(expense.relatedPlateNumber || "");
+    setEditLocationId(expense.locationId || "");
     setIsEditOpen(true);
   };
 
@@ -275,18 +290,58 @@ export default function Expenses() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
-              <div className="md:col-span-1 space-y-2">
-                <Label className="text-xs font-semibold">{t('expenses.date')}</Label>
-                <Input 
-                  type="date" 
-                  value={newDate} 
-                  onChange={e => setNewDate(e.target.value)} 
-                  data-testid="input-expense-date"
-                  className="h-9"
-                />
+            <Collapsible open={configOpen} onOpenChange={setConfigOpen} className="space-y-4">
+              <div className="flex items-center justify-between gap-4 px-1">
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                  <Calendar className="h-3 w-3" />
+                  {format(new Date(newDate), "dd MMM yyyy")}
+                  <span className="text-muted-foreground/30">•</span>
+                  <MapPin className="h-3 w-3" />
+                  {locations.find(l => l.id === newLocationId)?.name || "Pilih Lokasi"}
+                </div>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
+                    {configOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                    {configOpen ? "Close" : "Change"}
+                  </Button>
+                </CollapsibleTrigger>
               </div>
 
+              <CollapsibleContent className="space-y-4 pt-2 border-t border-dashed animate-in fade-in slide-in-from-top-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('expenses.date')}</Label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="date"
+                        value={newDate}
+                        onChange={e => setNewDate(e.target.value)}
+                        data-testid="input-expense-date"
+                        className="pl-9 h-9"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Lokasi</Label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground z-10" />
+                      <Select value={newLocationId} onValueChange={setNewLocationId}>
+                        <SelectTrigger className="pl-9 h-9" data-testid="select-expense-location">
+                          <SelectValue placeholder="Pilih lokasi" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {locations.map(l => (
+                            <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
               <div className="md:col-span-1 space-y-2">
                 <Label className="text-xs font-semibold">{t('expenses.amount')}</Label>
                 <Input 
@@ -458,6 +513,19 @@ export default function Expenses() {
                 <Label>Jumlah (IDR)</Label>
                 <Input type="number" value={newAmount} onChange={e => setNewAmount(e.target.value)} required />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Lokasi</Label>
+              <Select value={editLocationId} onValueChange={setEditLocationId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih lokasi" />
+                </SelectTrigger>
+                <SelectContent>
+                  {locations.map(l => (
+                    <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Kategori</Label>
