@@ -1,14 +1,14 @@
-import { useState } from "react";
-import { useReportsSummary, useLocations, useSaleTrips, useExpenses } from "@/hooks/use-api";
+import { useMemo, useState } from "react";
+import { useReportsSummary, useLocations, useSaleTrips, useExpenses, useExpenseCategories } from "@/hooks/use-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DollarSign, TrendingDown, TrendingUp, Wallet, ArrowUpRight, Truck, Receipt, CreditCard, Loader2, Download } from "lucide-react";
-import { ExportRecapModal } from "@/components/export-recap-modal";
+import { DollarSign, TrendingDown, TrendingUp, Wallet, ArrowUpRight, Truck, Receipt, CreditCard, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslate } from "@/hooks/use-translate";
+import { format } from "date-fns";
 
 type TimePreset = "TODAY" | "YESTERDAY" | "THIS_WEEK" | "THIS_MONTH" | "LAST_MONTH";
 
@@ -26,12 +26,12 @@ export default function Dashboard() {
   const [customDateFrom, setCustomDateFrom] = useState("");
   const [customDateTo, setCustomDateTo] = useState("");
   const [locationId, setLocationId] = useState<string | undefined>(undefined);
-  const [exportOpen, setExportOpen] = useState(false);
   
   const { data: locations } = useLocations();
   const { data: report, isLoading } = useReportsSummary(preset === "CUSTOM" ? undefined : (preset as any), locationId, preset === "CUSTOM" ? customDateFrom : undefined, preset === "CUSTOM" ? customDateTo : undefined);
   const { data: trips } = useSaleTrips({ locationId, dateFrom: report?.dateFrom, dateTo: report?.dateTo });
   const { data: detailExpenses = [] } = useExpenses({ locationId, dateFrom: report?.dateFrom, dateTo: report?.dateTo });
+  const { data: categories = [] } = useExpenseCategories();
 
   const fmtMoney = (n: number) => 
     new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
@@ -46,6 +46,27 @@ export default function Dashboard() {
   
   const profit = netRevenue - totalOperational;
   const cashBasisProfit = cashCollected - totalOperational;
+
+  const expenseTotalsByCategory = useMemo(() => {
+    const totals = new Map<string, { name: string; total: number }>();
+    detailExpenses.forEach((expense) => {
+      const category = categories.find((c) => c.id === expense.categoryId);
+      if (!category) return;
+      const existing = totals.get(category.id) ?? { name: category.name, total: 0 };
+      totals.set(category.id, { ...existing, total: existing.total + expense.amount });
+    });
+    return Array.from(totals.values()).sort((a, b) => b.total - a.total);
+  }, [detailExpenses, categories]);
+
+  const receivableTrips = useMemo(() => {
+    return (trips ?? [])
+      .filter((trip) => trip.paymentStatus !== "PAID")
+      .map((trip) => ({
+        ...trip,
+        outstanding: Math.max(0, trip.appliedPrice - trip.paidAmount),
+      }))
+      .sort((a, b) => b.outstanding - a.outstanding);
+  }, [trips]);
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -260,6 +281,56 @@ export default function Dashboard() {
                  </div>
                </CardContent>
              </Card>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card className="shadow-sm" data-testid="card-expense-category-detail">
+              <CardHeader>
+                <CardTitle>{t("dashboard.expensecategorydetail")}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {expenseTotalsByCategory.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t("dashboard.noexpensecategory")}</p>
+                ) : (
+                  <div className="space-y-2">
+                    {expenseTotalsByCategory.map((item) => (
+                      <div key={item.name} className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
+                        <span className="text-sm font-medium text-foreground">{item.name}</span>
+                        <span className="font-mono text-sm">{fmtMoney(item.total)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-sm" data-testid="card-receivables-detail">
+              <CardHeader>
+                <CardTitle>{t("dashboard.receivablesdetail")}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {receivableTrips.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t("dashboard.noreceivables")}</p>
+                ) : (
+                  <div className="space-y-2">
+                    {receivableTrips.map((trip) => (
+                      <div key={trip.id} className="flex flex-col gap-1 rounded-lg border border-border px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{trip.plateNumber}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(trip.transDate), "dd MMM yyyy")} • {trip.paymentStatus}
+                          </p>
+                        </div>
+                        <div className="text-left sm:text-right">
+                          <p className="text-xs text-muted-foreground">{t("dashboard.outstandingamount")}</p>
+                          <p className="font-mono text-sm">{fmtMoney(trip.outstanding)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </>
       )}
