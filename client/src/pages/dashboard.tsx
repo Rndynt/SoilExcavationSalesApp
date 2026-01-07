@@ -342,6 +342,56 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card className="shadow-sm" data-testid="card-expense-category-detail">
+              <CardHeader>
+                <CardTitle>{t("dashboard.expensecategorydetail")}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {expenseTotalsByCategory.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t("dashboard.noexpensecategory")}</p>
+                ) : (
+                  <div className="space-y-2">
+                    {expenseTotalsByCategory.map((item) => (
+                      <div key={item.name} className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
+                        <span className="text-sm font-medium text-foreground">{item.name}</span>
+                        <span className="font-mono text-sm">{fmtMoney(item.total)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-sm" data-testid="card-receivables-detail">
+              <CardHeader>
+                <CardTitle>{t("dashboard.receivablesdetail")}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {receivableTrips.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t("dashboard.noreceivables")}</p>
+                ) : (
+                  <div className="space-y-2">
+                    {receivableTrips.map((trip) => (
+                      <div key={trip.id} className="flex flex-col gap-1 rounded-lg border border-border px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{trip.plateNumber}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(trip.transDate), "dd MMM yyyy")} • {trip.paymentStatus}
+                          </p>
+                        </div>
+                        <div className="text-left sm:text-right">
+                          <p className="text-xs text-muted-foreground">{t("dashboard.outstandingamount")}</p>
+                          <p className="font-mono text-sm">{fmtMoney(trip.outstanding)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </>
       )}
     </div>
