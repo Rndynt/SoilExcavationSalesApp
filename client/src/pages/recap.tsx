@@ -172,10 +172,46 @@ export default function RecapPage() {
       </div>
     </div>
   );
-  const locationName = locationId === "all" ? "" : locations.find(l => l.id.toString() === locationId)?.name;
+  const locationName = locationId === "all" ? "Semua Lokasi" : locations.find(l => l.id.toString() === locationId)?.name;
+  const filteredExpenses = detailExpenses.filter((exp: any) => {
+    const cat = (exp.categoryName || exp.category || "").toUpperCase();
+    const note = (exp.note || "").toLowerCase();
+    return cat !== "DISCOUNT" && !note.includes("auto discount");
+  });
+  const hasExpenseDetails = filteredExpenses.length > 0;
+  const expenseTotalsByCategory = new Map<
+    string,
+    { name: string; total: number; type: string | null }
+  >();
+  filteredExpenses.forEach((exp: any) => {
+    const key = exp.categoryId || exp.categoryName || exp.category;
+    if (!key) return;
+    const existing = expenseTotalsByCategory.get(key) ?? {
+      name: exp.categoryName || exp.category,
+      total: 0,
+      type: exp.categoryType ?? null
+    };
+    expenseTotalsByCategory.set(key, {
+      ...existing,
+      total: existing.total + (exp.amount || 0),
+      type: exp.categoryType ?? existing.type ?? null
+    });
+  });
+  const expenseTotals = Array.from(expenseTotalsByCategory.values());
+  const totalOperationalAmount = hasExpenseDetails
+    ? filteredExpenses.reduce((sum: number, exp: any) => {
+        return exp.categoryType === "OPERATIONAL" ? sum + (exp.amount || 0) : sum;
+      }, 0)
+    : expenses.totalOperational;
+  const totalExpenseAmount = hasExpenseDetails
+    ? filteredExpenses.reduce((sum: number, exp: any) => sum + (exp.amount || 0), 0)
+    : expenses.totalExpenses;
+  const nonOperationalTotals = hasExpenseDetails
+    ? expenseTotals.filter((entry) => entry.type !== "OPERATIONAL")
+    : (expenses.byCategory ?? []).filter((c: any) => c.categoryType !== "OPERATIONAL" && c.categoryType !== "DISCOUNT");
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between bg-card p-4 rounded-lg border shadow-sm sticky top-0 z-10">
         <div className="flex flex-wrap gap-2 items-center">
           <Select value={period} onValueChange={handlePeriodChange}>
@@ -245,12 +281,14 @@ export default function RecapPage() {
         </Button>
       </div>
 
-      <Card id="recap-content" className="bg-white text-black p-8 max-w-4xl mx-auto shadow-lg print:shadow-none">
+      <Card id="recap-content" className="bg-white text-black p-6 md:p-8 w-full shadow-lg print:shadow-none">
         <div style={{ textAlign: "center", marginBottom: "20px" }}>
-          <h1 style={{ margin: 0, fontSize: "20px", fontWeight: "bold", textTransform: "uppercase" }}>LOGITRACK REKAPITULASI</h1>
+          <h1 style={{ margin: 0, fontSize: "20px", fontWeight: "bold", textTransform: "uppercase" }}>REKAPITULASI</h1>
+          <div style={{ fontSize: "12px", color: "#666", marginTop: "6px" }}>
+            Lokasi: {locationName || "-"}
+          </div>
           <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>
             Periode: {format(dateRange.from, "dd MMM yyyy")} - {format(dateRange.to, "dd MMM yyyy")}
-            {locationName && ` | Lokasi: ${locationName}`}
           </div>
         </div>
 
@@ -260,7 +298,8 @@ export default function RecapPage() {
             <div className="font-bold text-sm mb-2 pb-1 border-b border-black uppercase">
               PENJUALAN ({trips.length} trip)
             </div>
-            <table className="w-full text-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs min-w-[320px]">
               <thead>
                 <tr className="bg-gray-100">
                   <th className="p-2 border-b text-left">Nopol</th>
@@ -283,11 +322,16 @@ export default function RecapPage() {
                       <React.Fragment key={date}>
                         <tr className="bg-gray-50/50">
                           <td colSpan={3} className="p-2 font-bold border-b">
-                            <div className="flex justify-between items-center text-emerald-700">
+                            <div className="flex flex-wrap justify-between items-center gap-2 text-emerald-700">
                               <span>{date}</span>
-                              <span className="font-mono text-[10px] bg-emerald-100 px-2 py-0.5 rounded">
-                                Total: {fmtMoney(dailyTotal)}
-                              </span>
+                              <div className="flex items-center gap-2 text-[10px]">
+                                <span className="font-mono bg-emerald-100 px-2 py-0.5 rounded">
+                                  Trip: {items.length}
+                                </span>
+                                <span className="font-mono bg-emerald-100 px-2 py-0.5 rounded">
+                                  Total: {fmtMoney(dailyTotal)}
+                                </span>
+                              </div>
                             </div>
                           </td>
                         </tr>
@@ -315,16 +359,18 @@ export default function RecapPage() {
                   <td className="p-2 border-t-2 border-black"></td>
                 </tr>
               </tbody>
-            </table>
+              </table>
+            </div>
           </div>
 
           {/* Expenses Section */}
-          {detailExpenses.length > 0 && (
+          {filteredExpenses.length > 0 && (
             <div>
               <div className="font-bold text-sm mb-2 pb-1 border-b border-black uppercase">
-                PENGELUARAN OPERASIONAL
+                PENGELUARAN
               </div>
-              <table className="w-full text-xs">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs min-w-[320px]">
                 <thead>
                   <tr className="bg-gray-100">
                     <th className="p-2 border-b text-left">Kategori</th>
@@ -334,12 +380,6 @@ export default function RecapPage() {
                 </thead>
                 <tbody>
                   {(() => {
-                    const filteredExpenses = detailExpenses.filter((exp: any) => {
-                      const cat = (exp.categoryName || exp.category || "").toUpperCase();
-                      const note = (exp.note || "").toLowerCase();
-                      return cat !== 'DISCOUNT' && !note.includes('auto discount');
-                    });
-
                     const groupedExpenses: { [key: string]: any[] } = {};
                     filteredExpenses.forEach((exp: any) => {
                       const date = format(new Date(exp.expenseDate), "dd/MM/yyyy");
@@ -373,12 +413,13 @@ export default function RecapPage() {
                     });
                   })()}
                   <tr className="font-bold bg-gray-50">
-                    <td className="p-2 border-t-2 border-black">TOTAL PENGELUARAN OPERASIONAL</td>
-                    <td className="p-2 text-right font-mono border-t-2 border-black">{fmtMoney(expenses.totalOperational)}</td>
+                    <td className="p-2 border-t-2 border-black">TOTAL PENGELUARAN</td>
+                    <td className="p-2 text-right font-mono border-t-2 border-black">{fmtMoney(totalExpenseAmount)}</td>
                     <td className="p-2 border-t-2 border-black"></td>
                   </tr>
                 </tbody>
-              </table>
+                </table>
+              </div>
             </div>
           )}
 
@@ -406,19 +447,17 @@ export default function RecapPage() {
                   <div className="text-[10px] text-gray-500 uppercase font-bold">Arus Kas Keluar (Expenses)</div>
                   <div className="flex justify-between text-xs text-red-600">
                     <span>Beban Operasional</span>
-                    <span className="font-mono">{fmtMoney(expenses.totalOperational)}</span>
+                    <span className="font-mono">{fmtMoney(totalOperationalAmount)}</span>
                   </div>
-                  {expenses.byCategory?.filter((c: any) => {
-                    return c.categoryType !== 'OPERATIONAL' && c.categoryType !== 'DISCOUNT';
-                  }).map((c: any) => (
-                    <div key={c.categoryId} className="flex justify-between text-[10px] text-gray-500 italic pl-2">
-                      <span>• {c.categoryName}</span>
+                  {nonOperationalTotals.map((c: any) => (
+                    <div key={c.categoryId ?? c.name} className="flex justify-between text-[10px] text-gray-500 italic pl-2">
+                      <span>• {c.categoryName ?? c.name}</span>
                       <span className="font-mono">{fmtMoney(c.total)}</span>
                     </div>
                   ))}
                   <div className="flex justify-between text-xs text-blue-600 border-t border-gray-200 pt-1 font-bold">
                     <span>Total Pengeluaran</span>
-                    <span className="font-mono">{fmtMoney(expenses.totalExpenses)}</span>
+                    <span className="font-mono">{fmtMoney(totalExpenseAmount)}</span>
                   </div>
                 </div>
               </div>
@@ -426,8 +465,8 @@ export default function RecapPage() {
               <div className="pt-4 border-t-2 border-black">
                 <div className="flex justify-between text-lg font-bold">
                   <span>POSISI KAS (Net Cash)</span>
-                  <span className={cn("font-mono", (sales.cashCollected - expenses.totalExpenses) >= 0 ? "text-emerald-700" : "text-red-700")}>
-                    {fmtMoney(sales.cashCollected - expenses.totalExpenses)}
+                  <span className={cn("font-mono", (sales.cashCollected - totalExpenseAmount) >= 0 ? "text-emerald-700" : "text-red-700")}>
+                    {fmtMoney(sales.cashCollected - totalExpenseAmount)}
                   </span>
                 </div>
                 <div className="text-[10px] text-gray-500 italic">
@@ -438,11 +477,11 @@ export default function RecapPage() {
               <div className="pt-4 border-t border-gray-300 grid grid-cols-2 gap-4 text-xs">
                 <div className="bg-white p-2 border rounded">
                   <div className="text-[10px] text-gray-400 uppercase">Margin Laba (Omzet - Ops)</div>
-                  <div className="font-bold">{fmtMoney(sales.netRevenue - expenses.totalOperational)}</div>
+                  <div className="font-bold">{fmtMoney(sales.netRevenue - totalOperationalAmount)}</div>
                 </div>
                 <div className="bg-white p-2 border rounded">
                   <div className="text-[10px] text-gray-400 uppercase">Estimasi Laba Akhir</div>
-                  <div className="font-bold">{fmtMoney(sales.netRevenue - expenses.totalExpenses)}</div>
+                  <div className="font-bold">{fmtMoney(sales.netRevenue - totalExpenseAmount)}</div>
                 </div>
               </div>
             </div>
