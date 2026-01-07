@@ -4,7 +4,7 @@ import { format, startOfDay, endOfDay } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Printer, Calendar as CalendarIcon, Loader2, AlertCircle } from "lucide-react";
+import { Printer, Calendar as CalendarIcon, Loader2, AlertCircle, Download } from "lucide-react";
 import { useTranslate } from "@/hooks/use-translate";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -47,6 +47,7 @@ export default function RecapPage() {
     return { from: preset.start, to: preset.end };
   });
   const [locationId, setLocationId] = useState<string>("all");
+  const [isExporting, setIsExporting] = useState(false);
 
   const { data: locations = [] } = useQuery<any[]>({ queryKey: ["/api/locations"] });
 
@@ -129,6 +130,50 @@ export default function RecapPage() {
     };
     printWindow.addEventListener("load", handlePrintReady, { once: true });
     setTimeout(handlePrintReady, 500);
+  };
+
+  const handleExportPdf = async () => {
+    const printContent = document.getElementById("recap-content");
+    if (!printContent || isExporting) return;
+    setIsExporting(true);
+    try {
+      const [{ jsPDF }, { default: html2canvas }] = await Promise.all([
+        import("jspdf"),
+        import("html2canvas")
+      ]);
+      const canvas = await html2canvas(printContent, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff"
+      });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "pt", "a4");
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let position = 0;
+
+      if (imgHeight <= pageHeight) {
+        pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+      } else {
+        while (position < imgHeight) {
+          pdf.addImage(imgData, "PNG", 0, -position, imgWidth, imgHeight);
+          position += pageHeight;
+          if (position < imgHeight) {
+            pdf.addPage();
+          }
+        }
+      }
+
+      const filename = `rekap-${fromDate}-${toDate}.pdf`;
+      pdf.save(filename);
+    } catch (err) {
+      console.error("Gagal export PDF", err);
+      window.alert("Gagal export PDF. Silakan coba lagi.");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   if (isLoading) return (
@@ -284,10 +329,20 @@ export default function RecapPage() {
           </Select>
         </div>
 
-        <Button onClick={handlePrint}>
-          <Printer className="w-4 h-4 mr-2" />
-          Cetak Rekapan
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={handlePrint}>
+            <Printer className="w-4 h-4 mr-2" />
+            Cetak Rekapan
+          </Button>
+          <Button onClick={handleExportPdf} disabled={isExporting}>
+            {isExporting ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4 mr-2" />
+            )}
+            Export PDF
+          </Button>
+        </div>
       </div>
 
       <Card id="recap-content" className="bg-white text-black p-6 md:p-8 w-full shadow-lg print:shadow-none">
