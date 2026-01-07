@@ -156,41 +156,6 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="grid gap-4 md:grid-cols-3">
-                <Card data-testid="card-net-revenue">
-                  <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">{t('dashboard.netrevenue')}</CardTitle>
-                    <Wallet className="h-4 w-4 text-primary" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold font-mono text-primary" data-testid="text-net-revenue">{fmtMoney(netRevenue)}</div>
-                    <p className="text-xs text-muted-foreground mt-1">{t('dashboard.realizedincome')}</p>
-                  </CardContent>
-                </Card>
-
-                <Card data-testid="card-cash-collected">
-                  <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">{t('dashboard.cashcollected')}</CardTitle>
-                    <CreditCard className="h-4 w-4 text-green-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold font-mono" data-testid="text-cash-collected">{fmtMoney(cashCollected)}</div>
-                    <p className="text-xs text-muted-foreground mt-1">{t('dashboard.actualpayments')}</p>
-                  </CardContent>
-                </Card>
-
-                <Card data-testid="card-receivables">
-                  <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">{t('dashboard.receivables')}</CardTitle>
-                    <Receipt className="h-4 w-4 text-orange-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold font-mono" data-testid="text-receivables">{fmtMoney(receivables)}</div>
-                    <p className="text-xs text-muted-foreground mt-1">{t('dashboard.outstandingamount')}</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-3">
                 <Card data-testid="card-gross-revenue">
                   <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground">{t('dashboard.grossrevenue')}</CardTitle>
@@ -210,6 +175,41 @@ export default function Dashboard() {
                   <CardContent>
                     <div className="text-2xl font-bold font-mono" data-testid="text-discounts">{fmtMoney(totalDiscounts)}</div>
                     <p className="text-xs text-muted-foreground mt-1">{t('dashboard.priceadjustments')}</p>
+                  </CardContent>
+                </Card>
+
+                <Card data-testid="card-net-revenue">
+                  <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">{t('dashboard.netrevenue')}</CardTitle>
+                    <Wallet className="h-4 w-4 text-primary" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold font-mono text-primary" data-testid="text-net-revenue">{fmtMoney(netRevenue)}</div>
+                    <p className="text-xs text-muted-foreground mt-1">{t('dashboard.realizedincome')}</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-3">
+                <Card data-testid="card-cash-collected">
+                  <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">{t('dashboard.cashcollected')}</CardTitle>
+                    <CreditCard className="h-4 w-4 text-green-500" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold font-mono" data-testid="text-cash-collected">{fmtMoney(cashCollected)}</div>
+                    <p className="text-xs text-muted-foreground mt-1">{t('dashboard.actualpayments')}</p>
+                  </CardContent>
+                </Card>
+
+                <Card data-testid="card-receivables">
+                  <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">{t('dashboard.receivables')}</CardTitle>
+                    <Receipt className="h-4 w-4 text-orange-500" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold font-mono" data-testid="text-receivables">{fmtMoney(receivables)}</div>
+                    <p className="text-xs text-muted-foreground mt-1">{t('dashboard.outstandingamount')}</p>
                   </CardContent>
                 </Card>
 
@@ -291,56 +291,6 @@ export default function Dashboard() {
                 </Card>
               </div>
             </div>
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Card className="shadow-sm" data-testid="card-expense-category-detail">
-              <CardHeader>
-                <CardTitle>{t("dashboard.expensecategorydetail")}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {expenseTotalsByCategory.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">{t("dashboard.noexpensecategory")}</p>
-                ) : (
-                  <div className="space-y-2">
-                    {expenseTotalsByCategory.map((item) => (
-                      <div key={item.name} className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
-                        <span className="text-sm font-medium text-foreground">{item.name}</span>
-                        <span className="font-mono text-sm">{fmtMoney(item.total)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-sm" data-testid="card-receivables-detail">
-              <CardHeader>
-                <CardTitle>{t("dashboard.receivablesdetail")}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {receivableTrips.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">{t("dashboard.noreceivables")}</p>
-                ) : (
-                  <div className="space-y-2">
-                    {receivableTrips.map((trip) => (
-                      <div key={trip.id} className="flex flex-col gap-1 rounded-lg border border-border px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{trip.plateNumber}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {format(new Date(trip.transDate), "dd MMM yyyy")} • {trip.paymentStatus}
-                          </p>
-                        </div>
-                        <div className="text-left sm:text-right">
-                          <p className="text-xs text-muted-foreground">{t("dashboard.outstandingamount")}</p>
-                          <p className="font-mono text-sm">{fmtMoney(trip.outstanding)}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
