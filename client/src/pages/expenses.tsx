@@ -85,6 +85,7 @@ export default function Expenses() {
   // Category Form
   const [newCatName, setNewCatName] = useState("");
   const [newCatType, setNewCatType] = useState("OPERATIONAL");
+  const [editingCategory, setEditingCategory] = useState<any>(null);
 
   // API Hooks
   const { data: expenses = [], isLoading: expensesLoading } = useExpenses({ categoryId: filterCat !== 'all' ? filterCat : undefined });
@@ -95,6 +96,8 @@ export default function Expenses() {
   const updateExpense = useUpdateExpense();
   const deleteExpense = useDeleteExpense();
   const createCategory = useCreateExpenseCategory();
+  const updateCategory = useUpdateExpenseCategory();
+  const deleteCategory = useDeleteExpenseCategory();
 
   const isLoading = expensesLoading || categoriesLoading;
 
@@ -191,16 +194,42 @@ export default function Expenses() {
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createCategory.mutateAsync({
-        name: newCatName,
-        type: newCatType as "OPERATIONAL" | "PAYABLE" | "LOAN",
-        isActive: true,
-      });
+      if (editingCategory) {
+        await updateCategory.mutateAsync({
+          id: editingCategory.id,
+          name: newCatName,
+          type: newCatType as "OPERATIONAL" | "PAYABLE" | "LOAN",
+        });
+        toast({ title: "Category Updated" });
+      } else {
+        await createCategory.mutateAsync({
+          name: newCatName,
+          type: newCatType as "OPERATIONAL" | "PAYABLE" | "LOAN",
+          isActive: true,
+        });
+        toast({ title: "Category Added" });
+      }
       setIsAddCatOpen(false);
+      setEditingCategory(null);
       setNewCatName("");
-      toast({ title: "Category Added" });
     } catch (error) {
-      toast({ title: "Failed to add category", variant: "destructive" });
+      toast({ title: "Failed to save category", variant: "destructive" });
+    }
+  };
+
+  const openEditCategory = (category: any) => {
+    setEditingCategory(category);
+    setNewCatName(category.name);
+    setNewCatType(category.type);
+    setIsAddCatOpen(true);
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    try {
+      await deleteCategory.mutateAsync(id);
+      toast({ title: "Category Deleted" });
+    } catch (error) {
+      toast({ title: "Failed to delete category", variant: "destructive" });
     }
   };
 
@@ -331,10 +360,13 @@ export default function Expenses() {
         </CardContent>
       </Card>
 
-      <Dialog open={isAddCatOpen} onOpenChange={setIsAddCatOpen}>
+      <Dialog open={isAddCatOpen} onOpenChange={(open) => {
+        setIsAddCatOpen(open);
+        if (!open) setEditingCategory(null);
+      }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t('expenses.addnewcategory')}</DialogTitle>
+            <DialogTitle>{editingCategory ? "Edit Kategori" : t('expenses.addnewcategory')}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleAddCategory} className="space-y-4 pt-4">
             <div className="space-y-2">
@@ -359,15 +391,43 @@ export default function Expenses() {
                 </SelectContent>
               </Select>
             </div>
-            <Button 
-              type="submit" 
-              className="w-full bg-primary"
-              disabled={createCategory.isPending}
-              data-testid="button-submit-category"
-            >
-              {createCategory.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {t('expenses.save')}
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                type="submit" 
+                className="flex-1"
+                disabled={createCategory.isPending || updateCategory.isPending}
+                data-testid="button-submit-category"
+              >
+                {(createCategory.isPending || updateCategory.isPending) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                {t('expenses.save')}
+              </Button>
+              {editingCategory && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button type="button" variant="destructive" data-testid="button-delete-category">
+                      Hapus
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Hapus Kategori?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Kategori ini akan dihapus permanen. Pastikan tidak ada pengeluaran yang menggunakan kategori ini.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Batal</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={() => handleDeleteCategory(editingCategory.id)}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Hapus
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
           </form>
         </DialogContent>
       </Dialog>
@@ -463,7 +523,23 @@ export default function Expenses() {
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
               {categories.map(c => (
-                 <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                 <div key={c.id} className="flex items-center justify-between px-2 py-1 hover:bg-muted cursor-default group">
+                   <SelectItem value={c.id} className="flex-1">{c.name}</SelectItem>
+                   {!c.isSystem && (
+                     <Button 
+                       variant="ghost" 
+                       size="icon" 
+                       className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                       onClick={(e) => {
+                         e.preventDefault();
+                         e.stopPropagation();
+                         openEditCategory(c);
+                       }}
+                     >
+                       <Edit2 className="h-3 w-3" />
+                     </Button>
+                   )}
+                 </div>
               ))}
             </SelectContent>
           </Select>
