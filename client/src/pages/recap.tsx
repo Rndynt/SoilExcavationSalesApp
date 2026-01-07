@@ -198,6 +198,17 @@ export default function RecapPage() {
     });
   });
   const expenseTotals = Array.from(expenseTotalsByCategory.values());
+  const expenseBreakdown = hasExpenseDetails
+    ? expenseTotals.filter((entry) => !(entry.name || "").toLowerCase().includes("discount"))
+    : (expenses.byCategory ?? [])
+        .filter((entry: any) => (entry.categoryType ?? "").toUpperCase() !== "DISCOUNT")
+        .map((entry: any) => ({
+          name: entry.categoryName,
+          total: entry.total,
+          type: entry.categoryType ?? null
+        }));
+  const operationalBreakdown = expenseBreakdown.filter((entry: any) => entry.type === "OPERATIONAL");
+  const nonOperationalBreakdown = expenseBreakdown.filter((entry: any) => entry.type !== "OPERATIONAL");
   const totalOperationalAmount = hasExpenseDetails
     ? filteredExpenses.reduce((sum: number, exp: any) => {
         return exp.categoryType === "OPERATIONAL" ? sum + (exp.amount || 0) : sum;
@@ -206,9 +217,7 @@ export default function RecapPage() {
   const totalExpenseAmount = hasExpenseDetails
     ? filteredExpenses.reduce((sum: number, exp: any) => sum + (exp.amount || 0), 0)
     : expenses.totalExpenses;
-  const nonOperationalTotals = hasExpenseDetails
-    ? expenseTotals.filter((entry) => entry.type !== "OPERATIONAL")
-    : (expenses.byCategory ?? []).filter((c: any) => c.categoryType !== "OPERATIONAL" && c.categoryType !== "DISCOUNT");
+  const nonOperationalTotals = nonOperationalBreakdown;
 
   return (
     <div className="space-y-6">
@@ -449,8 +458,14 @@ export default function RecapPage() {
                     <span>Beban Operasional</span>
                     <span className="font-mono">{fmtMoney(totalOperationalAmount)}</span>
                   </div>
+                  {operationalBreakdown.map((entry: any) => (
+                    <div key={`ops-${entry.name}`} className="flex justify-between text-[10px] text-rose-500 italic pl-2">
+                      <span>• {entry.name}</span>
+                      <span className="font-mono">{fmtMoney(entry.total)}</span>
+                    </div>
+                  ))}
                   {nonOperationalTotals.map((c: any) => (
-                    <div key={c.categoryId ?? c.name} className="flex justify-between text-[10px] text-gray-500 italic pl-2">
+                    <div key={`nonops-${c.name ?? c.categoryName}`} className="flex justify-between text-[10px] text-gray-500 italic pl-2">
                       <span>• {c.categoryName ?? c.name}</span>
                       <span className="font-mono">{fmtMoney(c.total)}</span>
                     </div>
