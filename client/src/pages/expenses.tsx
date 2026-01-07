@@ -523,13 +523,13 @@ export default function Expenses() {
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
               {categories.map(c => (
-                 <div key={c.id} className="flex items-center justify-between px-2 py-1 hover:bg-muted cursor-default group">
+                 <div key={c.id} className="flex items-center justify-between px-2 py-1 hover:bg-muted cursor-default group w-full">
                    <SelectItem value={c.id} className="flex-1">{c.name}</SelectItem>
                    {!c.isSystem && (
                      <Button 
                        variant="ghost" 
                        size="icon" 
-                       className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                       className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity ml-2"
                        onClick={(e) => {
                          e.preventDefault();
                          e.stopPropagation();
