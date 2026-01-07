@@ -1,5 +1,16 @@
 import { useState } from "react";
-import { useExpenses, useExpenseCategories, useCreateExpense, useUpdateExpense, useDeleteExpense, useCreateExpenseCategory, useLocations, useDefaultLocation } from "@/hooks/use-api";
+import {
+  useExpenses,
+  useExpenseCategories,
+  useCreateExpense,
+  useUpdateExpense,
+  useDeleteExpense,
+  useCreateExpenseCategory,
+  useUpdateExpenseCategory,
+  useDeleteExpenseCategory,
+  useLocations,
+  useDefaultLocation,
+} from "@/hooks/use-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
