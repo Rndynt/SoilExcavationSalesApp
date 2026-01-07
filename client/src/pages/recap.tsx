@@ -4,10 +4,12 @@ import { format, startOfDay, endOfDay } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Printer, Calendar as CalendarIcon, Loader2, AlertCircle } from "lucide-react";
+import { Printer, Calendar as CalendarIcon, Loader2, AlertCircle, Download } from "lucide-react";
 import { useTranslate } from "@/hooks/use-translate";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
 // Define preset functions directly instead of importing from non-existent utils member
 const PAGE_TIME_PRESETS = {
@@ -47,6 +49,7 @@ export default function RecapPage() {
     return { from: preset.start, to: preset.end };
   });
   const [locationId, setLocationId] = useState<string>("all");
+  const [isExporting, setIsExporting] = useState(false);
 
   const { data: locations = [] } = useQuery<any[]>({ queryKey: ["/api/locations"] });
 
@@ -129,6 +132,117 @@ export default function RecapPage() {
     };
     printWindow.addEventListener("load", handlePrintReady, { once: true });
     setTimeout(handlePrintReady, 500);
+  };
+
+  const handleExportPdf = () => {
+    if (isExporting || !report) return;
+    setIsExporting(true);
+    try {
+      const pdf = new jsPDF("p", "pt", "a4");
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const marginX = 40;
+      let cursorY = 48;
+
+      const locationLabel = locationName || "-";
+      const periodLabel = `${format(dateRange.from, "dd MMM yyyy")} - ${format(dateRange.to, "dd MMM yyyy")}`;
+
+      pdf.setFontSize(14);
+      pdf.text("REKAPITULASI", pageWidth / 2, cursorY, { align: "center" });
+      cursorY += 18;
+      pdf.setFontSize(10);
+      pdf.text(`Lokasi: ${locationLabel}`, marginX, cursorY);
+      cursorY += 14;
+      pdf.text(`Periode: ${periodLabel}`, marginX, cursorY);
+      cursorY += 18;
+
+      const tripRows = trips
+        .slice()
+        .sort((a: any, b: any) => new Date(a.transDate).getTime() - new Date(b.transDate).getTime())
+        .map((trip: any) => [
+          format(new Date(trip.transDate), "dd/MM/yyyy"),
+          trip.plateNumber,
+          fmtMoney(trip.appliedPrice),
+          trip.paymentStatus === "PAID" ? "Lunas" : "Piutang"
+        ]);
+
+      autoTable(pdf, {
+        startY: cursorY,
+        head: [["Tanggal", "Nopol", "Harga", "Status"]],
+        body: tripRows,
+        theme: "grid",
+        styles: { fontSize: 9, cellPadding: 4 },
+        headStyles: { fillColor: [240, 240, 240], textColor: 20 }
+      });
+
+      const tripTotals = [
+        ["Total Trip", `${trips.length}`],
+        ["Total Penjualan (Net)", fmtMoney(sales.netRevenue)]
+      ];
+      if (sales.totalDiscounts > 0) {
+        tripTotals.splice(1, 0, ["Total Diskon", `- ${fmtMoney(sales.totalDiscounts)}`]);
+      }
+
+      autoTable(pdf, {
+        startY: (pdf as any).lastAutoTable.finalY + 12,
+        body: tripTotals,
+        theme: "plain",
+        styles: { fontSize: 9, cellPadding: 2 },
+        columnStyles: { 0: { fontStyle: "bold" } }
+      });
+
+      let nextY = (pdf as any).lastAutoTable.finalY + 16;
+      if (filteredExpenses.length > 0) {
+        autoTable(pdf, {
+          startY: nextY,
+          head: [["Tanggal", "Kategori", "Jumlah", "Catatan"]],
+          body: filteredExpenses.map((exp: any) => [
+            format(new Date(exp.expenseDate), "dd/MM/yyyy"),
+            exp.categoryName || exp.category,
+            fmtMoney(exp.amount),
+            exp.note || "-"
+          ]),
+          theme: "grid",
+          styles: { fontSize: 8, cellPadding: 4 },
+          headStyles: { fillColor: [240, 240, 240], textColor: 20 }
+        });
+
+        autoTable(pdf, {
+          startY: (pdf as any).lastAutoTable.finalY + 12,
+          body: [["Total Pengeluaran", fmtMoney(totalExpenseAmount)]],
+          theme: "plain",
+          styles: { fontSize: 9, cellPadding: 2 },
+          columnStyles: { 0: { fontStyle: "bold" } }
+        });
+        nextY = (pdf as any).lastAutoTable.finalY + 16;
+      }
+
+      autoTable(pdf, {
+        startY: nextY,
+        head: [["Ringkasan", "Nilai"]],
+        body: [
+          ["Total Omzet (Applied)", fmtMoney(sales.netRevenue)],
+          ["Kas Diterima (Paid)", fmtMoney(sales.cashCollected)],
+          ["Piutang (Unpaid)", fmtMoney(sales.receivables)],
+          ["Beban Operasional", fmtMoney(totalOperationalAmount)],
+          ["Total Pengeluaran", fmtMoney(totalExpenseAmount)],
+          ["Posisi Kas (Net Cash)", fmtMoney(sales.cashCollected - totalExpenseAmount)],
+          ["Margin Laba (Omzet - Ops)", fmtMoney(sales.netRevenue - totalOperationalAmount)],
+          ["Estimasi Laba Akhir", fmtMoney(sales.netRevenue - totalExpenseAmount)]
+        ],
+        theme: "grid",
+        styles: { fontSize: 9, cellPadding: 4 },
+        headStyles: { fillColor: [240, 240, 240], textColor: 20 },
+        columnStyles: { 0: { fontStyle: "bold" } }
+      });
+
+      const filename = `rekap-${fromDate}-${toDate}.pdf`;
+      pdf.save(filename);
+    } catch (err) {
+      console.error("Gagal export PDF", err);
+      window.alert("Gagal export PDF. Silakan coba lagi.");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   if (isLoading) return (
@@ -284,10 +398,20 @@ export default function RecapPage() {
           </Select>
         </div>
 
-        <Button onClick={handlePrint}>
-          <Printer className="w-4 h-4 mr-2" />
-          Cetak Rekapan
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={handlePrint}>
+            <Printer className="w-4 h-4 mr-2" />
+            Cetak Rekapan
+          </Button>
+          <Button onClick={handleExportPdf} disabled={isExporting}>
+            {isExporting ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4 mr-2" />
+            )}
+            Export PDF
+          </Button>
+        </div>
       </div>
 
       <Card id="recap-content" className="bg-white text-black p-6 md:p-8 w-full shadow-lg print:shadow-none">
