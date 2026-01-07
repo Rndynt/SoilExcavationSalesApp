@@ -134,6 +134,50 @@ export default function RecapPage() {
     setTimeout(handlePrintReady, 500);
   };
 
+  const handleExportPdf = async () => {
+    const printContent = document.getElementById("recap-content");
+    if (!printContent || isExporting) return;
+    setIsExporting(true);
+    try {
+      const [{ jsPDF }, { default: html2canvas }] = await Promise.all([
+        import("jspdf"),
+        import("html2canvas")
+      ]);
+      const canvas = await html2canvas(printContent, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff"
+      });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "pt", "a4");
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let position = 0;
+
+      if (imgHeight <= pageHeight) {
+        pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+      } else {
+        while (position < imgHeight) {
+          pdf.addImage(imgData, "PNG", 0, -position, imgWidth, imgHeight);
+          position += pageHeight;
+          if (position < imgHeight) {
+            pdf.addPage();
+          }
+        }
+      }
+
+      const filename = `rekap-${fromDate}-${toDate}.pdf`;
+      pdf.save(filename);
+    } catch (err) {
+      console.error("Gagal export PDF", err);
+      window.alert("Gagal export PDF. Silakan coba lagi.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   if (isLoading) return (
     <div className="flex items-center justify-center min-h-[400px]">
       <div className="flex flex-col items-center gap-4">
