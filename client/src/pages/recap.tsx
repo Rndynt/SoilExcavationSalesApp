@@ -204,11 +204,52 @@ export default function RecapPage() {
     try {
       const recapContent = document.getElementById("recap-content");
       if (!recapContent) throw new Error("Konten rekap tidak ditemukan.");
+      await document.fonts?.ready;
       const rect = recapContent.getBoundingClientRect();
       const contentWidth = Math.ceil(recapContent.scrollWidth || rect.width);
       const contentHeight = Math.ceil(recapContent.scrollHeight || rect.height);
 
-      const renderCanvas = async (scale: number) =>
+      if (!contentWidth || !contentHeight) {
+        throw new Error("Ukuran konten rekap tidak valid.");
+      }
+
+      const cloneForExport = (clonedDoc: Document) => {
+        const el = clonedDoc.getElementById("recap-content");
+        if (!el) return;
+
+        clonedDoc.body.style.margin = "0";
+        clonedDoc.body.style.background = "#ffffff";
+
+        const bodyChildren = Array.from(clonedDoc.body.children);
+        bodyChildren.forEach((child) => {
+          if (child !== el) {
+            (child as HTMLElement).style.display = "none";
+          }
+        });
+
+        const all = el.getElementsByTagName("*");
+        el.style.cssText = "background: #fff !important; color: #000 !important; padding: 20px !important; width: 800px !important;";
+
+        for (let i = 0; i < all.length; i++) {
+          const item = all[i] as HTMLElement;
+          item.style.setProperty("color", "#000", "important");
+          item.style.setProperty("background", "transparent", "important");
+          item.style.setProperty("box-shadow", "none", "important");
+          item.style.setProperty("filter", "none", "important");
+          item.style.setProperty("backdrop-filter", "none", "important");
+          item.style.setProperty("transform", "none", "important");
+
+          if (["TABLE", "TH", "TD", "TR"].includes(item.tagName)) {
+            item.style.setProperty("border", "1px solid #000", "important");
+          }
+
+          if (item.tagName === "IMG") {
+            (item as HTMLImageElement).crossOrigin = "anonymous";
+          }
+        }
+      };
+
+      const renderSlice = async (scale: number, yOffset: number, height: number) =>
         html2canvas(recapContent, {
           backgroundColor: "#ffffff",
           scale,
@@ -216,104 +257,62 @@ export default function RecapPage() {
           allowTaint: false,
           logging: false,
           imageTimeout: 30000,
+          width: contentWidth,
+          height,
+          x: 0,
+          y: yOffset,
           windowWidth: contentWidth,
-          windowHeight: contentHeight,
+          windowHeight: Math.max(contentHeight, height),
+          scrollX: -window.scrollX,
           scrollY: -window.scrollY,
-          onclone: (clonedDoc) => {
-            const el = clonedDoc.getElementById("recap-content");
-            if (!el) return;
-
-            clonedDoc.body.style.margin = "0";
-            clonedDoc.body.style.background = "#ffffff";
-
-            const bodyChildren = Array.from(clonedDoc.body.children);
-            bodyChildren.forEach((child) => {
-              if (child !== el) {
-                (child as HTMLElement).style.display = "none";
-              }
-            });
-
-            // Strip ALL styles that might break the renderer
-            const all = el.getElementsByTagName("*");
-            el.style.cssText = "background: #fff !important; color: #000 !important; padding: 20px !important; width: 800px !important;";
-
-            for (let i = 0; i < all.length; i++) {
-              const item = all[i] as HTMLElement;
-              item.style.setProperty("color", "#000", "important");
-              item.style.setProperty("background", "transparent", "important");
-              item.style.setProperty("box-shadow", "none", "important");
-              item.style.setProperty("filter", "none", "important");
-              item.style.setProperty("backdrop-filter", "none", "important");
-              item.style.setProperty("transform", "none", "important");
-
-              if (["TABLE", "TH", "TD", "TR"].includes(item.tagName)) {
-                item.style.setProperty("border", "1px solid #000", "important");
-              }
-
-              if (item.tagName === "IMG") {
-                (item as HTMLImageElement).crossOrigin = "anonymous";
-              }
-            }
-          }
+          onclone: cloneForExport
         });
 
-      let canvas: HTMLCanvasElement | null = null;
+      const buildPdf = async (scale: number) => {
+        const pdf = new jsPDF("p", "mm", "a4");
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const margin = 10;
+        const pagePadding = 6;
+        const printableWidth = pageWidth - margin * 2;
+        const printableHeight = pageHeight - margin * 2 - pagePadding * 2;
+        const contentY = margin + pagePadding;
+        const pageHeightPx = (printableHeight * contentWidth) / printableWidth;
+
+        let renderedHeight = 0;
+        let pageIndex = 0;
+
+        while (renderedHeight < contentHeight) {
+          const sliceHeight = Math.min(pageHeightPx, contentHeight - renderedHeight);
+          const canvas = await renderSlice(scale, renderedHeight, sliceHeight);
+
+          if (!canvas.width || !canvas.height) {
+            throw new Error("Konten rekap kosong atau tidak dapat dirender.");
+          }
+
+          const imgData = canvas.toDataURL("image/png");
+          const mmPerPx = printableWidth / canvas.width;
+          const imgHeight = canvas.height * mmPerPx;
+
+          if (pageIndex > 0) {
+            pdf.addPage();
+          }
+          pdf.addImage(imgData, "PNG", margin, contentY, printableWidth, imgHeight);
+
+          renderedHeight += sliceHeight;
+          pageIndex += 1;
+        }
+
+        return pdf;
+      };
+
+      let pdf: jsPDF;
       try {
         const scale = Math.min(2, window.devicePixelRatio || 1);
-        canvas = await renderCanvas(scale);
+        pdf = await buildPdf(scale);
       } catch (error) {
         console.warn("Export gagal pada render pertama, mencoba ulang dengan skala lebih kecil.", error);
-        canvas = await renderCanvas(1);
-      }
-
-      if (!canvas.width || !canvas.height) {
-        throw new Error("Konten rekap kosong atau tidak dapat dirender.");
-      }
-
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 10;
-      const pagePadding = 6;
-      const printableWidth = pageWidth - margin * 2;
-      const printableHeight = pageHeight - margin * 2 - pagePadding * 2;
-      const contentY = margin + pagePadding;
-      const mmPerPx = printableWidth / canvas.width;
-      const pageHeightPx = printableHeight / mmPerPx;
-
-      let renderedHeight = 0;
-      let pageIndex = 0;
-      while (renderedHeight < canvas.height) {
-        const sliceHeight = Math.min(pageHeightPx, canvas.height - renderedHeight);
-        const sliceCanvas = document.createElement("canvas");
-        sliceCanvas.width = canvas.width;
-        sliceCanvas.height = sliceHeight;
-
-        const sliceCtx = sliceCanvas.getContext("2d");
-        if (!sliceCtx) throw new Error("Gagal menyiapkan kanvas sementara.");
-
-        sliceCtx.drawImage(
-          canvas,
-          0,
-          renderedHeight,
-          canvas.width,
-          sliceHeight,
-          0,
-          0,
-          canvas.width,
-          sliceHeight
-        );
-
-        const imgData = sliceCanvas.toDataURL("image/png");
-        const imgHeight = sliceHeight * mmPerPx;
-
-        if (pageIndex > 0) {
-          pdf.addPage();
-        }
-        pdf.addImage(imgData, "PNG", margin, contentY, printableWidth, imgHeight);
-
-        renderedHeight += sliceHeight;
-        pageIndex += 1;
+        pdf = await buildPdf(1);
       }
 
       pdf.save(`rekap-${fromDate}-${toDate}.pdf`);
