@@ -246,73 +246,81 @@ export default function RecapPage() {
         throw new Error("Konten rekap tidak ditemukan.");
       }
 
-      // 1. Audit and replace modern CSS color functions that cause PDF engine failures
-      const walkAndFixColors = (node: HTMLElement) => {
-        const computed = window.getComputedStyle(node);
-        const properties = ['color', 'backgroundColor', 'borderColor', 'outlineColor'];
-        
-        properties.forEach(prop => {
-          const value = (computed as any)[prop];
-          if (value && (value.includes('oklch') || value.includes('hsl(') || value.includes('var(--'))) {
-            // Force resolve to RGB which is universally supported by canvas/pdf
-            node.style[prop as any] = value;
-          }
-        });
-
-        Array.from(node.children).forEach(child => walkAndFixColors(child as HTMLElement));
-      };
-
-      // 1b. Force styles for export (remove shadow, ensure white background)
+      // 1. Force a clean, legacy-compatible style for the entire export container
       const originalStyle = recapContent.style.cssText;
       recapContent.style.boxShadow = "none";
       recapContent.style.backgroundColor = "#ffffff";
       recapContent.style.color = "#000000";
-      
-      // Deep fix colors before cloning
-      walkAndFixColors(recapContent);
+      recapContent.style.border = "none";
 
-      // 2. Wait for fonts and images
+      // 2. Recursive function to strip problematic CSS functions and variables
+      // Modern browsers sometimes return oklch or canvas colors even when requested otherwise
+      const forceLegacyStyles = (el: HTMLElement) => {
+        const computed = window.getComputedStyle(el);
+        
+        // Convert any non-standard color to something safe
+        const fixColor = (val: string) => {
+          if (!val) return val;
+          if (val.includes('oklch') || val.includes('canvas') || val.includes('var(')) {
+             return 'rgb(0,0,0)'; // Default to black for text
+          }
+          return val;
+        };
+
+        const fixBg = (val: string) => {
+          if (!val) return val;
+          if (val.includes('oklch') || val.includes('canvas') || val.includes('var(')) {
+             return 'rgb(255,255,255)'; // Default to white for bg
+          }
+          return val;
+        };
+
+        el.style.setProperty('color', fixColor(computed.color), 'important');
+        el.style.setProperty('background-color', fixBg(computed.backgroundColor), 'important');
+        el.style.setProperty('border-color', '#dddddd', 'important');
+        el.style.setProperty('box-shadow', 'none', 'important');
+        el.style.setProperty('filter', 'none', 'important');
+        el.style.setProperty('backdrop-filter', 'none', 'important');
+
+        Array.from(el.children).forEach(child => forceLegacyStyles(child as HTMLElement));
+      };
+
+      // 3. Prepare for export
       await document.fonts?.ready;
-      const images = Array.from(recapContent.getElementsByTagName("img"));
-      await Promise.all(images.map(img => {
-        if (img.complete) return Promise.resolve();
-        return new Promise((resolve) => {
-          img.onload = resolve;
-          img.onerror = resolve;
-        });
-      }));
-
-      // 3. Optimized canvas settings with legacy color support
+      
+      // 4. Capture with extremely conservative settings
       const canvas = await html2canvas(recapContent, {
         backgroundColor: "#ffffff",
-        scale: 1.5,
+        scale: 1.2, // Lower scale for maximum stability
         useCORS: true,
         allowTaint: true,
         logging: false,
-        imageTimeout: 15000,
+        imageTimeout: 20000,
+        removeContainer: true,
+        ignoreElements: (el) => el.hasAttribute('data-replit-metadata'),
         onclone: (clonedDoc) => {
           const clonedElement = clonedDoc.getElementById("recap-content");
           if (clonedElement) {
-            clonedElement.style.padding = "20px";
-            clonedElement.style.width = "800px";
-            clonedElement.style.boxShadow = "none";
+            clonedElement.style.padding = "40px";
+            clonedElement.style.width = "1000px"; // Wider for better table spacing
+            clonedElement.style.margin = "0 auto";
+            forceLegacyStyles(clonedElement);
             
-            // Final recursive fix in the clone to ensure no modern color functions remain
-            const fixClone = (el: HTMLElement) => {
-              const style = window.getComputedStyle(el);
-              if (style.color.includes('oklch')) el.style.color = 'black';
-              if (style.backgroundColor.includes('oklch')) el.style.backgroundColor = 'white';
-              Array.from(el.children).forEach(c => fixClone(c as HTMLElement));
-            };
-            fixClone(clonedElement);
+            // Explicitly fix table borders which often cause issues
+            clonedDoc.querySelectorAll('table, th, td, tr').forEach((el: any) => {
+              el.style.borderColor = '#000000';
+              el.style.borderStyle = 'solid';
+              el.style.color = '#000000';
+              el.style.backgroundColor = 'transparent';
+            });
           }
         }
       });
 
-      // 4. Reset original style
+      // 5. Restore original appearance
       recapContent.style.cssText = originalStyle;
 
-      // 5. PDF generation with jspdf
+      // 6. Generate PDF in mm (A4 standard)
       const pdf = new jsPDF("p", "mm", "a4");
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
@@ -323,23 +331,24 @@ export default function RecapPage() {
       let heightLeft = imgHeight;
       let position = margin;
 
-      const imgData = canvas.toDataURL("image/jpeg", 0.9);
+      // Use JPEG to avoid alpha channel / color space issues common in older PDF engines
+      const imgData = canvas.toDataURL("image/jpeg", 0.7); 
 
-      pdf.addImage(imgData, "JPEG", margin, position, imgWidth, imgHeight);
+      pdf.addImage(imgData, "JPEG", margin, position, imgWidth, imgHeight, undefined, 'FAST');
       heightLeft -= (pageHeight - margin * 2);
 
       while (heightLeft > 0) {
         pdf.addPage();
         position = margin - (imgHeight - heightLeft);
-        pdf.addImage(imgData, "JPEG", margin, position, imgWidth, imgHeight);
+        pdf.addImage(imgData, "JPEG", margin, position, imgWidth, imgHeight, undefined, 'FAST');
         heightLeft -= (pageHeight - margin * 2);
       }
 
-      const filename = `rekap-${fromDate}-${toDate}.pdf`;
-      pdf.save(filename);
+      pdf.save(`rekap-${fromDate}-${toDate}.pdf`);
     } catch (err) {
-      console.error("Gagal export PDF", err);
-      window.alert("Gagal export PDF: " + (err instanceof Error ? err.message : "Terjadi kesalahan sistem"));
+      console.error("PDF Export Failure:", err);
+      const msg = err instanceof Error ? err.message : "Kesalahan tidak dikenal";
+      window.alert(`Gagal Export: ${msg}\n\nCobalah untuk melakukan refresh halaman.`);
     } finally {
       setIsExporting(false);
     }
