@@ -246,11 +246,30 @@ export default function RecapPage() {
         throw new Error("Konten rekap tidak ditemukan.");
       }
 
-      // 1. Force styles for export
+      // 1. Audit and replace modern CSS color functions that cause PDF engine failures
+      const walkAndFixColors = (node: HTMLElement) => {
+        const computed = window.getComputedStyle(node);
+        const properties = ['color', 'backgroundColor', 'borderColor', 'outlineColor'];
+        
+        properties.forEach(prop => {
+          const value = (computed as any)[prop];
+          if (value && (value.includes('oklch') || value.includes('hsl(') || value.includes('var(--'))) {
+            // Force resolve to RGB which is universally supported by canvas/pdf
+            node.style[prop as any] = value;
+          }
+        });
+
+        Array.from(node.children).forEach(child => walkAndFixColors(child as HTMLElement));
+      };
+
+      // 1b. Force styles for export (remove shadow, ensure white background)
       const originalStyle = recapContent.style.cssText;
       recapContent.style.boxShadow = "none";
       recapContent.style.backgroundColor = "#ffffff";
       recapContent.style.color = "#000000";
+      
+      // Deep fix colors before cloning
+      walkAndFixColors(recapContent);
 
       // 2. Wait for fonts and images
       await document.fonts?.ready;
@@ -263,18 +282,29 @@ export default function RecapPage() {
         });
       }));
 
-      // 3. Optimized canvas settings
+      // 3. Optimized canvas settings with legacy color support
       const canvas = await html2canvas(recapContent, {
         backgroundColor: "#ffffff",
         scale: 1.5,
         useCORS: true,
         allowTaint: true,
         logging: false,
+        imageTimeout: 15000,
         onclone: (clonedDoc) => {
           const clonedElement = clonedDoc.getElementById("recap-content");
           if (clonedElement) {
             clonedElement.style.padding = "20px";
             clonedElement.style.width = "800px";
+            clonedElement.style.boxShadow = "none";
+            
+            // Final recursive fix in the clone to ensure no modern color functions remain
+            const fixClone = (el: HTMLElement) => {
+              const style = window.getComputedStyle(el);
+              if (style.color.includes('oklch')) el.style.color = 'black';
+              if (style.backgroundColor.includes('oklch')) el.style.backgroundColor = 'white';
+              Array.from(el.children).forEach(c => fixClone(c as HTMLElement));
+            };
+            fixClone(clonedElement);
           }
         }
       });
@@ -293,7 +323,7 @@ export default function RecapPage() {
       let heightLeft = imgHeight;
       let position = margin;
 
-      const imgData = canvas.toDataURL("image/jpeg", 0.85);
+      const imgData = canvas.toDataURL("image/jpeg", 0.9);
 
       pdf.addImage(imgData, "JPEG", margin, position, imgWidth, imgHeight);
       heightLeft -= (pageHeight - margin * 2);
