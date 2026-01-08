@@ -8,6 +8,7 @@ import { Printer, Calendar as CalendarIcon, Loader2, AlertCircle, Download } fro
 import { useTranslate } from "@/hooks/use-translate";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 
 // Define preset functions directly instead of importing from non-existent utils member
@@ -245,23 +246,37 @@ export default function RecapPage() {
         throw new Error("Konten rekap tidak ditemukan.");
       }
 
-      const pdf = new jsPDF("p", "pt", "a4");
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const marginX = 24;
-      const contentWidth = recapContent.scrollWidth || recapContent.clientWidth || pageWidth;
-      const scale = Math.min(1, (pageWidth - marginX * 2) / contentWidth);
-      const filename = `rekap-${fromDate}-${toDate}.pdf`;
-
-      await pdf.html(recapContent, {
-        x: marginX,
-        y: 24,
-        windowWidth: contentWidth,
-        html2canvas: {
-          backgroundColor: "#ffffff",
-          scale
-        }
+      const canvas = await html2canvas(recapContent, {
+        backgroundColor: "#ffffff",
+        scale: 2,
+        useCORS: true
       });
 
+      const pdf = new jsPDF("p", "pt", "a4");
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const marginX = 24;
+      const marginY = 24;
+      const usableWidth = pageWidth - marginX * 2;
+      const usableHeight = pageHeight - marginY * 2;
+      const imgWidth = usableWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const imgData = canvas.toDataURL("image/png");
+
+      let heightLeft = imgHeight;
+      let position = marginY;
+
+      pdf.addImage(imgData, "PNG", marginX, position, imgWidth, imgHeight);
+      heightLeft -= usableHeight;
+
+      while (heightLeft > 0) {
+        pdf.addPage();
+        position = marginY - (imgHeight - heightLeft);
+        pdf.addImage(imgData, "PNG", marginX, position, imgWidth, imgHeight);
+        heightLeft -= usableHeight;
+      }
+
+      const filename = `rekap-${fromDate}-${toDate}.pdf`;
       pdf.save(filename);
     } catch (err) {
       console.error("Gagal export PDF", err);
