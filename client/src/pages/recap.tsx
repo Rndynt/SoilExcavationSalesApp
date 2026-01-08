@@ -242,113 +242,50 @@ export default function RecapPage() {
     setIsExporting(true);
     try {
       const recapContent = document.getElementById("recap-content");
-      if (!recapContent) {
-        throw new Error("Konten rekap tidak ditemukan.");
-      }
+      if (!recapContent) throw new Error("Konten rekap tidak ditemukan.");
 
-      // 1. Force a clean, legacy-compatible style for the entire export container
-      const originalStyle = recapContent.style.cssText;
-      recapContent.style.boxShadow = "none";
-      recapContent.style.backgroundColor = "#ffffff";
-      recapContent.style.color = "#000000";
-      recapContent.style.border = "none";
-
-      // 2. Recursive function to strip problematic CSS functions and variables
-      // Modern browsers sometimes return oklch or canvas colors even when requested otherwise
-      const forceLegacyStyles = (el: HTMLElement) => {
-        const computed = window.getComputedStyle(el);
-        
-        // Convert any non-standard color to something safe
-        const fixColor = (val: string) => {
-          if (!val) return val;
-          if (val.includes('oklch') || val.includes('canvas') || val.includes('var(')) {
-             return 'rgb(0,0,0)'; // Default to black for text
-          }
-          return val;
-        };
-
-        const fixBg = (val: string) => {
-          if (!val) return val;
-          if (val.includes('oklch') || val.includes('canvas') || val.includes('var(')) {
-             return 'rgb(255,255,255)'; // Default to white for bg
-          }
-          return val;
-        };
-
-        el.style.setProperty('color', fixColor(computed.color), 'important');
-        el.style.setProperty('background-color', fixBg(computed.backgroundColor), 'important');
-        el.style.setProperty('border-color', '#dddddd', 'important');
-        el.style.setProperty('box-shadow', 'none', 'important');
-        el.style.setProperty('filter', 'none', 'important');
-        el.style.setProperty('backdrop-filter', 'none', 'important');
-
-        Array.from(el.children).forEach(child => forceLegacyStyles(child as HTMLElement));
-      };
-
-      // 3. Prepare for export
-      await document.fonts?.ready;
-      
-      // 4. Capture with extremely conservative settings
       const canvas = await html2canvas(recapContent, {
         backgroundColor: "#ffffff",
-        scale: 1.2, // Lower scale for maximum stability
+        scale: 1, // Minimum scale for maximum reliability
         useCORS: true,
         allowTaint: true,
         logging: false,
-        imageTimeout: 20000,
-        removeContainer: true,
-        ignoreElements: (el) => el.hasAttribute('data-replit-metadata'),
+        imageTimeout: 30000,
         onclone: (clonedDoc) => {
-          const clonedElement = clonedDoc.getElementById("recap-content");
-          if (clonedElement) {
-            clonedElement.style.padding = "40px";
-            clonedElement.style.width = "1000px"; // Wider for better table spacing
-            clonedElement.style.margin = "0 auto";
-            forceLegacyStyles(clonedElement);
+          const el = clonedDoc.getElementById("recap-content");
+          if (!el) return;
+
+          // Strip ALL styles that might break the renderer
+          const all = el.getElementsByTagName("*");
+          el.style.cssText = "background: #fff !important; color: #000 !important; padding: 20px !important; width: 800px !important;";
+          
+          for (let i = 0; i < all.length; i++) {
+            const item = all[i] as HTMLElement;
+            item.style.setProperty('color', '#000', 'important');
+            item.style.setProperty('background', 'transparent', 'important');
+            item.style.setProperty('box-shadow', 'none', 'important');
+            item.style.setProperty('filter', 'none', 'important');
+            item.style.setProperty('backdrop-filter', 'none', 'important');
+            item.style.setProperty('transform', 'none', 'important');
             
-            // Explicitly fix table borders which often cause issues
-            clonedDoc.querySelectorAll('table, th, td, tr').forEach((el: any) => {
-              el.style.borderColor = '#000000';
-              el.style.borderStyle = 'solid';
-              el.style.color = '#000000';
-              el.style.backgroundColor = 'transparent';
-            });
+            if (['TABLE', 'TH', 'TD', 'TR'].includes(item.tagName)) {
+              item.style.setProperty('border', '1px solid #000', 'important');
+            }
           }
         }
       });
 
-      // 5. Restore original appearance
-      recapContent.style.cssText = originalStyle;
-
-      // 6. Generate PDF in mm (A4 standard)
       const pdf = new jsPDF("p", "mm", "a4");
+      const imgData = canvas.toDataURL("image/png"); // PNG for better transparency handling
       const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 10;
-      const imgWidth = pageWidth - (margin * 2);
+      const imgWidth = pageWidth - 20;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-      let heightLeft = imgHeight;
-      let position = margin;
-
-      // Use JPEG to avoid alpha channel / color space issues common in older PDF engines
-      const imgData = canvas.toDataURL("image/jpeg", 0.7); 
-
-      pdf.addImage(imgData, "JPEG", margin, position, imgWidth, imgHeight, undefined, 'FAST');
-      heightLeft -= (pageHeight - margin * 2);
-
-      while (heightLeft > 0) {
-        pdf.addPage();
-        position = margin - (imgHeight - heightLeft);
-        pdf.addImage(imgData, "JPEG", margin, position, imgWidth, imgHeight, undefined, 'FAST');
-        heightLeft -= (pageHeight - margin * 2);
-      }
-
+      pdf.addImage(imgData, "PNG", 10, 10, imgWidth, imgHeight);
       pdf.save(`rekap-${fromDate}-${toDate}.pdf`);
     } catch (err) {
-      console.error("PDF Export Failure:", err);
-      const msg = err instanceof Error ? err.message : "Kesalahan tidak dikenal";
-      window.alert(`Gagal Export: ${msg}\n\nCobalah untuk melakukan refresh halaman.`);
+      console.error(err);
+      window.alert("Gagal ekspor. Gunakan tombol 'Cetak' lalu pilih 'Simpan sebagai PDF' sebagai alternatif.");
     } finally {
       setIsExporting(false);
     }
