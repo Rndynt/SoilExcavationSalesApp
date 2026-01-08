@@ -152,6 +152,26 @@ export default function RecapPage() {
     </div>
   );
   const locationName = locationId === "all" ? "Semua Lokasi" : locations.find(l => l.id.toString() === locationId)?.name;
+  const paymentTotals = trips.reduce(
+    (acc, trip) => {
+      const paidAmount = trip.paidAmount || 0;
+      const method = (trip.paymentMethod || "OTHER").toUpperCase();
+      if (!paidAmount) return acc;
+      acc.total += paidAmount;
+      if (method === "CASH") acc.cash += paidAmount;
+      else if (method === "TRANSFER") acc.transfer += paidAmount;
+      else if (method === "QRIS") acc.qris += paidAmount;
+      else acc.other += paidAmount;
+      return acc;
+    },
+    { total: 0, cash: 0, transfer: 0, qris: 0, other: 0 }
+  );
+  const paymentBreakdown = [
+    { key: "cash", label: "Tunai", total: paymentTotals.cash },
+    { key: "transfer", label: "Transfer", total: paymentTotals.transfer },
+    { key: "qris", label: "QRIS", total: paymentTotals.qris },
+    { key: "other", label: "Lainnya", total: paymentTotals.other }
+  ].filter((entry) => entry.total > 0);
   const filteredExpenses = detailExpenses.filter((exp: any) => {
     const cat = (exp.categoryName || exp.category || "").toUpperCase();
     const note = (exp.note || "").toLowerCase();
@@ -197,6 +217,9 @@ export default function RecapPage() {
     ? filteredExpenses.reduce((sum: number, exp: any) => sum + (exp.amount || 0), 0)
     : expenses.totalExpenses;
   const nonOperationalTotals = nonOperationalBreakdown;
+  const nonCashTotal = paymentTotals.transfer + paymentTotals.qris + paymentTotals.other;
+  const netCashOnly = paymentTotals.cash - totalExpenseAmount;
+  const netCashAll = paymentTotals.total - totalExpenseAmount;
 
   const handleExportPdf = async () => {
     if (isExporting || !report) return;
@@ -554,9 +577,15 @@ export default function RecapPage() {
                     <span className="font-mono">{fmtMoney(sales.netRevenue)}</span>
                   </div>
                   <div className="flex justify-between text-xs text-emerald-600 font-medium">
-                    <span>Kas Diterima (Paid)</span>
-                    <span className="font-mono">{fmtMoney(sales.cashCollected)}</span>
+                    <span>Kas Diterima (Semua Metode)</span>
+                    <span className="font-mono">{fmtMoney(paymentTotals.total)}</span>
                   </div>
+                  {paymentBreakdown.map((entry) => (
+                    <div key={entry.key} className="flex justify-between text-[10px] text-emerald-700 italic pl-2">
+                      <span>• {entry.label}</span>
+                      <span className="font-mono">{fmtMoney(entry.total)}</span>
+                    </div>
+                  ))}
                   <div className="flex justify-between text-xs text-amber-600 font-medium border-t border-gray-200 pt-1">
                     <span>Piutang (Unpaid)</span>
                     <span className="font-mono">{fmtMoney(sales.receivables)}</span>
@@ -590,13 +619,44 @@ export default function RecapPage() {
 
               <div className="pt-4 border-t-2 border-black">
                 <div className="flex justify-between text-lg font-bold">
-                  <span>POSISI KAS (Net Cash)</span>
-                  <span className={cn("font-mono", (sales.cashCollected - totalExpenseAmount) >= 0 ? "text-emerald-700" : "text-red-700")}>
-                    {fmtMoney(sales.cashCollected - totalExpenseAmount)}
+                  <span>POSISI KAS TUNAI</span>
+                  <span className={cn("font-mono", netCashOnly >= 0 ? "text-emerald-700" : "text-red-700")}>
+                    {fmtMoney(netCashOnly)}
                   </span>
                 </div>
                 <div className="text-[10px] text-gray-500 italic">
-                  * Dihitung dari: Total Kas Diterima - Total Semua Pengeluaran
+                  * Dihitung dari: Kas Tunai - Total Semua Pengeluaran
+                </div>
+                <div className="mt-3 space-y-1 text-[10px] text-gray-600">
+                  <div className="uppercase text-[9px] text-gray-400">Rincian Posisi Kas</div>
+                  {paymentBreakdown.map((entry) => (
+                    <div key={`net-${entry.key}`} className="flex justify-between">
+                      <span>Kas masuk - {entry.label}</span>
+                      <span className="font-mono">{fmtMoney(entry.total)}</span>
+                    </div>
+                  ))}
+                  {nonCashTotal > 0 && (
+                    <div className="flex justify-between">
+                      <span>Total kas non-tunai</span>
+                      <span className="font-mono">{fmtMoney(nonCashTotal)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span>Total kas masuk</span>
+                    <span className="font-mono">{fmtMoney(paymentTotals.total)}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-gray-200 pt-1">
+                    <span>Total Pengeluaran</span>
+                    <span className="font-mono">{fmtMoney(totalExpenseAmount)}</span>
+                  </div>
+                  <div className="flex justify-between font-semibold">
+                    <span>Net Kas Tunai</span>
+                    <span className="font-mono">{fmtMoney(netCashOnly)}</span>
+                  </div>
+                  <div className="flex justify-between font-semibold">
+                    <span>Net Kas Total</span>
+                    <span className="font-mono">{fmtMoney(netCashAll)}</span>
+                  </div>
                 </div>
               </div>
 
