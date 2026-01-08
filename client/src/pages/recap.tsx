@@ -204,52 +204,71 @@ export default function RecapPage() {
     try {
       const recapContent = document.getElementById("recap-content");
       if (!recapContent) throw new Error("Konten rekap tidak ditemukan.");
-      const contentWidth = recapContent.scrollWidth;
-      const contentHeight = recapContent.scrollHeight;
-      const scale = Math.min(2, window.devicePixelRatio || 1);
+      const rect = recapContent.getBoundingClientRect();
+      const contentWidth = Math.ceil(recapContent.scrollWidth || rect.width);
+      const contentHeight = Math.ceil(recapContent.scrollHeight || rect.height);
 
-      const canvas = await html2canvas(recapContent, {
-        backgroundColor: "#ffffff",
-        scale,
-        useCORS: true,
-        allowTaint: false,
-        logging: false,
-        imageTimeout: 30000,
-        windowWidth: contentWidth,
-        windowHeight: contentHeight,
-        scrollY: -window.scrollY,
-        onclone: (clonedDoc) => {
-          const el = clonedDoc.getElementById("recap-content");
-          if (!el) return;
+      const renderCanvas = async (scale: number) =>
+        html2canvas(recapContent, {
+          backgroundColor: "#ffffff",
+          scale,
+          useCORS: true,
+          allowTaint: false,
+          logging: false,
+          imageTimeout: 30000,
+          windowWidth: contentWidth,
+          windowHeight: contentHeight,
+          scrollY: -window.scrollY,
+          onclone: (clonedDoc) => {
+            const el = clonedDoc.getElementById("recap-content");
+            if (!el) return;
 
-          clonedDoc.body.style.margin = "0";
-          clonedDoc.body.style.background = "#ffffff";
-          clonedDoc.body.innerHTML = "";
-          clonedDoc.body.appendChild(el);
+            clonedDoc.body.style.margin = "0";
+            clonedDoc.body.style.background = "#ffffff";
 
-          // Strip ALL styles that might break the renderer
-          const all = el.getElementsByTagName("*");
-          el.style.cssText = "background: #fff !important; color: #000 !important; padding: 20px !important; width: 800px !important;";
-          
-          for (let i = 0; i < all.length; i++) {
-            const item = all[i] as HTMLElement;
-            item.style.setProperty('color', '#000', 'important');
-            item.style.setProperty('background', 'transparent', 'important');
-            item.style.setProperty('box-shadow', 'none', 'important');
-            item.style.setProperty('filter', 'none', 'important');
-            item.style.setProperty('backdrop-filter', 'none', 'important');
-            item.style.setProperty('transform', 'none', 'important');
-            
-            if (['TABLE', 'TH', 'TD', 'TR'].includes(item.tagName)) {
-              item.style.setProperty('border', '1px solid #000', 'important');
-            }
+            const bodyChildren = Array.from(clonedDoc.body.children);
+            bodyChildren.forEach((child) => {
+              if (child !== el) {
+                (child as HTMLElement).style.display = "none";
+              }
+            });
 
-            if (item.tagName === "IMG") {
-              (item as HTMLImageElement).crossOrigin = "anonymous";
+            // Strip ALL styles that might break the renderer
+            const all = el.getElementsByTagName("*");
+            el.style.cssText = "background: #fff !important; color: #000 !important; padding: 20px !important; width: 800px !important;";
+
+            for (let i = 0; i < all.length; i++) {
+              const item = all[i] as HTMLElement;
+              item.style.setProperty("color", "#000", "important");
+              item.style.setProperty("background", "transparent", "important");
+              item.style.setProperty("box-shadow", "none", "important");
+              item.style.setProperty("filter", "none", "important");
+              item.style.setProperty("backdrop-filter", "none", "important");
+              item.style.setProperty("transform", "none", "important");
+
+              if (["TABLE", "TH", "TD", "TR"].includes(item.tagName)) {
+                item.style.setProperty("border", "1px solid #000", "important");
+              }
+
+              if (item.tagName === "IMG") {
+                (item as HTMLImageElement).crossOrigin = "anonymous";
+              }
             }
           }
-        }
-      });
+        });
+
+      let canvas: HTMLCanvasElement | null = null;
+      try {
+        const scale = Math.min(2, window.devicePixelRatio || 1);
+        canvas = await renderCanvas(scale);
+      } catch (error) {
+        console.warn("Export gagal pada render pertama, mencoba ulang dengan skala lebih kecil.", error);
+        canvas = await renderCanvas(1);
+      }
+
+      if (!canvas.width || !canvas.height) {
+        throw new Error("Konten rekap kosong atau tidak dapat dirender.");
+      }
 
       const pdf = new jsPDF("p", "mm", "a4");
       const pageWidth = pdf.internal.pageSize.getWidth();
