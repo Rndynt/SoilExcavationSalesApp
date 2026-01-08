@@ -246,12 +246,7 @@ export default function RecapPage() {
         throw new Error("Konten rekap tidak ditemukan.");
       }
 
-      const canvas = await html2canvas(recapContent, {
-        backgroundColor: "#ffffff",
-        scale: 2,
-        useCORS: true
-      });
-
+      await document.fonts?.ready;
       const pdf = new jsPDF("p", "pt", "a4");
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
@@ -259,21 +254,40 @@ export default function RecapPage() {
       const marginY = 24;
       const usableWidth = pageWidth - marginX * 2;
       const usableHeight = pageHeight - marginY * 2;
-      const imgWidth = usableWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      const imgData = canvas.toDataURL("image/png");
+      const maxCanvasSize = 14000;
+      const contentWidth = recapContent.scrollWidth || recapContent.clientWidth;
+      const contentHeight = recapContent.scrollHeight || recapContent.clientHeight;
+      const pdfScale = usableWidth / contentWidth;
+      const pageHeightPx = usableHeight / pdfScale;
+      const maxDimension = Math.max(contentWidth, pageHeightPx);
+      const deviceScale = Math.min(window.devicePixelRatio || 1, 2);
+      const scale = Math.max(1, Math.min(deviceScale, maxCanvasSize / maxDimension || 1));
+      const totalPages = Math.ceil(contentHeight / pageHeightPx);
 
-      let heightLeft = imgHeight;
-      let position = marginY;
+      for (let pageIndex = 0; pageIndex < totalPages; pageIndex += 1) {
+        const sliceHeight = Math.max(1, Math.min(pageHeightPx, contentHeight - pageIndex * pageHeightPx));
+        const canvas = await html2canvas(recapContent, {
+          backgroundColor: "#ffffff",
+          scale,
+          useCORS: true,
+          width: contentWidth,
+          height: sliceHeight,
+          x: 0,
+          y: pageIndex * pageHeightPx,
+          windowWidth: contentWidth,
+          windowHeight: sliceHeight,
+          scrollX: 0,
+          scrollY: -window.scrollY
+        });
 
-      pdf.addImage(imgData, "PNG", marginX, position, imgWidth, imgHeight);
-      heightLeft -= usableHeight;
+        const imgWidth = usableWidth;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        const imgData = canvas.toDataURL("image/jpeg", 0.92);
 
-      while (heightLeft > 0) {
-        pdf.addPage();
-        position = marginY - (imgHeight - heightLeft);
-        pdf.addImage(imgData, "PNG", marginX, position, imgWidth, imgHeight);
-        heightLeft -= usableHeight;
+        if (pageIndex > 0) {
+          pdf.addPage();
+        }
+        pdf.addImage(imgData, "JPEG", marginX, marginY, imgWidth, imgHeight, undefined, "FAST");
       }
 
       const filename = `rekap-${fromDate}-${toDate}.pdf`;
