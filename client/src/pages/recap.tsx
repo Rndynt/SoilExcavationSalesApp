@@ -217,6 +217,9 @@ export default function RecapPage() {
     ? filteredExpenses.reduce((sum: number, exp: any) => sum + (exp.amount || 0), 0)
     : expenses.totalExpenses;
   const nonOperationalTotals = nonOperationalBreakdown;
+  const nonCashTotal = paymentTotals.transfer + paymentTotals.qris + paymentTotals.other;
+  const netCashOnly = paymentTotals.cash - totalExpenseAmount;
+  const netCashAll = paymentTotals.total - totalExpenseAmount;
 
   const handleExportPdf = async () => {
     if (isExporting || !report) return;
@@ -574,7 +577,7 @@ export default function RecapPage() {
                     <span className="font-mono">{fmtMoney(sales.netRevenue)}</span>
                   </div>
                   <div className="flex justify-between text-xs text-emerald-600 font-medium">
-                    <span>Kas Diterima (Paid)</span>
+                    <span>Kas Diterima (Semua Metode)</span>
                     <span className="font-mono">{fmtMoney(paymentTotals.total)}</span>
                   </div>
                   {paymentBreakdown.map((entry) => (
@@ -616,13 +619,13 @@ export default function RecapPage() {
 
               <div className="pt-4 border-t-2 border-black">
                 <div className="flex justify-between text-lg font-bold">
-                  <span>POSISI KAS (Net Cash)</span>
-                  <span className={cn("font-mono", (paymentTotals.total - totalExpenseAmount) >= 0 ? "text-emerald-700" : "text-red-700")}>
-                    {fmtMoney(paymentTotals.total - totalExpenseAmount)}
+                  <span>POSISI KAS TUNAI</span>
+                  <span className={cn("font-mono", netCashOnly >= 0 ? "text-emerald-700" : "text-red-700")}>
+                    {fmtMoney(netCashOnly)}
                   </span>
                 </div>
                 <div className="text-[10px] text-gray-500 italic">
-                  * Dihitung dari: Total Kas Diterima (semua metode) - Total Semua Pengeluaran
+                  * Dihitung dari: Kas Tunai - Total Semua Pengeluaran
                 </div>
                 <div className="mt-3 space-y-1 text-[10px] text-gray-600">
                   <div className="uppercase text-[9px] text-gray-400">Rincian Posisi Kas</div>
@@ -632,13 +635,27 @@ export default function RecapPage() {
                       <span className="font-mono">{fmtMoney(entry.total)}</span>
                     </div>
                   ))}
+                  {nonCashTotal > 0 && (
+                    <div className="flex justify-between">
+                      <span>Total kas non-tunai</span>
+                      <span className="font-mono">{fmtMoney(nonCashTotal)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span>Total kas masuk</span>
+                    <span className="font-mono">{fmtMoney(paymentTotals.total)}</span>
+                  </div>
                   <div className="flex justify-between border-t border-gray-200 pt-1">
                     <span>Total Pengeluaran</span>
                     <span className="font-mono">{fmtMoney(totalExpenseAmount)}</span>
                   </div>
                   <div className="flex justify-between font-semibold">
-                    <span>Net Cash</span>
-                    <span className="font-mono">{fmtMoney(paymentTotals.total - totalExpenseAmount)}</span>
+                    <span>Net Kas Tunai</span>
+                    <span className="font-mono">{fmtMoney(netCashOnly)}</span>
+                  </div>
+                  <div className="flex justify-between font-semibold">
+                    <span>Net Kas Total</span>
+                    <span className="font-mono">{fmtMoney(netCashAll)}</span>
                   </div>
                 </div>
               </div>
