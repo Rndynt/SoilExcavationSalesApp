@@ -166,6 +166,12 @@ export default function RecapPage() {
     },
     { total: 0, cash: 0, transfer: 0, qris: 0, other: 0 }
   );
+  const paymentBreakdown = [
+    { key: "cash", label: "Tunai", total: paymentTotals.cash },
+    { key: "transfer", label: "Transfer", total: paymentTotals.transfer },
+    { key: "qris", label: "QRIS", total: paymentTotals.qris },
+    { key: "other", label: "Lainnya", total: paymentTotals.other }
+  ].filter((entry) => entry.total > 0);
   const filteredExpenses = detailExpenses.filter((exp: any) => {
     const cat = (exp.categoryName || exp.category || "").toUpperCase();
     const note = (exp.note || "").toLowerCase();
@@ -571,22 +577,12 @@ export default function RecapPage() {
                     <span>Kas Diterima (Paid)</span>
                     <span className="font-mono">{fmtMoney(paymentTotals.total)}</span>
                   </div>
-                  <div className="flex justify-between text-[10px] text-emerald-700 italic pl-2">
-                    <span>• Tunai</span>
-                    <span className="font-mono">{fmtMoney(paymentTotals.cash)}</span>
-                  </div>
-                  <div className="flex justify-between text-[10px] text-emerald-700 italic pl-2">
-                    <span>• Transfer</span>
-                    <span className="font-mono">{fmtMoney(paymentTotals.transfer)}</span>
-                  </div>
-                  <div className="flex justify-between text-[10px] text-emerald-700 italic pl-2">
-                    <span>• QRIS</span>
-                    <span className="font-mono">{fmtMoney(paymentTotals.qris)}</span>
-                  </div>
-                  <div className="flex justify-between text-[10px] text-emerald-700 italic pl-2">
-                    <span>• Lainnya</span>
-                    <span className="font-mono">{fmtMoney(paymentTotals.other)}</span>
-                  </div>
+                  {paymentBreakdown.map((entry) => (
+                    <div key={entry.key} className="flex justify-between text-[10px] text-emerald-700 italic pl-2">
+                      <span>• {entry.label}</span>
+                      <span className="font-mono">{fmtMoney(entry.total)}</span>
+                    </div>
+                  ))}
                   <div className="flex justify-between text-xs text-amber-600 font-medium border-t border-gray-200 pt-1">
                     <span>Piutang (Unpaid)</span>
                     <span className="font-mono">{fmtMoney(sales.receivables)}</span>
@@ -627,6 +623,23 @@ export default function RecapPage() {
                 </div>
                 <div className="text-[10px] text-gray-500 italic">
                   * Dihitung dari: Total Kas Diterima (semua metode) - Total Semua Pengeluaran
+                </div>
+                <div className="mt-3 space-y-1 text-[10px] text-gray-600">
+                  <div className="uppercase text-[9px] text-gray-400">Rincian Posisi Kas</div>
+                  {paymentBreakdown.map((entry) => (
+                    <div key={`net-${entry.key}`} className="flex justify-between">
+                      <span>Kas masuk - {entry.label}</span>
+                      <span className="font-mono">{fmtMoney(entry.total)}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between border-t border-gray-200 pt-1">
+                    <span>Total Pengeluaran</span>
+                    <span className="font-mono">{fmtMoney(totalExpenseAmount)}</span>
+                  </div>
+                  <div className="flex justify-between font-semibold">
+                    <span>Net Cash</span>
+                    <span className="font-mono">{fmtMoney(paymentTotals.total - totalExpenseAmount)}</span>
+                  </div>
                 </div>
               </div>
 
