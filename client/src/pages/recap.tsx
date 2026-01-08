@@ -222,6 +222,11 @@ export default function RecapPage() {
           const el = clonedDoc.getElementById("recap-content");
           if (!el) return;
 
+          clonedDoc.body.style.margin = "0";
+          clonedDoc.body.style.background = "#ffffff";
+          clonedDoc.body.innerHTML = "";
+          clonedDoc.body.appendChild(el);
+
           // Strip ALL styles that might break the renderer
           const all = el.getElementsByTagName("*");
           el.style.cssText = "background: #fff !important; color: #000 !important; padding: 20px !important; width: 800px !important;";
@@ -250,8 +255,10 @@ export default function RecapPage() {
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
       const margin = 10;
+      const pagePadding = 6;
       const printableWidth = pageWidth - margin * 2;
-      const printableHeight = pageHeight - margin * 2;
+      const printableHeight = pageHeight - margin * 2 - pagePadding * 2;
+      const contentY = margin + pagePadding;
       const mmPerPx = printableWidth / canvas.width;
       const pageHeightPx = printableHeight / mmPerPx;
 
@@ -284,7 +291,7 @@ export default function RecapPage() {
         if (pageIndex > 0) {
           pdf.addPage();
         }
-        pdf.addImage(imgData, "PNG", margin, margin, printableWidth, imgHeight);
+        pdf.addImage(imgData, "PNG", margin, contentY, printableWidth, imgHeight);
 
         renderedHeight += sliceHeight;
         pageIndex += 1;
