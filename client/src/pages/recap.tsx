@@ -246,10 +246,22 @@ export default function RecapPage() {
         throw new Error("Konten rekap tidak ditemukan.");
       }
 
+      await document.fonts?.ready;
+      const maxCanvasSize = 16000;
+      const contentWidth = recapContent.scrollWidth || recapContent.clientWidth;
+      const contentHeight = recapContent.scrollHeight || recapContent.clientHeight;
+      const maxDimension = Math.max(contentWidth, contentHeight);
+      const safeScale = Math.min(2, maxCanvasSize / maxDimension || 1);
+      const scale = safeScale > 0 ? safeScale : 1;
+
       const canvas = await html2canvas(recapContent, {
         backgroundColor: "#ffffff",
-        scale: 2,
-        useCORS: true
+        scale,
+        useCORS: true,
+        windowWidth: contentWidth,
+        windowHeight: contentHeight,
+        scrollX: 0,
+        scrollY: -window.scrollY
       });
 
       const pdf = new jsPDF("p", "pt", "a4");
