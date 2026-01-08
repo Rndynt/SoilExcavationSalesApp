@@ -9,7 +9,6 @@ import { useTranslate } from "@/hooks/use-translate";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
 
 // Define preset functions directly instead of importing from non-existent utils member
 const PAGE_TIME_PRESETS = {
@@ -237,109 +236,32 @@ export default function RecapPage() {
     : expenses.totalExpenses;
   const nonOperationalTotals = nonOperationalBreakdown;
 
-  const handleExportPdf = () => {
+  const handleExportPdf = async () => {
     if (isExporting || !report) return;
     setIsExporting(true);
     try {
+      const recapContent = document.getElementById("recap-content");
+      if (!recapContent) {
+        throw new Error("Konten rekap tidak ditemukan.");
+      }
+
       const pdf = new jsPDF("p", "pt", "a4");
       const pageWidth = pdf.internal.pageSize.getWidth();
-      const marginX = 40;
-      let cursorY = 48;
-
-      const locationLabel = locationName || "-";
-      const periodLabel = `${format(dateRange.from, "dd MMM yyyy")} - ${format(dateRange.to, "dd MMM yyyy")}`;
-
-      pdf.setFontSize(14);
-      pdf.text("REKAPITULASI", pageWidth / 2, cursorY, { align: "center" });
-      cursorY += 18;
-      pdf.setFontSize(10);
-      pdf.text(`Lokasi: ${locationLabel}`, marginX, cursorY);
-      cursorY += 14;
-      pdf.text(`Periode: ${periodLabel}`, marginX, cursorY);
-      cursorY += 18;
-
-      const tripRows = trips
-        .slice()
-        .sort((a: any, b: any) => new Date(a.transDate).getTime() - new Date(b.transDate).getTime())
-        .map((trip: any) => [
-          format(new Date(trip.transDate), "dd/MM/yyyy"),
-          trip.plateNumber || "-",
-          fmtMoney(trip.appliedPrice),
-          trip.paymentStatus === "PAID" ? "Lunas" : "Piutang"
-        ]);
-      const tripTableRows = tripRows.length > 0 ? tripRows : [["-", "Tidak ada data", "-", "-"]];
-
-      autoTable(pdf, {
-        startY: cursorY,
-        head: [["Tanggal", "Nopol", "Harga", "Status"]],
-        body: tripTableRows,
-        theme: "grid",
-        styles: { fontSize: 9, cellPadding: 4 },
-        headStyles: { fillColor: [240, 240, 240], textColor: 20 }
-      });
-
-      const tripTotals = [
-        ["Total Trip", `${trips.length}`],
-        ["Total Penjualan (Net)", fmtMoney(sales.netRevenue)]
-      ];
-      if (sales.totalDiscounts > 0) {
-        tripTotals.splice(1, 0, ["Total Diskon", `- ${fmtMoney(sales.totalDiscounts)}`]);
-      }
-
-      autoTable(pdf, {
-        startY: (pdf as any).lastAutoTable?.finalY ? (pdf as any).lastAutoTable.finalY + 12 : cursorY + 12,
-        body: tripTotals,
-        theme: "plain",
-        styles: { fontSize: 9, cellPadding: 2 },
-        columnStyles: { 0: { fontStyle: "bold" } }
-      });
-
-      let nextY = (pdf as any).lastAutoTable?.finalY ? (pdf as any).lastAutoTable.finalY + 16 : cursorY + 30;
-      if (filteredExpenses.length > 0) {
-        autoTable(pdf, {
-          startY: nextY,
-          head: [["Tanggal", "Kategori", "Jumlah", "Catatan"]],
-          body: filteredExpenses.map((exp: any) => [
-            format(new Date(exp.expenseDate), "dd/MM/yyyy"),
-            exp.categoryName || exp.category || "-",
-            fmtMoney(exp.amount),
-            exp.note || "-"
-          ]),
-          theme: "grid",
-          styles: { fontSize: 8, cellPadding: 4 },
-          headStyles: { fillColor: [240, 240, 240], textColor: 20 }
-        });
-
-        autoTable(pdf, {
-          startY: (pdf as any).lastAutoTable?.finalY ? (pdf as any).lastAutoTable.finalY + 12 : nextY + 12,
-          body: [["Total Pengeluaran", fmtMoney(totalExpenseAmount)]],
-          theme: "plain",
-          styles: { fontSize: 9, cellPadding: 2 },
-          columnStyles: { 0: { fontStyle: "bold" } }
-        });
-        nextY = (pdf as any).lastAutoTable?.finalY ? (pdf as any).lastAutoTable.finalY + 16 : nextY + 28;
-      }
-
-      autoTable(pdf, {
-        startY: nextY,
-        head: [["Ringkasan", "Nilai"]],
-        body: [
-          ["Total Omzet (Applied)", fmtMoney(sales.netRevenue)],
-          ["Kas Diterima (Paid)", fmtMoney(sales.cashCollected)],
-          ["Piutang (Unpaid)", fmtMoney(sales.receivables)],
-          ["Beban Operasional", fmtMoney(totalOperationalAmount)],
-          ["Total Pengeluaran", fmtMoney(totalExpenseAmount)],
-          ["Posisi Kas (Net Cash)", fmtMoney(sales.cashCollected - totalExpenseAmount)],
-          ["Margin Laba (Omzet - Ops)", fmtMoney(sales.netRevenue - totalOperationalAmount)],
-          ["Estimasi Laba Akhir", fmtMoney(sales.netRevenue - totalExpenseAmount)]
-        ],
-        theme: "grid",
-        styles: { fontSize: 9, cellPadding: 4 },
-        headStyles: { fillColor: [240, 240, 240], textColor: 20 },
-        columnStyles: { 0: { fontStyle: "bold" } }
-      });
-
+      const marginX = 24;
+      const contentWidth = recapContent.scrollWidth || recapContent.clientWidth || pageWidth;
+      const scale = Math.min(1, (pageWidth - marginX * 2) / contentWidth);
       const filename = `rekap-${fromDate}-${toDate}.pdf`;
+
+      await pdf.html(recapContent, {
+        x: marginX,
+        y: 24,
+        windowWidth: contentWidth,
+        html2canvas: {
+          backgroundColor: "#ffffff",
+          scale
+        }
+      });
+
       pdf.save(filename);
     } catch (err) {
       console.error("Gagal export PDF", err);
