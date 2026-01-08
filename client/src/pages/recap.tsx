@@ -243,14 +243,20 @@ export default function RecapPage() {
     try {
       const recapContent = document.getElementById("recap-content");
       if (!recapContent) throw new Error("Konten rekap tidak ditemukan.");
+      const contentWidth = recapContent.scrollWidth;
+      const contentHeight = recapContent.scrollHeight;
+      const scale = Math.min(2, window.devicePixelRatio || 1);
 
       const canvas = await html2canvas(recapContent, {
         backgroundColor: "#ffffff",
-        scale: 1, // Minimum scale for maximum reliability
+        scale,
         useCORS: true,
-        allowTaint: true,
+        allowTaint: false,
         logging: false,
         imageTimeout: 30000,
+        windowWidth: contentWidth,
+        windowHeight: contentHeight,
+        scrollY: -window.scrollY,
         onclone: (clonedDoc) => {
           const el = clonedDoc.getElementById("recap-content");
           if (!el) return;
@@ -271,21 +277,65 @@ export default function RecapPage() {
             if (['TABLE', 'TH', 'TD', 'TR'].includes(item.tagName)) {
               item.style.setProperty('border', '1px solid #000', 'important');
             }
+
+            if (item.tagName === "IMG") {
+              (item as HTMLImageElement).crossOrigin = "anonymous";
+            }
           }
         }
       });
 
       const pdf = new jsPDF("p", "mm", "a4");
-      const imgData = canvas.toDataURL("image/png"); // PNG for better transparency handling
       const pageWidth = pdf.internal.pageSize.getWidth();
-      const imgWidth = pageWidth - 20;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 10;
+      const printableWidth = pageWidth - margin * 2;
+      const printableHeight = pageHeight - margin * 2;
+      const mmPerPx = printableWidth / canvas.width;
+      const pageHeightPx = printableHeight / mmPerPx;
 
-      pdf.addImage(imgData, "PNG", 10, 10, imgWidth, imgHeight);
+      let renderedHeight = 0;
+      let pageIndex = 0;
+      while (renderedHeight < canvas.height) {
+        const sliceHeight = Math.min(pageHeightPx, canvas.height - renderedHeight);
+        const sliceCanvas = document.createElement("canvas");
+        sliceCanvas.width = canvas.width;
+        sliceCanvas.height = sliceHeight;
+
+        const sliceCtx = sliceCanvas.getContext("2d");
+        if (!sliceCtx) throw new Error("Gagal menyiapkan kanvas sementara.");
+
+        sliceCtx.drawImage(
+          canvas,
+          0,
+          renderedHeight,
+          canvas.width,
+          sliceHeight,
+          0,
+          0,
+          canvas.width,
+          sliceHeight
+        );
+
+        const imgData = sliceCanvas.toDataURL("image/png");
+        const imgHeight = sliceHeight * mmPerPx;
+
+        if (pageIndex > 0) {
+          pdf.addPage();
+        }
+        pdf.addImage(imgData, "PNG", margin, margin, printableWidth, imgHeight);
+
+        renderedHeight += sliceHeight;
+        pageIndex += 1;
+      }
+
       pdf.save(`rekap-${fromDate}-${toDate}.pdf`);
     } catch (err) {
       console.error(err);
-      window.alert("Gagal ekspor. Gunakan tombol 'Cetak' lalu pilih 'Simpan sebagai PDF' sebagai alternatif.");
+      window.alert(
+        "Gagal ekspor. Data mungkin terlalu panjang untuk diproses. Coba persempit periode, lalu ulangi. " +
+          "Jika masih gagal, gunakan tombol 'Cetak' lalu pilih 'Simpan sebagai PDF'."
+      );
     } finally {
       setIsExporting(false);
     }
