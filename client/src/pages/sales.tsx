@@ -713,6 +713,23 @@ export default function Sales() {
                 </Select>
               </div>
               <div className="space-y-2">
+                <Label className="text-xs">Payment Method</Label>
+                <Select
+                  value={editingTrip.paymentMethod ?? "CASH"}
+                  onValueChange={m => setEditingTrip({...editingTrip, paymentMethod: m as "CASH" | "TRANSFER" | "QRIS" | "OTHER"})}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CASH">Cash</SelectItem>
+                    <SelectItem value="TRANSFER">Transfer</SelectItem>
+                    <SelectItem value="QRIS">QRIS</SelectItem>
+                    <SelectItem value="OTHER">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label className="text-xs">Note</Label>
                 <Textarea 
                   value={editingTrip.note || ""}
