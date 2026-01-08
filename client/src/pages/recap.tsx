@@ -246,53 +246,70 @@ export default function RecapPage() {
         throw new Error("Konten rekap tidak ditemukan.");
       }
 
-      await document.fonts?.ready;
-      const maxCanvasSize = 16000;
-      const contentWidth = recapContent.scrollWidth || recapContent.clientWidth;
-      const contentHeight = recapContent.scrollHeight || recapContent.clientHeight;
-      const maxDimension = Math.max(contentWidth, contentHeight);
-      const safeScale = Math.min(2, maxCanvasSize / maxDimension || 1);
-      const scale = safeScale > 0 ? safeScale : 1;
+      // 1. Force styles for export
+      const originalStyle = recapContent.style.cssText;
+      recapContent.style.boxShadow = "none";
+      recapContent.style.backgroundColor = "#ffffff";
+      recapContent.style.color = "#000000";
 
+      // 2. Wait for fonts and images
+      await document.fonts?.ready;
+      const images = Array.from(recapContent.getElementsByTagName("img"));
+      await Promise.all(images.map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise((resolve) => {
+          img.onload = resolve;
+          img.onerror = resolve;
+        });
+      }));
+
+      // 3. Optimized canvas settings
       const canvas = await html2canvas(recapContent, {
         backgroundColor: "#ffffff",
-        scale,
+        scale: 1.5,
         useCORS: true,
-        windowWidth: contentWidth,
-        windowHeight: contentHeight,
-        scrollX: 0,
-        scrollY: -window.scrollY
+        allowTaint: true,
+        logging: false,
+        onclone: (clonedDoc) => {
+          const clonedElement = clonedDoc.getElementById("recap-content");
+          if (clonedElement) {
+            clonedElement.style.padding = "20px";
+            clonedElement.style.width = "800px";
+          }
+        }
       });
 
-      const pdf = new jsPDF("p", "pt", "a4");
+      // 4. Reset original style
+      recapContent.style.cssText = originalStyle;
+
+      // 5. PDF generation with jspdf
+      const pdf = new jsPDF("p", "mm", "a4");
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-      const marginX = 24;
-      const marginY = 24;
-      const usableWidth = pageWidth - marginX * 2;
-      const usableHeight = pageHeight - marginY * 2;
-      const imgWidth = usableWidth;
+      const margin = 10;
+      const imgWidth = pageWidth - (margin * 2);
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      const imgData = canvas.toDataURL("image/png");
 
       let heightLeft = imgHeight;
-      let position = marginY;
+      let position = margin;
 
-      pdf.addImage(imgData, "PNG", marginX, position, imgWidth, imgHeight);
-      heightLeft -= usableHeight;
+      const imgData = canvas.toDataURL("image/jpeg", 0.85);
+
+      pdf.addImage(imgData, "JPEG", margin, position, imgWidth, imgHeight);
+      heightLeft -= (pageHeight - margin * 2);
 
       while (heightLeft > 0) {
         pdf.addPage();
-        position = marginY - (imgHeight - heightLeft);
-        pdf.addImage(imgData, "PNG", marginX, position, imgWidth, imgHeight);
-        heightLeft -= usableHeight;
+        position = margin - (imgHeight - heightLeft);
+        pdf.addImage(imgData, "JPEG", margin, position, imgWidth, imgHeight);
+        heightLeft -= (pageHeight - margin * 2);
       }
 
       const filename = `rekap-${fromDate}-${toDate}.pdf`;
       pdf.save(filename);
     } catch (err) {
       console.error("Gagal export PDF", err);
-      window.alert("Gagal export PDF. Silakan coba lagi.");
+      window.alert("Gagal export PDF: " + (err instanceof Error ? err.message : "Terjadi kesalahan sistem"));
     } finally {
       setIsExporting(false);
     }
