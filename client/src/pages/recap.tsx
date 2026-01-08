@@ -4,7 +4,7 @@ import { format, startOfDay, endOfDay } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Printer, Calendar as CalendarIcon, Loader2, AlertCircle, Download } from "lucide-react";
+import { Calendar as CalendarIcon, Loader2, AlertCircle, Download } from "lucide-react";
 import { useTranslate } from "@/hooks/use-translate";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -94,45 +94,6 @@ export default function RecapPage() {
   const fmtMoney = (n: number) =>
     new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n || 0);
 
-  const handlePrint = () => {
-    const printContent = document.getElementById("recap-content");
-    if (!printContent) return;
-    const printWindow = window.open("", "PRINT", "width=800,height=600");
-    if (!printWindow) {
-      window.print();
-      return;
-    }
-    const html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Laporan Rekapitulasi</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; font-size: 11px; color: #000; line-height: 1.3; padding: 15px; }
-    h1 { font-size: 14px; margin-bottom: 5px; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
-    td, th { padding: 3px 4px; border-bottom: 1px solid #ddd; text-align: left; }
-    th { font-weight: bold; background: #f5f5f5; }
-    .amount { text-align: right; font-family: monospace; }
-    .total-row { font-weight: bold; background: #f5f5f5; }
-  </style>
-</head>
-<body>
-  ${printContent.innerHTML}
-</body>
-</html>`;
-    printWindow.document.open();
-    printWindow.document.write(html);
-    printWindow.document.close();
-    const handlePrintReady = () => {
-      printWindow.focus();
-      printWindow.print();
-      printWindow.close();
-    };
-    printWindow.addEventListener("load", handlePrintReady, { once: true });
-    setTimeout(handlePrintReady, 500);
-  };
 
   if (isLoading) return (
     <div className="flex items-center justify-center min-h-[400px]">
@@ -285,7 +246,7 @@ export default function RecapPage() {
       pdf.save(`rekap-${fromDate}-${toDate}.pdf`);
     } catch (err) {
       console.error(err);
-      window.alert("Gagal ekspor. Gunakan tombol 'Cetak' lalu pilih 'Simpan sebagai PDF' sebagai alternatif.");
+      window.alert("Gagal ekspor. Coba lagi atau perkecil periode untuk mengurangi beban.");
     } finally {
       setIsExporting(false);
     }
@@ -357,10 +318,6 @@ export default function RecapPage() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={handlePrint}>
-            <Printer className="w-4 h-4 mr-2" />
-            Cetak Rekapan
-          </Button>
           <Button onClick={handleExportPdf} disabled={isExporting}>
             {isExporting ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
