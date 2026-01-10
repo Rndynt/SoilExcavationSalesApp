@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format, startOfDay, endOfDay } from "date-fns";
+import { id, enUS } from "date-fns/locale";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar as CalendarIcon, Loader2, AlertCircle, Download } from "lucide-react";
 import { useTranslate } from "@/hooks/use-translate";
+import { useLanguage } from "@/contexts/language-context";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import html2canvas from "html2canvas";
@@ -43,6 +45,8 @@ const PAGE_TIME_PRESETS = {
 
 export default function RecapPage() {
   const t = useTranslate();
+  const { language } = useLanguage();
+  const locale = language === "id" ? id : enUS;
   const [period, setPeriod] = useState<string>("TODAY");
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>(() => {
     const preset = PAGE_TIME_PRESETS.TODAY();
@@ -454,7 +458,7 @@ export default function RecapPage() {
                 {(() => {
                   const groupedTrips: { [key: string]: any[] } = {};
                   trips.forEach((trip: any) => {
-                    const date = format(new Date(trip.transDate), "dd/MM/yyyy");
+                    const date = format(new Date(trip.transDate), "EEE, dd MMM yyyy", { locale });
                     if (!groupedTrips[date]) groupedTrips[date] = [];
                     groupedTrips[date].push(trip);
                   });
@@ -525,7 +529,7 @@ export default function RecapPage() {
                   {(() => {
                     const groupedExpenses: { [key: string]: any[] } = {};
                     filteredExpenses.forEach((exp: any) => {
-                      const date = format(new Date(exp.expenseDate), "dd/MM/yyyy");
+                      const date = format(new Date(exp.expenseDate), "EEE, dd MMM yyyy", { locale });
                       if (!groupedExpenses[date]) groupedExpenses[date] = [];
                       groupedExpenses[date].push(exp);
                     });
