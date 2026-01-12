@@ -118,6 +118,15 @@ export default function Expenses() {
   const updateCategory = useUpdateExpenseCategory();
   const deleteCategory = useDeleteExpenseCategory();
 
+  const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
+
+  const toggleDate = (date: string) => {
+    setExpandedDates(prev => ({
+      ...prev,
+      [date]: !prev[date]
+    }));
+  };
+
   const isLoading = expensesLoading || categoriesLoading;
 
   useEffect(() => {
@@ -690,15 +699,41 @@ export default function Expenses() {
                     grouped[dateKey].push(exp);
                   });
 
-                  return Object.entries(grouped).map(([date, items]) => (
-                    <React.Fragment key={date}>
-                      <tr className="bg-muted/30">
-                        <td colSpan={4} className="px-6 py-2 font-bold text-xs uppercase tracking-wider text-primary">
-                          {date}
-                        </td>
-                      </tr>
-                      {items.map((expense) => {
-                        const cat = categories.find(c => c.id === expense.categoryId);
+                  return Object.entries(grouped).map(([date, items]) => {
+                    const isExpanded = expandedDates[date] || false;
+                    const dailyTotal = items.reduce((sum, item) => sum + (item.amount || 0), 0);
+                    
+                    return (
+                      <React.Fragment key={date}>
+                        <tr 
+                          className="bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
+                          onClick={() => toggleDate(date)}
+                        >
+                          <td colSpan={4} className="px-6 py-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-xs uppercase tracking-wider text-primary">
+                                  {date}
+                                </span>
+                                <Badge variant="secondary" className="text-[10px] py-0 h-4">
+                                  {items.length} Trip
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                <span className="font-mono text-xs font-semibold text-primary">
+                                  {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(dailyTotal)}
+                                </span>
+                                {isExpanded ? (
+                                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                        {isExpanded && items.map((expense) => {
+                          const cat = categories.find(c => c.id === expense.categoryId);
                         const isDiscount = cat?.type === 'DISCOUNT';
                         const isPayableLoan = cat?.type === 'PAYABLE' || cat?.type === 'LOAN';
                         const isSystem = cat?.isSystem || false;
