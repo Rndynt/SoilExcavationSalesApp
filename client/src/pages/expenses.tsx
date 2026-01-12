@@ -76,7 +76,11 @@ export default function Expenses() {
   const t = useTranslate();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isAddCatOpen, setIsAddCatOpen] = useState(false);
-  const [period, setPeriod] = useState<TimePeriod>("THIS_MONTH");
+  const [period, setPeriod] = useState<string>("THIS_MONTH");
+  const [dateRange, setDateRange] = useState<{ from: string; to: string }>(() => {
+    const [start, end] = getDateRange("THIS_MONTH" as TimePeriod);
+    return { from: start, to: end };
+  });
   const [configOpen, setConfigOpen] = useState(false);
 
   // Edit State
@@ -126,8 +130,15 @@ export default function Expenses() {
     }
   }, [defaultLocationData, locations, newLocationId]);
 
+  const handlePeriodChange = (val: string) => {
+    setPeriod(val);
+    if (val !== "CUSTOM") {
+      const [start, end] = getDateRange(val as TimePeriod);
+      setDateRange({ from: start, to: end });
+    }
+  };
+
   // Filter Logic
-  const [dateFrom, dateTo] = getDateRange(period);
   const filteredExpenses = expenses.filter(e => {
     const cat = categories.find(c => c.id === e.categoryId);
     if (!cat) return false;
@@ -135,7 +146,7 @@ export default function Expenses() {
     if (filterType !== 'all' && cat.type !== filterType) return false;
     
     // Filter by date range
-    if (e.expenseDate < dateFrom || e.expenseDate > dateTo) return false;
+    if (e.expenseDate < dateRange.from || e.expenseDate > dateRange.to) return false;
     
     return true;
   }).sort((a,b) => new Date(b.expenseDate).getTime() - new Date(a.expenseDate).getTime());
@@ -562,17 +573,41 @@ export default function Expenses() {
       </Dialog>
 
       <div className="flex items-center gap-2 flex-wrap">
-        {TIME_PRESETS.map(p => (
-          <Button
-            key={p.value}
-            variant={period === p.value ? "default" : "outline"}
-            size="sm"
-            onClick={() => setPeriod(p.value)}
-            data-testid={`button-preset-${p.value.toLowerCase()}`}
-          >
-            {t(p.label)}
-          </Button>
-        ))}
+        <Select value={period} onValueChange={handlePeriodChange}>
+          <SelectTrigger className="w-[140px] h-9">
+            <SelectValue placeholder="Pilih Periode" />
+          </SelectTrigger>
+          <SelectContent>
+            {TIME_PRESETS.map(p => (
+              <SelectItem key={p.value} value={p.value}>{t(p.label)}</SelectItem>
+            ))}
+            <SelectItem value="CUSTOM">Custom Range</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {period === "CUSTOM" && (
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Calendar className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="date"
+                value={dateRange.from}
+                onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))}
+                className="w-[140px] pl-9 h-9"
+              />
+            </div>
+            <span className="text-muted-foreground">-</span>
+            <div className="relative">
+              <Calendar className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="date"
+                value={dateRange.to}
+                onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))}
+                className="w-[140px] pl-9 h-9"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       <Card className="border-border shadow-sm">
@@ -632,7 +667,6 @@ export default function Expenses() {
               <tr>
                 <th className="px-6 py-3 font-medium">Category</th>
                 <th className="px-6 py-3 font-medium">Note</th>
-                <th className="px-6 py-3 font-medium">Details</th>
                 <th className="px-6 py-3 font-medium text-right">Amount</th>
                 <th className="px-6 py-3 font-medium text-right w-10"></th>
               </tr>
@@ -640,7 +674,7 @@ export default function Expenses() {
             <tbody className="divide-y divide-border">
               {filteredExpenses.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
+                  <td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">
                     <div className="flex flex-col items-center gap-2">
                       <Receipt className="h-8 w-8 text-muted-foreground/50" />
                       <p data-testid="text-no-expenses">No expenses found.</p>
@@ -659,7 +693,7 @@ export default function Expenses() {
                   return Object.entries(grouped).map(([date, items]) => (
                     <React.Fragment key={date}>
                       <tr className="bg-muted/30">
-                        <td colSpan={5} className="px-6 py-2 font-bold text-xs uppercase tracking-wider text-primary">
+                        <td colSpan={4} className="px-6 py-2 font-bold text-xs uppercase tracking-wider text-primary">
                           {date}
                         </td>
                       </tr>
@@ -690,19 +724,15 @@ export default function Expenses() {
                             <td className="px-6 py-4 text-muted-foreground max-w-xs">
                               <div className="flex flex-col gap-1">
                                 <span>{expense.note || "-"}</span>
-                                {isDiscount && expense.relatedPlateNumber && (
-                                  <div className="flex items-center gap-1 text-[10px] font-mono text-amber-600 dark:text-amber-400">
+                                {expense.relatedPlateNumber && (
+                                  <div className={cn(
+                                    "flex items-center gap-1 text-[10px] font-mono",
+                                    isDiscount ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"
+                                  )}>
                                     <Truck className="w-3 h-3" /> {expense.relatedPlateNumber}
                                   </div>
                                 )}
                               </div>
-                            </td>
-                            <td className="px-6 py-4 font-mono text-muted-foreground text-xs">
-                              {!isDiscount && expense.relatedPlateNumber && (
-                                <div className="flex items-center gap-1">
-                                  <Truck className="w-3 h-3" /> {expense.relatedPlateNumber}
-                                </div>
-                              )}
                             </td>
                             <td className="px-6 py-4 text-right font-mono font-medium text-foreground">
                               {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(expense.amount)}
