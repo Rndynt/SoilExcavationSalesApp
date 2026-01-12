@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { Search, Loader2 } from "lucide-react";
-import { useState } from "react";
+import React, { useState } from "react";
 
 export default function SalesHistory() {
   const [filterPlate, setFilterPlate] = useState("");
@@ -117,7 +117,6 @@ export default function SalesHistory() {
           <table className="w-full text-sm text-left">
             <thead className="bg-muted text-muted-foreground border-b">
               <tr>
-                <th className="px-6 py-3 font-medium">Date & Time</th>
                 <th className="px-6 py-3 font-medium">Plate</th>
                 <th className="px-6 py-3 font-medium">Location</th>
                 <th className="px-6 py-3 font-medium text-right">Base Price</th>
@@ -131,7 +130,6 @@ export default function SalesHistory() {
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
-                    <td className="px-6 py-4"><Skeleton className="h-4 w-24" /></td>
                     <td className="px-6 py-4"><Skeleton className="h-4 w-20" /></td>
                     <td className="px-6 py-4"><Skeleton className="h-4 w-28" /></td>
                     <td className="px-6 py-4"><Skeleton className="h-4 w-16 ml-auto" /></td>
@@ -143,74 +141,89 @@ export default function SalesHistory() {
                 ))
               ) : trips.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-muted-foreground">
+                  <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
                     No trips found matching filters.
                   </td>
                 </tr>
               ) : (
-                trips.map((trip) => {
-                  const tripDiscount = Math.max(0, trip.basePrice - trip.appliedPrice);
-                  const locationName = locations.find(l => l.id === trip.locationId)?.name || 'Unknown';
-                  const outstanding = trip.appliedPrice - trip.paidAmount;
-                  
-                  return (
-                    <tr key={trip.id} className="group hover:bg-muted/50 transition-colors" data-testid={`row-trip-${trip.id}`}>
-                      <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">
-                        <div className="font-medium text-foreground" data-testid={`text-date-${trip.id}`}>
-                          {format(new Date(trip.transDate), "dd MMM yyyy")}
-                        </div>
-                        <div className="text-xs">{format(new Date(trip.createdAt), "HH:mm")}</div>
-                      </td>
-                      <td className="px-6 py-4 font-mono font-medium" data-testid={`text-plate-${trip.id}`}>
-                        {trip.plateNumber}
-                      </td>
-                      <td className="px-6 py-4 text-muted-foreground" data-testid={`text-location-${trip.id}`}>
-                        {locationName}
-                      </td>
-                      <td className="px-6 py-4 text-right font-mono text-muted-foreground" data-testid={`text-base-price-${trip.id}`}>
-                        {new Intl.NumberFormat('id-ID').format(trip.basePrice)}
-                      </td>
-                      <td className="px-6 py-4 text-right font-mono font-medium" data-testid={`text-applied-price-${trip.id}`}>
-                        {new Intl.NumberFormat('id-ID').format(trip.appliedPrice)}
-                      </td>
-                      <td className="px-6 py-4 text-center" data-testid={`status-payment-${trip.id}`}>
-                        {trip.paymentStatus === 'PAID' ? (
-                          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800 text-[10px]">
-                            Paid
-                          </Badge>
-                        ) : trip.paymentStatus === 'PARTIAL' ? (
-                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800 text-[10px]">
-                            Partial
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-800 text-[10px]">
-                            Unpaid
-                          </Badge>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-right font-mono" data-testid={`text-outstanding-${trip.id}`}>
-                        {outstanding > 0 ? (
-                          <span className="text-red-600 dark:text-red-400">
-                            {new Intl.NumberFormat('id-ID').format(outstanding)}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        {tripDiscount > 0 ? (
-                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800 text-[10px]">
-                            - {new Intl.NumberFormat('id-ID', { notation: "compact" }).format(tripDiscount)}
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800 text-[10px]">
-                            Standard
-                          </Badge>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
+                (() => {
+                  const grouped: { [key: string]: typeof trips } = {};
+                  trips.forEach(trip => {
+                    const dateKey = format(new Date(trip.transDate), "EEEE, dd MMM yyyy");
+                    if (!grouped[dateKey]) grouped[dateKey] = [];
+                    grouped[dateKey].push(trip);
+                  });
+
+                  return Object.entries(grouped).map(([date, items]) => (
+                    <React.Fragment key={date}>
+                      <tr className="bg-muted/30">
+                        <td colSpan={7} className="px-6 py-2 font-bold text-xs uppercase tracking-wider text-primary">
+                          {date}
+                        </td>
+                      </tr>
+                      {items.map((trip) => {
+                        const tripDiscount = Math.max(0, trip.basePrice - trip.appliedPrice);
+                        const locationName = locations.find(l => l.id === trip.locationId)?.name || 'Unknown';
+                        const outstanding = trip.appliedPrice - trip.paidAmount;
+                        
+                        return (
+                          <tr key={trip.id} className="group hover:bg-muted/50 transition-colors" data-testid={`row-trip-${trip.id}`}>
+                            <td className="px-6 py-4 font-mono font-medium" data-testid={`text-plate-${trip.id}`}>
+                              <div className="flex flex-col">
+                                <span>{trip.plateNumber}</span>
+                                <span className="text-[10px] text-muted-foreground font-sans">{format(new Date(trip.createdAt), "HH:mm")}</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-muted-foreground" data-testid={`text-location-${trip.id}`}>
+                              {locationName}
+                            </td>
+                            <td className="px-6 py-4 text-right font-mono text-muted-foreground" data-testid={`text-base-price-${trip.id}`}>
+                              {new Intl.NumberFormat('id-ID').format(trip.basePrice)}
+                            </td>
+                            <td className="px-6 py-4 text-right font-mono font-medium" data-testid={`text-applied-price-${trip.id}`}>
+                              {new Intl.NumberFormat('id-ID').format(trip.appliedPrice)}
+                            </td>
+                            <td className="px-6 py-4 text-center" data-testid={`status-payment-${trip.id}`}>
+                              {trip.paymentStatus === 'PAID' ? (
+                                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800 text-[10px]">
+                                  Paid
+                                </Badge>
+                              ) : trip.paymentStatus === 'PARTIAL' ? (
+                                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800 text-[10px]">
+                                  Partial
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-800 text-[10px]">
+                                  Unpaid
+                                </Badge>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 text-right font-mono" data-testid={`text-outstanding-${trip.id}`}>
+                              {outstanding > 0 ? (
+                                <span className="text-red-600 dark:text-red-400">
+                                  {new Intl.NumberFormat('id-ID').format(outstanding)}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              {tripDiscount > 0 ? (
+                                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800 text-[10px]">
+                                  - {new Intl.NumberFormat('id-ID', { notation: "compact" }).format(tripDiscount)}
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800 text-[10px]">
+                                  Standard
+                                </Badge>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </React.Fragment>
+                  ));
+                })()
               )}
             </tbody>
           </table>

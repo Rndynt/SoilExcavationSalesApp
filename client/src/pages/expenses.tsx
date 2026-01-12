@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   useExpenses,
   useExpenseCategories,
@@ -630,7 +630,6 @@ export default function Expenses() {
           <table className="w-full text-sm text-left">
             <thead className="bg-muted text-muted-foreground border-b border-border">
               <tr>
-                <th className="px-6 py-3 font-medium">Date</th>
                 <th className="px-6 py-3 font-medium">Category</th>
                 <th className="px-6 py-3 font-medium">Note</th>
                 <th className="px-6 py-3 font-medium">Details</th>
@@ -641,7 +640,7 @@ export default function Expenses() {
             <tbody className="divide-y divide-border">
               {filteredExpenses.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
+                  <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
                     <div className="flex flex-col items-center gap-2">
                       <Receipt className="h-8 w-8 text-muted-foreground/50" />
                       <p data-testid="text-no-expenses">No expenses found.</p>
@@ -649,86 +648,101 @@ export default function Expenses() {
                   </td>
                 </tr>
               ) : (
-                filteredExpenses.map((expense) => {
-                  const cat = categories.find(c => c.id === expense.categoryId);
-                  const isDiscount = cat?.type === 'DISCOUNT';
-                  const isPayableLoan = cat?.type === 'PAYABLE' || cat?.type === 'LOAN';
-                  const isSystem = cat?.isSystem || false;
+                (() => {
+                  const grouped: { [key: string]: any[] } = {};
+                  filteredExpenses.forEach(exp => {
+                    const dateKey = format(new Date(exp.expenseDate), "EEEE, dd MMM yyyy");
+                    if (!grouped[dateKey]) grouped[dateKey] = [];
+                    grouped[dateKey].push(exp);
+                  });
 
-                  return (
-                    <tr key={expense.id} className="group hover:bg-muted/50 transition-colors" data-testid={`row-expense-${expense.id}`}>
-                      <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">
-                        {format(new Date(expense.expenseDate), "dd MMM yyyy")}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <Badge 
-                            variant="outline" 
-                            className={cn(
-                              "text-[10px] font-normal",
-                              isDiscount ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800" :
-                              isPayableLoan ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800" :
-                              "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800"
-                            )}
-                          >
-                            {cat?.type}
-                          </Badge>
-                          <span className="font-medium text-foreground">{cat?.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-muted-foreground max-w-xs truncate">
-                        {expense.note || "-"}
-                      </td>
-                      <td className="px-6 py-4 font-mono text-muted-foreground text-xs">
-                        {expense.relatedPlateNumber && (
-                           <div className="flex items-center gap-1">
-                             <Truck className="w-3 h-3" /> {expense.relatedPlateNumber}
-                           </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-right font-mono font-medium text-foreground">
-                        {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(expense.amount)}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        {!isSystem && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 p-0" data-testid={`button-actions-${expense.id}`}>
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => openEditDialog(expense)} data-testid={`button-edit-${expense.id}`}>
-                                <Edit2 className="h-4 w-4 mr-2" /> Edit
-                              </DropdownMenuItem>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive" data-testid={`button-delete-trigger-${expense.id}`}>
-                                    <Trash2 className="h-4 w-4 mr-2" /> Hapus
-                                  </DropdownMenuItem>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Hapus Pengeluaran?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Tindakan ini tidak dapat dibatalkan. Pengeluaran ini akan dihapus permanen dari sistem.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Batal</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDelete(expense.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                      Hapus
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
+                  return Object.entries(grouped).map(([date, items]) => (
+                    <React.Fragment key={date}>
+                      <tr className="bg-muted/30">
+                        <td colSpan={5} className="px-6 py-2 font-bold text-xs uppercase tracking-wider text-primary">
+                          {date}
+                        </td>
+                      </tr>
+                      {items.map((expense) => {
+                        const cat = categories.find(c => c.id === expense.categoryId);
+                        const isDiscount = cat?.type === 'DISCOUNT';
+                        const isPayableLoan = cat?.type === 'PAYABLE' || cat?.type === 'LOAN';
+                        const isSystem = cat?.isSystem || false;
+
+                        return (
+                          <tr key={expense.id} className="group hover:bg-muted/50 transition-colors" data-testid={`row-expense-${expense.id}`}>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-2">
+                                <Badge 
+                                  variant="outline" 
+                                  className={cn(
+                                    "text-[10px] font-normal",
+                                    isDiscount ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800" :
+                                    isPayableLoan ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800" :
+                                    "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800"
+                                  )}
+                                >
+                                  {cat?.type}
+                                </Badge>
+                                <span className="font-medium text-foreground">{cat?.name}</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-muted-foreground max-w-xs truncate">
+                              {expense.note || "-"}
+                            </td>
+                            <td className="px-6 py-4 font-mono text-muted-foreground text-xs">
+                              {expense.relatedPlateNumber && (
+                                <div className="flex items-center gap-1">
+                                  <Truck className="w-3 h-3" /> {expense.relatedPlateNumber}
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 text-right font-mono font-medium text-foreground">
+                              {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(expense.amount)}
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              {!isSystem && (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 p-0" data-testid={`button-actions-${expense.id}`}>
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => openEditDialog(expense)} data-testid={`button-edit-${expense.id}`}>
+                                      <Edit2 className="h-4 w-4 mr-2" /> Edit
+                                    </DropdownMenuItem>
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive" data-testid={`button-delete-trigger-${expense.id}`}>
+                                          <Trash2 className="h-4 w-4 mr-2" /> Hapus
+                                        </DropdownMenuItem>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Hapus Pengeluaran?</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Tindakan ini tidak dapat dibatalkan. Pengeluaran ini akan dihapus permanen dari sistem.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Batal</AlertDialogCancel>
+                                          <AlertDialogAction onClick={() => handleDelete(expense.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                            Hapus
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </React.Fragment>
+                  ));
+                })()
               )}
             </tbody>
           </table>
