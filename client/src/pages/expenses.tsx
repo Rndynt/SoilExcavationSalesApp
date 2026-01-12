@@ -672,11 +672,11 @@ export default function Expenses() {
                         return (
                           <tr key={expense.id} className="group hover:bg-muted/50 transition-colors" data-testid={`row-expense-${expense.id}`}>
                             <td className="px-6 py-4">
-                              <div className="flex items-center gap-2">
+                              <div className="flex flex-col gap-1">
                                 <Badge 
                                   variant="outline" 
                                   className={cn(
-                                    "text-[10px] font-normal",
+                                    "text-[10px] font-normal w-fit",
                                     isDiscount ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800" :
                                     isPayableLoan ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800" :
                                     "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800"
@@ -684,14 +684,21 @@ export default function Expenses() {
                                 >
                                   {cat?.type}
                                 </Badge>
-                                <span className="font-medium text-foreground">{cat?.name}</span>
+                                <span className="font-medium text-foreground leading-tight">{cat?.name}</span>
                               </div>
                             </td>
-                            <td className="px-6 py-4 text-muted-foreground max-w-xs truncate">
-                              {expense.note || "-"}
+                            <td className="px-6 py-4 text-muted-foreground max-w-xs">
+                              <div className="flex flex-col gap-1">
+                                <span>{expense.note || "-"}</span>
+                                {isDiscount && expense.relatedPlateNumber && (
+                                  <div className="flex items-center gap-1 text-[10px] font-mono text-amber-600 dark:text-amber-400">
+                                    <Truck className="w-3 h-3" /> {expense.relatedPlateNumber}
+                                  </div>
+                                )}
+                              </div>
                             </td>
                             <td className="px-6 py-4 font-mono text-muted-foreground text-xs">
-                              {expense.relatedPlateNumber && (
+                              {!isDiscount && expense.relatedPlateNumber && (
                                 <div className="flex items-center gap-1">
                                   <Truck className="w-3 h-3" /> {expense.relatedPlateNumber}
                                 </div>
