@@ -166,9 +166,9 @@ export default function SalesHistory() {
 
                   return Object.entries(grouped).map(([location, dates]) => (
                     <React.Fragment key={location}>
-                      <tr className="bg-primary/5 sticky top-[41px] z-30">
-                        <td colSpan={7} className="p-0 sticky left-0">
-                          <div className="flex items-center gap-2 px-6 py-3 bg-primary/5 border-y border-primary/20 backdrop-blur-sm">
+                      <tr className="bg-primary/5 sticky top-[41px] z-30 pointer-events-none">
+                        <td colSpan={6} className="p-0">
+                          <div className="flex items-center gap-2 px-6 py-3 bg-primary/5 border-y border-primary/20 backdrop-blur-sm sticky left-0 w-[calc(100vw-2rem)] md:w-full pointer-events-auto">
                             <MapPin className="h-4 w-4 text-primary" />
                             <h3 className="font-bold text-sm uppercase tracking-widest text-primary whitespace-nowrap">{location}</h3>
                             <div className="h-px flex-1 bg-primary/20 ml-2" />
@@ -188,8 +188,8 @@ export default function SalesHistory() {
                             <React.Fragment>
                               <CollapsibleTrigger asChild>
                                 <tr className="bg-muted/90 cursor-pointer hover:bg-muted border-b sticky top-[85px] z-20 backdrop-blur-sm">
-                                  <td colSpan={7} className="p-0 sticky left-0">
-                                    <div className="flex items-center bg-inherit">
+                                  <td colSpan={6} className="p-0">
+                                    <div className="flex items-center bg-inherit sticky left-0 w-[calc(100vw-2rem)] md:w-full">
                                       <div className="px-4 py-2 text-center bg-inherit z-30 border-r w-12 flex-shrink-0">
                                         {isOpen ? <ChevronUp className="h-4 w-4 mx-auto" /> : <ChevronDown className="h-4 w-4 mx-auto" />}
                                       </div>
