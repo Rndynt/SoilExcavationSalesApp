@@ -126,136 +126,146 @@ export default function SalesHistory() {
           <table className="w-full text-sm text-left">
             <thead className="bg-muted text-muted-foreground border-b sticky top-0 z-20">
               <tr>
-                <th className="w-10 px-6 py-3"></th>
-                <th className="sticky left-0 bg-muted px-6 py-3 font-medium z-20 border-r">Plate</th>
-                <th className="px-6 py-3 font-medium text-right">Base Price</th>
-                <th className="px-6 py-3 font-medium text-right">Applied Price</th>
-                <th className="px-6 py-3 font-medium text-center">Payment Status</th>
-                <th className="px-6 py-3 font-medium text-right">Outstanding</th>
-                <th className="px-6 py-3 font-medium text-right">Discount</th>
+                <th className="w-10 px-4 py-3"></th>
+                <th className="sticky left-0 bg-muted px-4 py-3 font-medium z-20 border-r">Plate</th>
+                <th className="px-4 py-3 font-medium text-right">Base Price</th>
+                <th className="px-4 py-3 font-medium text-right">Applied Price</th>
+                <th className="px-4 py-3 font-medium text-center">Status</th>
+                <th className="px-4 py-3 font-medium text-right">Outstanding</th>
+                <th className="px-4 py-3 font-medium text-right">Discount</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
-                    <td className="px-6 py-4"></td>
-                    <td className="px-6 py-4"><Skeleton className="h-4 w-20" /></td>
-                    <td className="px-6 py-4"><Skeleton className="h-4 w-16 ml-auto" /></td>
-                    <td className="px-6 py-4"><Skeleton className="h-4 w-16 ml-auto" /></td>
-                    <td className="px-6 py-4"><Skeleton className="h-4 w-16 mx-auto" /></td>
-                    <td className="px-6 py-4"><Skeleton className="h-4 w-16 ml-auto" /></td>
-                    <td className="px-6 py-4"><Skeleton className="h-4 w-16 ml-auto" /></td>
+                    <td className="px-4 py-4"></td>
+                    <td className="sticky left-0 bg-muted px-4 py-4 border-r"><Skeleton className="h-4 w-20" /></td>
+                    <td className="px-4 py-4"><Skeleton className="h-4 w-16 ml-auto" /></td>
+                    <td className="px-4 py-4"><Skeleton className="h-4 w-16 ml-auto" /></td>
+                    <td className="px-4 py-4"><Skeleton className="h-4 w-16 mx-auto" /></td>
+                    <td className="px-4 py-4"><Skeleton className="h-4 w-16 ml-auto" /></td>
+                    <td className="px-4 py-4"><Skeleton className="h-4 w-16 ml-auto" /></td>
                   </tr>
                 ))
               ) : trips.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
+                  <td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">
                     No trips found matching filters.
                   </td>
                 </tr>
               ) : (
                 (() => {
-                  const grouped: { [key: string]: typeof trips } = {};
+                  const grouped: { [key: string]: { [key: string]: typeof trips } } = {};
                   trips.forEach(trip => {
                     const locationName = locations.find(l => l.id === trip.locationId)?.name || 'Unknown';
                     const dateKey = format(new Date(trip.transDate), "EEEE, dd MMM yyyy");
-                    const groupKey = `${locationName} | ${dateKey}`;
-                    if (!grouped[groupKey]) grouped[groupKey] = [];
-                    grouped[groupKey].push(trip);
+                    if (!grouped[locationName]) grouped[locationName] = {};
+                    if (!grouped[locationName][dateKey]) grouped[locationName][dateKey] = [];
+                    grouped[locationName][dateKey].push(trip);
                   });
 
-                  return Object.entries(grouped).map(([groupLabel, items]) => {
-                    const isOpen = expandedDates[groupLabel] === true; // Default collapsed
-                    return (
-                      <Collapsible
-                        key={groupLabel}
-                        open={isOpen}
-                        onOpenChange={() => toggleDate(groupLabel)}
-                        asChild
-                      >
-                        <React.Fragment>
-                          <CollapsibleTrigger asChild>
-                            <tr className="bg-muted/30 cursor-pointer hover:bg-muted/50">
-                              <td className="px-6 py-2 text-center">
-                                {isOpen ? <ChevronUp className="h-4 w-4 mx-auto" /> : <ChevronDown className="h-4 w-4 mx-auto" />}
-                              </td>
-                              <td colSpan={7} className="px-0 py-2 font-bold text-xs uppercase tracking-wider text-primary">
-                                <div className="flex items-center gap-2 px-6">
-                                  <span>{groupLabel}</span>
-                                  <span className="text-muted-foreground/50">•</span>
-                                  <span>{items.length} trips</span>
-                                </div>
-                              </td>
-                            </tr>
-                          </CollapsibleTrigger>
-                          <CollapsibleContent asChild>
-                            <>
-                              {items.map((trip) => {
-                                const tripDiscount = Math.max(0, trip.basePrice - trip.appliedPrice);
-                                const outstanding = trip.appliedPrice - trip.paidAmount;
-                                
-                                return (
-                                  <tr key={trip.id} className="group hover:bg-muted/50 transition-colors" data-testid={`row-trip-${trip.id}`}>
-                                    <td className="px-6 py-4"></td>
-                                    <td className="sticky left-0 bg-card group-hover:bg-muted/50 px-6 py-4 font-mono font-medium z-10 border-r" data-testid={`text-plate-${trip.id}`}>
-                                      <div className="flex flex-col">
-                                        <span>{trip.plateNumber}</span>
-                                        <span className="text-[10px] text-muted-foreground font-sans">
-                                          {format(new Date(trip.createdAt), "HH:mm")}
-                                        </span>
-                                      </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-right font-mono text-muted-foreground" data-testid={`text-base-price-${trip.id}`}>
-                                      {new Intl.NumberFormat('id-ID').format(trip.basePrice)}
-                                    </td>
-                                    <td className="px-6 py-4 text-right font-mono font-medium" data-testid={`text-applied-price-${trip.id}`}>
-                                      {new Intl.NumberFormat('id-ID').format(trip.appliedPrice)}
-                                    </td>
-                                    <td className="px-6 py-4 text-center" data-testid={`status-payment-${trip.id}`}>
-                                      {trip.paymentStatus === 'PAID' ? (
-                                        <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800 text-[10px]">
-                                          Paid
-                                        </Badge>
-                                      ) : trip.paymentStatus === 'PARTIAL' ? (
-                                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800 text-[10px]">
-                                          Partial
-                                        </Badge>
-                                      ) : (
-                                        <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-800 text-[10px]">
-                                          Unpaid
-                                        </Badge>
-                                      )}
-                                    </td>
-                                    <td className="px-6 py-4 text-right font-mono" data-testid={`text-outstanding-${trip.id}`}>
-                                      {outstanding > 0 ? (
-                                        <span className="text-red-600 dark:text-red-400">
-                                          {new Intl.NumberFormat('id-ID').format(outstanding)}
-                                        </span>
-                                      ) : (
-                                        <span className="text-muted-foreground">-</span>
-                                      )}
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                      {tripDiscount > 0 ? (
-                                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800 text-[10px]">
-                                          - {new Intl.NumberFormat('id-ID', { notation: "compact" }).format(tripDiscount)}
-                                        </Badge>
-                                      ) : (
-                                        <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800 text-[10px]">
-                                          Standard
-                                        </Badge>
-                                      )}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </>
-                          </CollapsibleContent>
-                        </React.Fragment>
-                      </Collapsible>
-                    );
-                  });
+                  return Object.entries(grouped).map(([location, dates]) => (
+                    <React.Fragment key={location}>
+                      <tr className="bg-primary/5">
+                        <td colSpan={7} className="px-6 py-2 font-black text-sm uppercase tracking-widest text-primary border-y border-primary/20">
+                          {location}
+                        </td>
+                      </tr>
+                      {Object.entries(dates).map(([date, items]) => {
+                        const groupKey = `${location}-${date}`;
+                        const isOpen = expandedDates[groupKey] === true;
+                        return (
+                          <Collapsible
+                            key={groupKey}
+                            open={isOpen}
+                            onOpenChange={() => toggleDate(groupKey)}
+                            asChild
+                          >
+                            <React.Fragment>
+                              <CollapsibleTrigger asChild>
+                                <tr className="bg-muted/30 cursor-pointer hover:bg-muted/50 border-b">
+                                  <td className="px-4 py-2 text-center">
+                                    {isOpen ? <ChevronUp className="h-4 w-4 mx-auto" /> : <ChevronDown className="h-4 w-4 mx-auto" />}
+                                  </td>
+                                  <td colSpan={6} className="px-0 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground">
+                                    <div className="flex items-center gap-2 px-2">
+                                      <span>{date}</span>
+                                      <span className="text-muted-foreground/30">•</span>
+                                      <span className="text-primary/70">{items.length} trips</span>
+                                    </div>
+                                  </td>
+                                </tr>
+                              </CollapsibleTrigger>
+                              <CollapsibleContent asChild>
+                                <>
+                                  {items.map((trip) => {
+                                    const tripDiscount = Math.max(0, trip.basePrice - trip.appliedPrice);
+                                    const outstanding = trip.appliedPrice - trip.paidAmount;
+                                    
+                                    return (
+                                      <tr key={trip.id} className="group hover:bg-muted/50 transition-colors border-b" data-testid={`row-trip-${trip.id}`}>
+                                        <td className="px-4 py-4"></td>
+                                        <td className="sticky left-0 bg-card group-hover:bg-muted/50 px-4 py-4 font-mono font-medium z-10 border-r whitespace-nowrap" data-testid={`text-plate-${trip.id}`}>
+                                          <div className="flex flex-col">
+                                            <span className="text-sm">{trip.plateNumber}</span>
+                                            <span className="text-[10px] text-muted-foreground font-sans">
+                                              {format(new Date(trip.createdAt), "HH:mm")}
+                                            </span>
+                                          </div>
+                                        </td>
+                                        <td className="px-4 py-4 text-right font-mono text-muted-foreground text-xs" data-testid={`text-base-price-${trip.id}`}>
+                                          {new Intl.NumberFormat('id-ID').format(trip.basePrice)}
+                                        </td>
+                                        <td className="px-4 py-4 text-right font-mono font-bold text-sm" data-testid={`text-applied-price-${trip.id}`}>
+                                          {new Intl.NumberFormat('id-ID').format(trip.appliedPrice)}
+                                        </td>
+                                        <td className="px-4 py-4 text-center" data-testid={`status-payment-${trip.id}`}>
+                                          {trip.paymentStatus === 'PAID' ? (
+                                            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800 text-[9px] px-1 py-0 h-4">
+                                              Paid
+                                            </Badge>
+                                          ) : trip.paymentStatus === 'PARTIAL' ? (
+                                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800 text-[9px] px-1 py-0 h-4">
+                                              Part
+                                            </Badge>
+                                          ) : (
+                                            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-800 text-[9px] px-1 py-0 h-4">
+                                              Unp
+                                            </Badge>
+                                          )}
+                                        </td>
+                                        <td className="px-4 py-4 text-right font-mono text-xs" data-testid={`text-outstanding-${trip.id}`}>
+                                          {outstanding > 0 ? (
+                                            <span className="text-red-600 dark:text-red-400">
+                                              {new Intl.NumberFormat('id-ID').format(outstanding)}
+                                            </span>
+                                          ) : (
+                                            <span className="text-muted-foreground">-</span>
+                                          )}
+                                        </td>
+                                        <td className="px-4 py-4 text-right">
+                                          {tripDiscount > 0 ? (
+                                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800 text-[9px] px-1 py-0 h-4">
+                                              -{new Intl.NumberFormat('id-ID', { notation: "compact" }).format(tripDiscount)}
+                                            </Badge>
+                                          ) : (
+                                            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800 text-[9px] px-1 py-0 h-4">
+                                              Std
+                                            </Badge>
+                                          )}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </>
+                              </CollapsibleContent>
+                            </React.Fragment>
+                          </Collapsible>
+                        );
+                      })}
+                    </React.Fragment>
+                  ));
                 })()
               )}
             </tbody>
