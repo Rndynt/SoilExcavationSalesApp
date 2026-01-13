@@ -123,11 +123,11 @@ export default function SalesHistory() {
 
       <div className="bg-card rounded-xl border overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-muted text-muted-foreground border-b sticky top-0 z-20">
+          <table className="w-full text-sm text-left border-collapse">
+            <thead className="bg-muted text-muted-foreground border-b sticky top-0 z-40">
               <tr>
-                <th className="w-10 px-4 py-3"></th>
-                <th className="sticky left-0 bg-muted px-4 py-3 font-medium z-20 border-r">Plate</th>
+                <th className="w-10 px-4 py-3 sticky left-0 bg-muted z-50"></th>
+                <th className="sticky left-10 bg-muted px-4 py-3 font-medium z-50 border-r">Plate</th>
                 <th className="px-4 py-3 font-medium text-right">Base Price</th>
                 <th className="px-4 py-3 font-medium text-right">Applied Price</th>
                 <th className="px-4 py-3 font-medium text-center">Status</th>
@@ -139,8 +139,8 @@ export default function SalesHistory() {
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
-                    <td className="px-4 py-4"></td>
-                    <td className="sticky left-0 bg-muted px-4 py-4 border-r"><Skeleton className="h-4 w-20" /></td>
+                    <td className="px-4 py-4 sticky left-0 bg-card z-10"></td>
+                    <td className="sticky left-10 bg-card px-4 py-4 border-r z-10"><Skeleton className="h-4 w-20" /></td>
                     <td className="px-4 py-4"><Skeleton className="h-4 w-16 ml-auto" /></td>
                     <td className="px-4 py-4"><Skeleton className="h-4 w-16 ml-auto" /></td>
                     <td className="px-4 py-4"><Skeleton className="h-4 w-16 mx-auto" /></td>
@@ -165,8 +165,10 @@ export default function SalesHistory() {
                     grouped[locationName][dateKey].push(trip);
                   });
 
+                  return Object.entries(grouped).map(([location, dates]) => (
+                    <React.Fragment key={location}>
                       <tr className="bg-primary/5 sticky top-[41px] left-0 z-30">
-                        <td colSpan={7} className="sticky left-0 px-6 py-2 font-black text-sm uppercase tracking-widest text-primary border-y border-primary/20 backdrop-blur-sm whitespace-nowrap">
+                        <td colSpan={7} className="sticky left-0 px-6 py-2 font-black text-sm uppercase tracking-widest text-primary border-y border-primary/20 backdrop-blur-sm whitespace-nowrap bg-inherit">
                           {location}
                         </td>
                       </tr>
@@ -186,7 +188,7 @@ export default function SalesHistory() {
                                   <td className="sticky left-0 px-4 py-2 text-center bg-inherit z-30 border-r">
                                     {isOpen ? <ChevronUp className="h-4 w-4 mx-auto" /> : <ChevronDown className="h-4 w-4 mx-auto" />}
                                   </td>
-                                  <td colSpan={6} className="sticky left-10 px-0 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground bg-inherit z-20">
+                                  <td colSpan={6} className="sticky left-12 px-0 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground bg-inherit z-20">
                                     <div className="flex items-center gap-2 px-2 whitespace-nowrap">
                                       <span>{date}</span>
                                       <span className="text-muted-foreground/30">•</span>
@@ -196,15 +198,15 @@ export default function SalesHistory() {
                                 </tr>
                               </CollapsibleTrigger>
                               <CollapsibleContent asChild>
-                                <>
+                                <React.Fragment>
                                   {items.map((trip) => {
                                     const tripDiscount = Math.max(0, trip.basePrice - trip.appliedPrice);
                                     const outstanding = trip.appliedPrice - trip.paidAmount;
                                     
                                     return (
                                       <tr key={trip.id} className="group hover:bg-muted/50 transition-colors border-b" data-testid={`row-trip-${trip.id}`}>
-                                        <td className="px-4 py-4"></td>
-                                        <td className="sticky left-0 bg-card group-hover:bg-muted/50 px-4 py-4 font-mono font-medium z-10 border-r whitespace-nowrap" data-testid={`text-plate-${trip.id}`}>
+                                        <td className="px-4 py-4 sticky left-0 bg-card group-hover:bg-muted/50 z-10"></td>
+                                        <td className="sticky left-10 bg-card group-hover:bg-muted/50 px-4 py-4 font-mono font-medium z-10 border-r whitespace-nowrap" data-testid={`text-plate-${trip.id}`}>
                                           <div className="flex flex-col">
                                             <span className="text-sm">{trip.plateNumber}</span>
                                             <span className="text-[10px] text-muted-foreground font-sans">
@@ -256,7 +258,7 @@ export default function SalesHistory() {
                                       </tr>
                                     );
                                   })}
-                                </>
+                                </React.Fragment>
                               </CollapsibleContent>
                             </React.Fragment>
                           </Collapsible>
