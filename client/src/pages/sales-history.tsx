@@ -54,6 +54,7 @@ export default function SalesHistory() {
   const [filterLocation, setFilterLocation] = useState("all");
   const [filterPaymentStatus, setFilterPaymentStatus] = useState("all");
   const [period, setPeriod] = useState<TimePeriod>("THIS_MONTH");
+  const [configOpen, setConfigOpen] = useState(false);
   const [dateRange, setDateRange] = useState<{ from: string | undefined; to: string | undefined }>(() => {
     const [start, end] = getDateRange("THIS_MONTH");
     return { from: start, to: end };
@@ -97,8 +98,92 @@ export default function SalesHistory() {
 
       <Card className="border-border shadow-sm bg-accent/20">
         <CardContent className="p-4 space-y-4">
-          <div className="flex flex-col md:flex-row gap-4 items-end flex-wrap">
-            <div className="w-full md:w-48 space-y-2">
+          <Collapsible open={configOpen} onOpenChange={setConfigOpen} className="space-y-4">
+            <div className="flex items-center justify-between gap-4 px-1">
+              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                <Calendar className="h-3 w-3" />
+                {period === "ALL" ? "All Time" : (dateRange.from && dateRange.to ? `${format(new Date(dateRange.from), "dd MMM yyyy")} - ${format(new Date(dateRange.to), "dd MMM yyyy")}` : "Select Period")}
+                <span className="text-muted-foreground/30">•</span>
+                <MapPin className="h-3 w-3" />
+                {filterLocation === "all" ? "All Locations" : (locations.find(l => l.id === filterLocation)?.name || "Location")}
+              </div>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
+                  {configOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                  {configOpen ? "Close" : "Change"}
+                </Button>
+              </CollapsibleTrigger>
+            </div>
+
+            <CollapsibleContent className="space-y-4 pt-2 border-t border-dashed animate-in fade-in slide-in-from-top-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                    <Calendar className="h-3 w-3" />
+                    Time Period
+                  </span>
+                  <Select value={period} onValueChange={(val) => handlePeriodChange(val as TimePeriod)}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All Time</SelectItem>
+                      <SelectItem value="TODAY">Today</SelectItem>
+                      <SelectItem value="YESTERDAY">Yesterday</SelectItem>
+                      <SelectItem value="THIS_WEEK">This Week</SelectItem>
+                      <SelectItem value="THIS_MONTH">This Month</SelectItem>
+                      <SelectItem value="LAST_MONTH">Last Month</SelectItem>
+                      <SelectItem value="CUSTOM">Custom Range</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                    <MapPin className="h-3 w-3" />
+                    Location
+                  </span>
+                  <Select value={filterLocation} onValueChange={setFilterLocation}>
+                    <SelectTrigger data-testid="select-location-trigger" className="h-9">
+                      <SelectValue placeholder="All Locations" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all" data-testid="select-location-all">All Locations</SelectItem>
+                      {locations.map(loc => (
+                        <SelectItem key={loc.id} value={loc.id} data-testid={`select-location-${loc.id}`}>{loc.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {period === "CUSTOM" && (
+                  <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">From</span>
+                      <Input 
+                        type="date"
+                        value={dateRange.from || ""}
+                        onChange={e => setDateRange(prev => ({ ...prev, from: e.target.value }))}
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">To</span>
+                      <Input 
+                        type="date"
+                        value={dateRange.to || ""}
+                        onChange={e => setDateRange(prev => ({ ...prev, to: e.target.value }))}
+                        className="h-9"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          <div className="pt-4 border-t border-dashed flex flex-col md:flex-row gap-4 items-end flex-wrap">
+            <div className="w-full md:w-64 space-y-2">
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                 <Search className="h-3 w-3" />
                 Search Plate
@@ -110,24 +195,6 @@ export default function SalesHistory() {
                 onChange={e => setFilterPlate(e.target.value)}
                 className="h-9"
               />
-            </div>
-            
-            <div className="w-full md:w-48 space-y-2">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                <MapPin className="h-3 w-3" />
-                Location
-              </span>
-              <Select value={filterLocation} onValueChange={setFilterLocation}>
-                <SelectTrigger data-testid="select-location-trigger" className="h-9">
-                  <SelectValue placeholder="All Locations" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all" data-testid="select-location-all">All Locations</SelectItem>
-                  {locations.map(loc => (
-                    <SelectItem key={loc.id} value={loc.id} data-testid={`select-location-${loc.id}`}>{loc.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             <div className="w-full md:w-48 space-y-2">
@@ -147,52 +214,6 @@ export default function SalesHistory() {
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <div className="pt-4 border-t border-dashed flex flex-col md:flex-row gap-4 items-end flex-wrap">
-            <div className="w-full md:w-48 space-y-2">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                <Calendar className="h-3 w-3" />
-                Time Period
-              </span>
-              <Select value={period} onValueChange={(val) => handlePeriodChange(val as TimePeriod)}>
-                <SelectTrigger className="h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">All Time</SelectItem>
-                  <SelectItem value="TODAY">Today</SelectItem>
-                  <SelectItem value="YESTERDAY">Yesterday</SelectItem>
-                  <SelectItem value="THIS_WEEK">This Week</SelectItem>
-                  <SelectItem value="THIS_MONTH">This Month</SelectItem>
-                  <SelectItem value="LAST_MONTH">Last Month</SelectItem>
-                  <SelectItem value="CUSTOM">Custom Range</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {period === "CUSTOM" && (
-              <>
-                <div className="w-full md:w-40 space-y-2">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">From</span>
-                  <Input 
-                    type="date"
-                    value={dateRange.from || ""}
-                    onChange={e => setDateRange(prev => ({ ...prev, from: e.target.value }))}
-                    className="h-9"
-                  />
-                </div>
-                <div className="w-full md:w-40 space-y-2">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">To</span>
-                  <Input 
-                    type="date"
-                    value={dateRange.to || ""}
-                    onChange={e => setDateRange(prev => ({ ...prev, to: e.target.value }))}
-                    className="h-9"
-                  />
-                </div>
-              </>
-            )}
 
             <div className="w-full md:w-auto text-right text-sm text-muted-foreground pb-2 md:ml-auto">
               {isLoading ? (
