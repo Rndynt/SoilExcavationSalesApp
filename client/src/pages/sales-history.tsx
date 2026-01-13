@@ -167,9 +167,11 @@ export default function SalesHistory() {
 
                   return Object.entries(grouped).map(([location, dates]) => (
                     <React.Fragment key={location}>
-                      <tr className="bg-primary/5 sticky top-[41px] left-0 z-30">
-                        <td colSpan={7} className="sticky left-0 px-6 py-2 font-black text-sm uppercase tracking-widest text-primary border-y border-primary/20 backdrop-blur-sm whitespace-nowrap bg-inherit min-w-full">
-                          {location}
+                      <tr className="bg-primary/5 sticky top-[41px] z-30">
+                        <td colSpan={7} className="p-0">
+                          <div className="sticky left-0 w-full px-6 py-2 font-black text-sm uppercase tracking-widest text-primary border-y border-primary/20 backdrop-blur-sm whitespace-nowrap bg-inherit">
+                            {location}
+                          </div>
                         </td>
                       </tr>
                       {Object.entries(dates).map(([date, items]) => {
@@ -184,15 +186,19 @@ export default function SalesHistory() {
                           >
                             <React.Fragment>
                               <CollapsibleTrigger asChild>
-                                <tr className="bg-muted/90 cursor-pointer hover:bg-muted border-b sticky top-[77px] left-0 z-20 backdrop-blur-sm">
-                                  <td className="sticky left-0 px-4 py-2 text-center bg-inherit z-30 border-r">
-                                    {isOpen ? <ChevronUp className="h-4 w-4 mx-auto" /> : <ChevronDown className="h-4 w-4 mx-auto" />}
-                                  </td>
-                                  <td colSpan={6} className="sticky left-12 px-0 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground bg-inherit z-20 min-w-full">
-                                    <div className="flex items-center gap-2 px-2 whitespace-nowrap">
-                                      <span>{date}</span>
-                                      <span className="text-muted-foreground/30">•</span>
-                                      <span className="text-primary/70">{items.length} trips</span>
+                                <tr className="bg-muted/90 cursor-pointer hover:bg-muted border-b sticky top-[77px] z-20 backdrop-blur-sm">
+                                  <td colSpan={7} className="p-0">
+                                    <div className="sticky left-0 w-full flex items-center bg-inherit">
+                                      <div className="sticky left-0 px-4 py-2 text-center bg-inherit z-30 border-r w-12 flex-shrink-0">
+                                        {isOpen ? <ChevronUp className="h-4 w-4 mx-auto" /> : <ChevronDown className="h-4 w-4 mx-auto" />}
+                                      </div>
+                                      <div className="px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground bg-inherit z-20 whitespace-nowrap">
+                                        <div className="flex items-center gap-2">
+                                          <span>{date}</span>
+                                          <span className="text-muted-foreground/30">•</span>
+                                          <span className="text-primary/70">{items.length} trips</span>
+                                        </div>
+                                      </div>
                                     </div>
                                   </td>
                                 </tr>
