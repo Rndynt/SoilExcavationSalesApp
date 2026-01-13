@@ -158,28 +158,30 @@ export default function SalesHistory() {
                 (() => {
                   const grouped: { [key: string]: typeof trips } = {};
                   trips.forEach(trip => {
+                    const locationName = locations.find(l => l.id === trip.locationId)?.name || 'Unknown';
                     const dateKey = format(new Date(trip.transDate), "EEEE, dd MMM yyyy");
-                    if (!grouped[dateKey]) grouped[dateKey] = [];
-                    grouped[dateKey].push(trip);
+                    const groupKey = `${locationName} | ${dateKey}`;
+                    if (!grouped[groupKey]) grouped[groupKey] = [];
+                    grouped[groupKey].push(trip);
                   });
 
-                  return Object.entries(grouped).map(([date, items]) => {
-                    const isOpen = expandedDates[date] !== false;
+                  return Object.entries(grouped).map(([groupLabel, items]) => {
+                    const isOpen = expandedDates[groupLabel] === true; // Default collapsed
                     return (
                       <Collapsible
-                        key={date}
+                        key={groupLabel}
                         open={isOpen}
-                        onOpenChange={() => toggleDate(date)}
+                        onOpenChange={() => toggleDate(groupLabel)}
                         asChild
                       >
                         <React.Fragment>
                           <CollapsibleTrigger asChild>
                             <tr className="bg-muted/30 cursor-pointer hover:bg-muted/50">
-                              <td className="px-6 py-2">
-                                {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                              <td className="px-6 py-2 text-center">
+                                {isOpen ? <ChevronUp className="h-4 w-4 mx-auto" /> : <ChevronDown className="h-4 w-4 mx-auto" />}
                               </td>
                               <td colSpan={6} className="px-0 py-2 font-bold text-xs uppercase tracking-wider text-primary">
-                                {date} ({items.length} trips)
+                                {groupLabel} ({items.length} trips)
                               </td>
                             </tr>
                           </CollapsibleTrigger>
@@ -187,7 +189,6 @@ export default function SalesHistory() {
                             <>
                               {items.map((trip) => {
                                 const tripDiscount = Math.max(0, trip.basePrice - trip.appliedPrice);
-                                const locationName = locations.find(l => l.id === trip.locationId)?.name || 'Unknown';
                                 const outstanding = trip.appliedPrice - trip.paidAmount;
                                 
                                 return (
@@ -197,7 +198,7 @@ export default function SalesHistory() {
                                       <div className="flex flex-col">
                                         <span>{trip.plateNumber}</span>
                                         <span className="text-[10px] text-muted-foreground font-sans">
-                                          {locationName} • {format(new Date(trip.createdAt), "HH:mm")}
+                                          {format(new Date(trip.createdAt), "HH:mm")}
                                         </span>
                                       </div>
                                     </td>
