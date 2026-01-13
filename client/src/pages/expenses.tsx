@@ -85,6 +85,7 @@ export default function Expenses() {
     return { from: start, to: end };
   });
   const [configOpen, setConfigOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Edit State
   const [editingExpense, setEditingExpense] = useState<any>(null);
@@ -158,6 +159,15 @@ export default function Expenses() {
     
     // Filter by date range
     if (e.expenseDate < dateRange.from || e.expenseDate > dateRange.to) return false;
+
+    // Filter by search query
+    if (searchQuery) {
+      const lowerQuery = searchQuery.toLowerCase();
+      const matchesNote = e.note?.toLowerCase().includes(lowerQuery);
+      const matchesPlate = e.relatedPlateNumber?.toLowerCase().includes(lowerQuery);
+      const matchesCat = cat.name.toLowerCase().includes(lowerQuery);
+      if (!matchesNote && !matchesPlate && !matchesCat) return false;
+    }
     
     return true;
   }).sort((a,b) => new Date(b.expenseDate).getTime() - new Date(a.expenseDate).getTime());
