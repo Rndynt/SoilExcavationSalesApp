@@ -4,29 +4,80 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { format } from "date-fns";
-import { Search, Loader2, ChevronDown, ChevronUp, MapPin } from "lucide-react";
+import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays } from "date-fns";
+import { Search, Loader2, ChevronDown, ChevronUp, MapPin, Calendar, Filter } from "lucide-react";
 import React, { useState } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { cn } from "@/lib/utils";
+
+type TimePeriod = "TODAY" | "YESTERDAY" | "THIS_WEEK" | "THIS_MONTH" | "LAST_MONTH" | "ALL" | "CUSTOM";
+
+const getDateRange = (period: TimePeriod): [string | undefined, string | undefined] => {
+  if (period === "ALL") return [undefined, undefined];
+  
+  const now = new Date();
+  let start: Date;
+  let end: Date;
+
+  switch (period) {
+    case "TODAY":
+      start = startOfDay(now);
+      end = endOfDay(now);
+      break;
+    case "YESTERDAY":
+      const yesterday = subDays(now, 1);
+      start = startOfDay(yesterday);
+      end = endOfDay(yesterday);
+      break;
+    case "THIS_WEEK":
+      start = startOfWeek(now, { weekStartsOn: 0 });
+      end = endOfWeek(now, { weekStartsOn: 0 });
+      break;
+    case "THIS_MONTH":
+      start = startOfMonth(now);
+      end = endOfMonth(now);
+      break;
+    case "LAST_MONTH":
+      const lastMonth = subDays(now, 30);
+      start = startOfMonth(lastMonth);
+      end = endOfMonth(lastMonth);
+      break;
+    default:
+      return [undefined, undefined];
+  }
+
+  return [format(start, 'yyyy-MM-dd'), format(end, 'yyyy-MM-dd')];
+};
 
 export default function SalesHistory() {
   const [filterPlate, setFilterPlate] = useState("");
   const [filterLocation, setFilterLocation] = useState("all");
   const [filterPaymentStatus, setFilterPaymentStatus] = useState("all");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const [period, setPeriod] = useState<TimePeriod>("THIS_MONTH");
+  const [dateRange, setDateRange] = useState<{ from: string | undefined; to: string | undefined }>(() => {
+    const [start, end] = getDateRange("THIS_MONTH");
+    return { from: start, to: end };
+  });
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
 
   const { data: locations = [], isLoading: locationsLoading } = useLocations();
   const { data: trips = [], isLoading: tripsLoading } = useSaleTrips({
     locationId: filterLocation !== "all" ? filterLocation : undefined,
-    dateFrom: dateFrom || undefined,
-    dateTo: dateTo || undefined,
+    dateFrom: dateRange.from,
+    dateTo: dateRange.to,
     plateNumber: filterPlate || undefined,
     paymentStatus: filterPaymentStatus !== "all" ? filterPaymentStatus : undefined,
   });
 
   const isLoading = locationsLoading || tripsLoading;
+
+  const handlePeriodChange = (val: TimePeriod) => {
+    setPeriod(val);
+    if (val !== "CUSTOM") {
+      const [start, end] = getDateRange(val);
+      setDateRange({ from: start, to: end });
+    }
+  };
 
   const toggleDate = (date: string) => {
     setExpandedDates(prev => ({
@@ -37,86 +88,122 @@ export default function SalesHistory() {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Sales History</h2>
-        <p className="text-muted-foreground mt-1">Review past transactions.</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Sales History</h2>
+          <p className="text-muted-foreground mt-1">Review past transactions.</p>
+        </div>
       </div>
 
-      <Card>
-        <CardContent className="p-4 flex flex-col md:flex-row gap-4 items-end flex-wrap">
-          <div className="w-full md:w-48 space-y-2">
-            <span className="text-xs font-semibold text-muted-foreground uppercase">Search Plate</span>
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+      <Card className="border-border shadow-sm bg-accent/20">
+        <CardContent className="p-4 space-y-4">
+          <div className="flex flex-col md:flex-row gap-4 items-end flex-wrap">
+            <div className="w-full md:w-48 space-y-2">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                <Search className="h-3 w-3" />
+                Search Plate
+              </span>
               <Input 
                 data-testid="input-search-plate"
                 placeholder="Search..." 
                 value={filterPlate}
                 onChange={e => setFilterPlate(e.target.value)}
-                className="pl-9"
+                className="h-9"
               />
             </div>
-          </div>
-          
-          <div className="w-full md:w-48 space-y-2">
-            <span className="text-xs font-semibold text-muted-foreground uppercase">Location</span>
-            <Select value={filterLocation} onValueChange={setFilterLocation}>
-              <SelectTrigger data-testid="select-location-trigger">
-                <SelectValue placeholder="All Locations" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all" data-testid="select-location-all">All Locations</SelectItem>
-                {locations.map(loc => (
-                  <SelectItem key={loc.id} value={loc.id} data-testid={`select-location-${loc.id}`}>{loc.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="w-full md:w-40 space-y-2">
-            <span className="text-xs font-semibold text-muted-foreground uppercase">Date From</span>
-            <Input 
-              data-testid="input-date-from"
-              type="date"
-              value={dateFrom}
-              onChange={e => setDateFrom(e.target.value)}
-            />
-          </div>
-
-          <div className="w-full md:w-40 space-y-2">
-            <span className="text-xs font-semibold text-muted-foreground uppercase">Date To</span>
-            <Input 
-              data-testid="input-date-to"
-              type="date"
-              value={dateTo}
-              onChange={e => setDateTo(e.target.value)}
-            />
-          </div>
-
-          <div className="w-full md:w-40 space-y-2">
-            <span className="text-xs font-semibold text-muted-foreground uppercase">Payment Status</span>
-            <Select value={filterPaymentStatus} onValueChange={setFilterPaymentStatus}>
-              <SelectTrigger data-testid="select-payment-status-trigger">
-                <SelectValue placeholder="All Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all" data-testid="select-payment-all">All Status</SelectItem>
-                <SelectItem value="PAID" data-testid="select-payment-paid">Paid</SelectItem>
-                <SelectItem value="PARTIAL" data-testid="select-payment-partial">Partial</SelectItem>
-                <SelectItem value="UNPAID" data-testid="select-payment-unpaid">Unpaid</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="w-full md:w-auto text-right text-sm text-muted-foreground pb-2 md:ml-auto">
-            {isLoading ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Loading...
+            
+            <div className="w-full md:w-48 space-y-2">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                <MapPin className="h-3 w-3" />
+                Location
               </span>
-            ) : (
-              <span data-testid="text-record-count">Showing {trips.length} records</span>
+              <Select value={filterLocation} onValueChange={setFilterLocation}>
+                <SelectTrigger data-testid="select-location-trigger" className="h-9">
+                  <SelectValue placeholder="All Locations" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" data-testid="select-location-all">All Locations</SelectItem>
+                  {locations.map(loc => (
+                    <SelectItem key={loc.id} value={loc.id} data-testid={`select-location-${loc.id}`}>{loc.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="w-full md:w-48 space-y-2">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                <Filter className="h-3 w-3" />
+                Payment Status
+              </span>
+              <Select value={filterPaymentStatus} onValueChange={setFilterPaymentStatus}>
+                <SelectTrigger data-testid="select-payment-status-trigger" className="h-9">
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" data-testid="select-payment-all">All Status</SelectItem>
+                  <SelectItem value="PAID" data-testid="select-payment-paid">Paid</SelectItem>
+                  <SelectItem value="PARTIAL" data-testid="select-payment-partial">Partial</SelectItem>
+                  <SelectItem value="UNPAID" data-testid="select-payment-unpaid">Unpaid</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-dashed flex flex-col md:flex-row gap-4 items-end flex-wrap">
+            <div className="w-full md:w-48 space-y-2">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                <Calendar className="h-3 w-3" />
+                Time Period
+              </span>
+              <Select value={period} onValueChange={(val) => handlePeriodChange(val as TimePeriod)}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All Time</SelectItem>
+                  <SelectItem value="TODAY">Today</SelectItem>
+                  <SelectItem value="YESTERDAY">Yesterday</SelectItem>
+                  <SelectItem value="THIS_WEEK">This Week</SelectItem>
+                  <SelectItem value="THIS_MONTH">This Month</SelectItem>
+                  <SelectItem value="LAST_MONTH">Last Month</SelectItem>
+                  <SelectItem value="CUSTOM">Custom Range</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {period === "CUSTOM" && (
+              <>
+                <div className="w-full md:w-40 space-y-2">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">From</span>
+                  <Input 
+                    type="date"
+                    value={dateRange.from || ""}
+                    onChange={e => setDateRange(prev => ({ ...prev, from: e.target.value }))}
+                    className="h-9"
+                  />
+                </div>
+                <div className="w-full md:w-40 space-y-2">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">To</span>
+                  <Input 
+                    type="date"
+                    value={dateRange.to || ""}
+                    onChange={e => setDateRange(prev => ({ ...prev, to: e.target.value }))}
+                    className="h-9"
+                  />
+                </div>
+              </>
             )}
+
+            <div className="w-full md:w-auto text-right text-sm text-muted-foreground pb-2 md:ml-auto">
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading...
+                </span>
+              ) : (
+                <span data-testid="text-record-count">Showing {trips.length} records</span>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
