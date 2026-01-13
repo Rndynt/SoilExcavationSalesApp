@@ -165,10 +165,8 @@ export default function SalesHistory() {
                     grouped[locationName][dateKey].push(trip);
                   });
 
-                  return Object.entries(grouped).map(([location, dates]) => (
-                    <React.Fragment key={location}>
-                      <tr className="bg-primary/5 sticky top-[41px] z-20">
-                        <td colSpan={7} className="px-6 py-2 font-black text-sm uppercase tracking-widest text-primary border-y border-primary/20 backdrop-blur-sm">
+                      <tr className="bg-primary/5 sticky top-[41px] left-0 z-30">
+                        <td colSpan={7} className="sticky left-0 px-6 py-2 font-black text-sm uppercase tracking-widest text-primary border-y border-primary/20 backdrop-blur-sm whitespace-nowrap">
                           {location}
                         </td>
                       </tr>
@@ -184,12 +182,12 @@ export default function SalesHistory() {
                           >
                             <React.Fragment>
                               <CollapsibleTrigger asChild>
-                                <tr className="bg-muted/90 cursor-pointer hover:bg-muted border-b sticky top-[77px] z-10 backdrop-blur-sm">
-                                  <td className="px-4 py-2 text-center">
+                                <tr className="bg-muted/90 cursor-pointer hover:bg-muted border-b sticky top-[77px] left-0 z-20 backdrop-blur-sm">
+                                  <td className="sticky left-0 px-4 py-2 text-center bg-inherit z-30 border-r">
                                     {isOpen ? <ChevronUp className="h-4 w-4 mx-auto" /> : <ChevronDown className="h-4 w-4 mx-auto" />}
                                   </td>
-                                  <td colSpan={6} className="px-0 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground">
-                                    <div className="flex items-center gap-2 px-2">
+                                  <td colSpan={6} className="sticky left-10 px-0 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground bg-inherit z-20">
+                                    <div className="flex items-center gap-2 px-2 whitespace-nowrap">
                                       <span>{date}</span>
                                       <span className="text-muted-foreground/30">•</span>
                                       <span className="text-primary/70">{items.length} trips</span>
