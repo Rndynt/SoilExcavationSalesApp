@@ -21,7 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays } from "date-fns";
-import { Receipt, Plus, Filter, Truck, Loader2, MoreVertical, Edit2, Trash2, Calendar, MapPin, ChevronDown, ChevronUp } from "lucide-react";
+import { Receipt, Plus, Filter, Truck, Loader2, MoreVertical, Edit2, Trash2, Calendar, MapPin, ChevronDown, ChevronUp, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { useTranslate } from "@/hooks/use-translate";
