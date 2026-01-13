@@ -167,8 +167,8 @@ export default function SalesHistory() {
 
                   return Object.entries(grouped).map(([location, dates]) => (
                     <React.Fragment key={location}>
-                      <tr className="bg-primary/5">
-                        <td colSpan={7} className="px-6 py-2 font-black text-sm uppercase tracking-widest text-primary border-y border-primary/20">
+                      <tr className="bg-primary/5 sticky top-[41px] z-20">
+                        <td colSpan={7} className="px-6 py-2 font-black text-sm uppercase tracking-widest text-primary border-y border-primary/20 backdrop-blur-sm">
                           {location}
                         </td>
                       </tr>
@@ -184,7 +184,7 @@ export default function SalesHistory() {
                           >
                             <React.Fragment>
                               <CollapsibleTrigger asChild>
-                                <tr className="bg-muted/30 cursor-pointer hover:bg-muted/50 border-b">
+                                <tr className="bg-muted/90 cursor-pointer hover:bg-muted border-b sticky top-[77px] z-10 backdrop-blur-sm">
                                   <td className="px-4 py-2 text-center">
                                     {isOpen ? <ChevronUp className="h-4 w-4 mx-auto" /> : <ChevronDown className="h-4 w-4 mx-auto" />}
                                   </td>
