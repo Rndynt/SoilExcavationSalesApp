@@ -168,7 +168,7 @@ export default function SalesHistory() {
                   return Object.entries(grouped).map(([location, dates]) => (
                     <React.Fragment key={location}>
                       <tr className="bg-primary/5 sticky top-[41px] left-0 z-30">
-                        <td colSpan={7} className="sticky left-0 px-6 py-2 font-black text-sm uppercase tracking-widest text-primary border-y border-primary/20 backdrop-blur-sm whitespace-nowrap bg-inherit">
+                        <td colSpan={7} className="sticky left-0 px-6 py-2 font-black text-sm uppercase tracking-widest text-primary border-y border-primary/20 backdrop-blur-sm whitespace-nowrap bg-inherit min-w-full">
                           {location}
                         </td>
                       </tr>
@@ -188,7 +188,7 @@ export default function SalesHistory() {
                                   <td className="sticky left-0 px-4 py-2 text-center bg-inherit z-30 border-r">
                                     {isOpen ? <ChevronUp className="h-4 w-4 mx-auto" /> : <ChevronDown className="h-4 w-4 mx-auto" />}
                                   </td>
-                                  <td colSpan={6} className="sticky left-12 px-0 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground bg-inherit z-20">
+                                  <td colSpan={6} className="sticky left-12 px-0 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground bg-inherit z-20 min-w-full">
                                     <div className="flex items-center gap-2 px-2 whitespace-nowrap">
                                       <span>{date}</span>
                                       <span className="text-muted-foreground/30">•</span>
