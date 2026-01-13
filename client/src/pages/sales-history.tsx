@@ -123,16 +123,15 @@ export default function SalesHistory() {
 
       <div className="bg-card rounded-xl border overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left border-collapse table-fixed">
+          <table className="w-full text-sm text-left border-separate border-spacing-0 table-fixed">
             <thead className="bg-muted text-muted-foreground border-b sticky top-0 z-40">
               <tr>
-                <th className="w-12 px-4 py-3 sticky left-0 bg-muted z-50"></th>
-                <th className="w-32 px-4 py-3 sticky left-12 bg-muted font-medium z-50 border-r">Plate</th>
-                <th className="w-32 px-4 py-3 font-medium text-right">Base Price</th>
-                <th className="w-32 px-4 py-3 font-medium text-right">Applied Price</th>
-                <th className="w-24 px-4 py-3 font-medium text-center">Status</th>
-                <th className="w-32 px-4 py-3 font-medium text-right">Outstanding</th>
-                <th className="w-24 px-4 py-3 font-medium text-right">Discount</th>
+                <th className="w-32 px-4 py-3 sticky left-0 bg-muted font-medium z-50 border-r border-b">Plate</th>
+                <th className="w-32 px-4 py-3 font-medium text-right border-b">Base Price</th>
+                <th className="w-32 px-4 py-3 font-medium text-right border-b">Applied Price</th>
+                <th className="w-24 px-4 py-3 font-medium text-center border-b">Status</th>
+                <th className="w-32 px-4 py-3 font-medium text-right border-b">Outstanding</th>
+                <th className="w-24 px-4 py-3 font-medium text-right border-b">Discount</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -140,7 +139,7 @@ export default function SalesHistory() {
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
                     <td className="px-4 py-4 sticky left-0 bg-card z-10"></td>
-                    <td className="sticky left-12 bg-card px-4 py-4 border-r z-10"><Skeleton className="h-4 w-20" /></td>
+                    <td className="sticky left-0 bg-card px-4 py-4 border-r z-10"><Skeleton className="h-4 w-20" /></td>
                     <td className="px-4 py-4"><Skeleton className="h-4 w-16 ml-auto" /></td>
                     <td className="px-4 py-4"><Skeleton className="h-4 w-16 ml-auto" /></td>
                     <td className="px-4 py-4"><Skeleton className="h-4 w-16 mx-auto" /></td>
@@ -168,8 +167,8 @@ export default function SalesHistory() {
                   return Object.entries(grouped).map(([location, dates]) => (
                     <React.Fragment key={location}>
                       <tr className="bg-primary/5 sticky top-[41px] z-30">
-                        <td colSpan={7} className="p-0">
-                          <div className="flex items-center gap-2 px-6 py-3 bg-primary/5 border-y border-primary/20 backdrop-blur-sm sticky left-0 w-full">
+                        <td colSpan={7} className="p-0 sticky left-0">
+                          <div className="flex items-center gap-2 px-6 py-3 bg-primary/5 border-y border-primary/20 backdrop-blur-sm">
                             <MapPin className="h-4 w-4 text-primary" />
                             <h3 className="font-bold text-sm uppercase tracking-widest text-primary whitespace-nowrap">{location}</h3>
                             <div className="h-px flex-1 bg-primary/20 ml-2" />
@@ -189,8 +188,8 @@ export default function SalesHistory() {
                             <React.Fragment>
                               <CollapsibleTrigger asChild>
                                 <tr className="bg-muted/90 cursor-pointer hover:bg-muted border-b sticky top-[85px] z-20 backdrop-blur-sm">
-                                  <td colSpan={7} className="p-0">
-                                    <div className="flex items-center bg-inherit sticky left-0 w-full">
+                                  <td colSpan={7} className="p-0 sticky left-0">
+                                    <div className="flex items-center bg-inherit">
                                       <div className="px-4 py-2 text-center bg-inherit z-30 border-r w-12 flex-shrink-0">
                                         {isOpen ? <ChevronUp className="h-4 w-4 mx-auto" /> : <ChevronDown className="h-4 w-4 mx-auto" />}
                                       </div>
@@ -213,22 +212,21 @@ export default function SalesHistory() {
                                     
                                     return (
                                       <tr key={trip.id} className="group hover:bg-muted/50 transition-colors border-b" data-testid={`row-trip-${trip.id}`}>
-                                        <td className="px-4 py-4 sticky left-0 bg-card group-hover:bg-muted/50 z-10"></td>
-                                        <td className="sticky left-12 bg-card group-hover:bg-muted/50 px-4 py-4 font-mono font-medium z-10 border-r whitespace-nowrap" data-testid={`text-plate-${trip.id}`}>
-                                          <div className="flex flex-col">
-                                            <span className="text-sm">{trip.plateNumber}</span>
+                                        <td className="px-4 py-4 sticky left-0 bg-card group-hover:bg-muted/50 z-10 border-r border-b">
+                                          <div className="flex flex-col w-24">
+                                            <span className="text-sm font-mono font-medium">{trip.plateNumber}</span>
                                             <span className="text-[10px] text-muted-foreground font-sans">
                                               {format(new Date(trip.createdAt), "HH:mm")}
                                             </span>
                                           </div>
                                         </td>
-                                        <td className="px-4 py-4 text-right font-mono text-muted-foreground text-xs" data-testid={`text-base-price-${trip.id}`}>
+                                        <td className="px-4 py-4 text-right font-mono text-muted-foreground text-xs border-b" data-testid={`text-base-price-${trip.id}`}>
                                           {new Intl.NumberFormat('id-ID').format(trip.basePrice)}
                                         </td>
-                                        <td className="px-4 py-4 text-right font-mono font-bold text-sm" data-testid={`text-applied-price-${trip.id}`}>
+                                        <td className="px-4 py-4 text-right font-mono font-bold text-sm border-b" data-testid={`text-applied-price-${trip.id}`}>
                                           {new Intl.NumberFormat('id-ID').format(trip.appliedPrice)}
                                         </td>
-                                        <td className="px-4 py-4 text-center" data-testid={`status-payment-${trip.id}`}>
+                                        <td className="px-4 py-4 text-center border-b" data-testid={`status-payment-${trip.id}`}>
                                           {trip.paymentStatus === 'PAID' ? (
                                             <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800 text-[9px] px-1 py-0 h-4">
                                               Paid
@@ -243,7 +241,7 @@ export default function SalesHistory() {
                                             </Badge>
                                           )}
                                         </td>
-                                        <td className="px-4 py-4 text-right font-mono text-xs" data-testid={`text-outstanding-${trip.id}`}>
+                                        <td className="px-4 py-4 text-right font-mono text-xs border-b" data-testid={`text-outstanding-${trip.id}`}>
                                           {outstanding > 0 ? (
                                             <span className="text-red-600 dark:text-red-400">
                                               {new Intl.NumberFormat('id-ID').format(outstanding)}
@@ -252,7 +250,7 @@ export default function SalesHistory() {
                                             <span className="text-muted-foreground">-</span>
                                           )}
                                         </td>
-                                        <td className="px-4 py-4 text-right">
+                                        <td className="px-4 py-4 text-right border-b">
                                           {tripDiscount > 0 ? (
                                             <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800 text-[9px] px-1 py-0 h-4">
                                               -{new Intl.NumberFormat('id-ID', { notation: "compact" }).format(tripDiscount)}
