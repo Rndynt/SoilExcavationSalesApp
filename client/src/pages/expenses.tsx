@@ -633,6 +633,20 @@ export default function Expenses() {
 
       <Card className="border-border shadow-sm">
         <CardContent className="p-4 flex flex-wrap gap-4 items-center">
+          <div className="w-full md:w-64 space-y-2">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Search</span>
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Note, Plate, Category..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="pl-9 h-9"
+                data-testid="input-search-expenses"
+              />
+            </div>
+          </div>
+
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-muted-foreground" />
             <span className="text-sm font-medium text-foreground">Filter:</span>
