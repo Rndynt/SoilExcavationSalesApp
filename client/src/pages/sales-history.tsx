@@ -124,10 +124,10 @@ export default function SalesHistory() {
       <div className="bg-card rounded-xl border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="bg-muted text-muted-foreground border-b">
+            <thead className="bg-muted text-muted-foreground border-b sticky top-0 z-20">
               <tr>
                 <th className="w-10 px-6 py-3"></th>
-                <th className="px-6 py-3 font-medium">Plate</th>
+                <th className="sticky left-0 bg-muted px-6 py-3 font-medium z-20 border-r">Plate</th>
                 <th className="px-6 py-3 font-medium text-right">Base Price</th>
                 <th className="px-6 py-3 font-medium text-right">Applied Price</th>
                 <th className="px-6 py-3 font-medium text-center">Payment Status</th>
@@ -180,8 +180,12 @@ export default function SalesHistory() {
                               <td className="px-6 py-2 text-center">
                                 {isOpen ? <ChevronUp className="h-4 w-4 mx-auto" /> : <ChevronDown className="h-4 w-4 mx-auto" />}
                               </td>
-                              <td colSpan={6} className="px-0 py-2 font-bold text-xs uppercase tracking-wider text-primary">
-                                {groupLabel} ({items.length} trips)
+                              <td colSpan={7} className="px-0 py-2 font-bold text-xs uppercase tracking-wider text-primary">
+                                <div className="flex items-center gap-2 px-6">
+                                  <span>{groupLabel}</span>
+                                  <span className="text-muted-foreground/50">•</span>
+                                  <span>{items.length} trips</span>
+                                </div>
                               </td>
                             </tr>
                           </CollapsibleTrigger>
@@ -194,7 +198,7 @@ export default function SalesHistory() {
                                 return (
                                   <tr key={trip.id} className="group hover:bg-muted/50 transition-colors" data-testid={`row-trip-${trip.id}`}>
                                     <td className="px-6 py-4"></td>
-                                    <td className="px-6 py-4 font-mono font-medium" data-testid={`text-plate-${trip.id}`}>
+                                    <td className="sticky left-0 bg-card group-hover:bg-muted/50 px-6 py-4 font-mono font-medium z-10 border-r" data-testid={`text-plate-${trip.id}`}>
                                       <div className="flex flex-col">
                                         <span>{trip.plateNumber}</span>
                                         <span className="text-[10px] text-muted-foreground font-sans">
