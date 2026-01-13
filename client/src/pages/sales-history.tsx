@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
-import { Search, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, Loader2, ChevronDown, ChevronUp, MapPin } from "lucide-react";
 import React, { useState } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
@@ -123,16 +123,16 @@ export default function SalesHistory() {
 
       <div className="bg-card rounded-xl border overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left border-collapse">
+          <table className="w-full text-sm text-left border-collapse table-fixed">
             <thead className="bg-muted text-muted-foreground border-b sticky top-0 z-40">
               <tr>
-                <th className="w-10 px-4 py-3 sticky left-0 bg-muted z-50"></th>
-                <th className="sticky left-10 bg-muted px-4 py-3 font-medium z-50 border-r">Plate</th>
-                <th className="px-4 py-3 font-medium text-right">Base Price</th>
-                <th className="px-4 py-3 font-medium text-right">Applied Price</th>
-                <th className="px-4 py-3 font-medium text-center">Status</th>
-                <th className="px-4 py-3 font-medium text-right">Outstanding</th>
-                <th className="px-4 py-3 font-medium text-right">Discount</th>
+                <th className="w-12 px-4 py-3 sticky left-0 bg-muted z-50"></th>
+                <th className="w-32 px-4 py-3 sticky left-12 bg-muted font-medium z-50 border-r">Plate</th>
+                <th className="w-32 px-4 py-3 font-medium text-right">Base Price</th>
+                <th className="w-32 px-4 py-3 font-medium text-right">Applied Price</th>
+                <th className="w-24 px-4 py-3 font-medium text-center">Status</th>
+                <th className="w-32 px-4 py-3 font-medium text-right">Outstanding</th>
+                <th className="w-24 px-4 py-3 font-medium text-right">Discount</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -140,7 +140,7 @@ export default function SalesHistory() {
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
                     <td className="px-4 py-4 sticky left-0 bg-card z-10"></td>
-                    <td className="sticky left-10 bg-card px-4 py-4 border-r z-10"><Skeleton className="h-4 w-20" /></td>
+                    <td className="sticky left-12 bg-card px-4 py-4 border-r z-10"><Skeleton className="h-4 w-20" /></td>
                     <td className="px-4 py-4"><Skeleton className="h-4 w-16 ml-auto" /></td>
                     <td className="px-4 py-4"><Skeleton className="h-4 w-16 ml-auto" /></td>
                     <td className="px-4 py-4"><Skeleton className="h-4 w-16 mx-auto" /></td>
@@ -168,9 +168,11 @@ export default function SalesHistory() {
                   return Object.entries(grouped).map(([location, dates]) => (
                     <React.Fragment key={location}>
                       <tr className="bg-primary/5 sticky top-[41px] z-30">
-                        <td colSpan={7} className="p-0">
-                          <div className="sticky left-0 w-full px-6 py-2 font-black text-sm uppercase tracking-widest text-primary border-y border-primary/20 backdrop-blur-sm whitespace-nowrap bg-inherit">
-                            {location}
+                        <td colSpan={7} className="p-0 sticky left-0">
+                          <div className="flex items-center gap-2 px-6 py-3 bg-primary/5 border-y border-primary/20 backdrop-blur-sm">
+                            <MapPin className="h-4 w-4 text-primary" />
+                            <h3 className="font-bold text-sm uppercase tracking-widest text-primary whitespace-nowrap">{location}</h3>
+                            <div className="h-px flex-1 bg-primary/20 ml-2" />
                           </div>
                         </td>
                       </tr>
@@ -186,10 +188,10 @@ export default function SalesHistory() {
                           >
                             <React.Fragment>
                               <CollapsibleTrigger asChild>
-                                <tr className="bg-muted/90 cursor-pointer hover:bg-muted border-b sticky top-[77px] z-20 backdrop-blur-sm">
-                                  <td colSpan={7} className="p-0">
-                                    <div className="sticky left-0 w-full flex items-center bg-inherit">
-                                      <div className="sticky left-0 px-4 py-2 text-center bg-inherit z-30 border-r w-12 flex-shrink-0">
+                                <tr className="bg-muted/90 cursor-pointer hover:bg-muted border-b sticky top-[85px] z-20 backdrop-blur-sm">
+                                  <td colSpan={7} className="p-0 sticky left-0">
+                                    <div className="flex items-center bg-inherit">
+                                      <div className="px-4 py-2 text-center bg-inherit z-30 border-r w-12 flex-shrink-0">
                                         {isOpen ? <ChevronUp className="h-4 w-4 mx-auto" /> : <ChevronDown className="h-4 w-4 mx-auto" />}
                                       </div>
                                       <div className="px-4 py-2 font-bold text-xs uppercase tracking-wider text-muted-foreground bg-inherit z-20 whitespace-nowrap">
@@ -212,7 +214,7 @@ export default function SalesHistory() {
                                     return (
                                       <tr key={trip.id} className="group hover:bg-muted/50 transition-colors border-b" data-testid={`row-trip-${trip.id}`}>
                                         <td className="px-4 py-4 sticky left-0 bg-card group-hover:bg-muted/50 z-10"></td>
-                                        <td className="sticky left-10 bg-card group-hover:bg-muted/50 px-4 py-4 font-mono font-medium z-10 border-r whitespace-nowrap" data-testid={`text-plate-${trip.id}`}>
+                                        <td className="sticky left-12 bg-card group-hover:bg-muted/50 px-4 py-4 font-mono font-medium z-10 border-r whitespace-nowrap" data-testid={`text-plate-${trip.id}`}>
                                           <div className="flex flex-col">
                                             <span className="text-sm">{trip.plateNumber}</span>
                                             <span className="text-[10px] text-muted-foreground font-sans">
