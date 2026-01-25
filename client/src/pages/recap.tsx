@@ -245,66 +245,64 @@ export default function RecapPage() {
         document.fonts?.ready
       ]);
 
-      // Optimization: Temporary style for capturing
-      const originalStyle = recapContent.style.cssText;
-      recapContent.style.width = "800px";
-      recapContent.style.background = "#ffffff";
-      recapContent.style.color = "#000000";
-
+      // Simple clone to avoid complex library logic
       const canvas = await html2canvas(recapContent, {
-        scale: 1.5, // Reduced scale for performance
+        scale: 1, // Minimum scale for maximum stability
         useCORS: true,
         allowTaint: true,
-        logging: true, // Enable logging for debugging
         backgroundColor: "#ffffff",
-        width: 800,
+        width: recapContent.offsetWidth,
+        height: recapContent.offsetHeight,
         onclone: (clonedDoc) => {
           const el = clonedDoc.getElementById("recap-content");
           if (!el) return;
-          el.style.width = "800px";
-          el.style.padding = "40px";
-          el.style.margin = "0";
-          el.style.background = "#ffffff";
           
+          // Flatten all colors to basic black/white to avoid unsupported color errors
           const all = el.getElementsByTagName("*");
           for (let i = 0; i < all.length; i++) {
             const item = all[i] as HTMLElement;
             item.style.color = "#000000";
+            item.style.backgroundColor = "transparent";
             item.style.borderColor = "#000000";
+            item.style.boxShadow = "none";
+            item.style.textShadow = "none";
+            // Remove any gradients or complex filters
+            item.style.backgroundImage = "none";
+            item.style.filter = "none";
+            item.style.backdropFilter = "none";
           }
+          el.style.backgroundColor = "#ffffff";
         }
       });
 
-      // Restore original style
-      recapContent.style.cssText = originalStyle;
-
-      const imgData = canvas.toDataURL("image/jpeg", 0.7); // Use JPEG with compression for smaller size
+      const imgData = canvas.toDataURL("image/jpeg", 0.5); 
       const pdf = new jsPDF("p", "mm", "a4");
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
       
-      const margin = 10;
+      const margin = 5;
       const imgWidth = pageWidth - (margin * 2);
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       
       let heightLeft = imgHeight;
       let position = margin;
 
-      pdf.addImage(imgData, "JPEG", margin, position, imgWidth, imgHeight);
+      pdf.addImage(imgData, "JPEG", margin, position, imgWidth, imgHeight, undefined, 'FAST');
       heightLeft -= (pageHeight - (margin * 2));
 
       while (heightLeft > 0) {
         pdf.addPage();
         position = heightLeft - imgHeight + margin;
-        pdf.addImage(imgData, "JPEG", margin, position, imgWidth, imgHeight);
+        pdf.addImage(imgData, "JPEG", margin, position, imgWidth, imgHeight, undefined, 'FAST');
         heightLeft -= (pageHeight - (margin * 2));
       }
 
       pdf.save(`rekap-${fromDate}-${toDate}.pdf`);
     } catch (err) {
       console.error("PDF Export Error:", err);
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      window.alert(`Gagal ekspor PDF: ${msg}. Silakan coba reload halaman atau gunakan browser lain.`);
+      window.alert("Gagal ekspor PDF. Mencoba metode alternatif...");
+      // Simple print fallback
+      window.print();
     } finally {
       setIsExporting(false);
     }
