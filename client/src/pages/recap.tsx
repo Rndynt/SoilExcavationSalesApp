@@ -232,37 +232,40 @@ export default function RecapPage() {
       const recapContent = document.getElementById("recap-content");
       if (!recapContent) throw new Error("Konten rekap tidak ditemukan.");
 
-      // Ensure images are loaded
+      // Ensure images are loaded and fonts ready
       const images = Array.from(recapContent.getElementsByTagName("img"));
-      await Promise.all(
-        images.map((img) => {
+      await Promise.all([
+        ...images.map((img) => {
           if (img.complete) return Promise.resolve();
           return new Promise((resolve) => {
             img.onload = resolve;
             img.onerror = resolve;
           });
-        })
-      );
+        }),
+        document.fonts?.ready
+      ]);
 
-      await document.fonts?.ready;
+      // Optimization: Temporary style for capturing
+      const originalStyle = recapContent.style.cssText;
+      recapContent.style.width = "800px";
+      recapContent.style.background = "#ffffff";
+      recapContent.style.color = "#000000";
 
-      // Configuration for better PDF quality
       const canvas = await html2canvas(recapContent, {
-        scale: 2,
+        scale: 1.5, // Reduced scale for performance
         useCORS: true,
-        allowTaint: false,
-        logging: false,
+        allowTaint: true,
+        logging: true, // Enable logging for debugging
         backgroundColor: "#ffffff",
-        windowWidth: recapContent.scrollWidth,
+        width: 800,
         onclone: (clonedDoc) => {
           const el = clonedDoc.getElementById("recap-content");
           if (!el) return;
           el.style.width = "800px";
           el.style.padding = "40px";
+          el.style.margin = "0";
           el.style.background = "#ffffff";
-          el.style.color = "#000000";
           
-          // Force visibility of all elements in print
           const all = el.getElementsByTagName("*");
           for (let i = 0; i < all.length; i++) {
             const item = all[i] as HTMLElement;
@@ -272,31 +275,36 @@ export default function RecapPage() {
         }
       });
 
-      const imgData = canvas.toDataURL("image/png");
+      // Restore original style
+      recapContent.style.cssText = originalStyle;
+
+      const imgData = canvas.toDataURL("image/jpeg", 0.7); // Use JPEG with compression for smaller size
       const pdf = new jsPDF("p", "mm", "a4");
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
       
-      const imgWidth = pageWidth - 20; // 10mm margin on each side
+      const margin = 10;
+      const imgWidth = pageWidth - (margin * 2);
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       
       let heightLeft = imgHeight;
-      let position = 10; // 10mm top margin
+      let position = margin;
 
-      pdf.addImage(imgData, "PNG", 10, position, imgWidth, imgHeight);
-      heightLeft -= (pageHeight - 20);
+      pdf.addImage(imgData, "JPEG", margin, position, imgWidth, imgHeight);
+      heightLeft -= (pageHeight - (margin * 2));
 
       while (heightLeft > 0) {
-        position = heightLeft - imgHeight + 10;
         pdf.addPage();
-        pdf.addImage(imgData, "PNG", 10, position, imgWidth, imgHeight);
-        heightLeft -= (pageHeight - 20);
+        position = heightLeft - imgHeight + margin;
+        pdf.addImage(imgData, "JPEG", margin, position, imgWidth, imgHeight);
+        heightLeft -= (pageHeight - (margin * 2));
       }
 
       pdf.save(`rekap-${fromDate}-${toDate}.pdf`);
     } catch (err) {
       console.error("PDF Export Error:", err);
-      window.alert("Gagal ekspor PDF. Pastikan koneksi stabil dan coba lagi.");
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      window.alert(`Gagal ekspor PDF: ${msg}. Silakan coba reload halaman atau gunakan browser lain.`);
     } finally {
       setIsExporting(false);
     }
