@@ -231,121 +231,72 @@ export default function RecapPage() {
     try {
       const recapContent = document.getElementById("recap-content");
       if (!recapContent) throw new Error("Konten rekap tidak ditemukan.");
+
+      // Ensure images are loaded
+      const images = Array.from(recapContent.getElementsByTagName("img"));
+      await Promise.all(
+        images.map((img) => {
+          if (img.complete) return Promise.resolve();
+          return new Promise((resolve) => {
+            img.onload = resolve;
+            img.onerror = resolve;
+          });
+        })
+      );
+
       await document.fonts?.ready;
-      const rect = recapContent.getBoundingClientRect();
-      const contentWidth = Math.ceil(recapContent.scrollWidth || rect.width);
-      const contentHeight = Math.ceil(recapContent.scrollHeight || rect.height);
 
-      if (!contentWidth || !contentHeight) {
-        throw new Error("Ukuran konten rekap tidak valid.");
-      }
-
-      const cloneForExport = (clonedDoc: Document) => {
-        const el = clonedDoc.getElementById("recap-content");
-        if (!el) return;
-
-        clonedDoc.body.style.margin = "0";
-        clonedDoc.body.style.background = "#ffffff";
-
-        const bodyChildren = Array.from(clonedDoc.body.children);
-        bodyChildren.forEach((child) => {
-          if (child !== el) {
-            (child as HTMLElement).style.display = "none";
-          }
-        });
-
-        const all = el.getElementsByTagName("*");
-        el.style.cssText = "background: #fff !important; color: #000 !important; padding: 20px !important; width: 800px !important;";
-
-        for (let i = 0; i < all.length; i++) {
-          const item = all[i] as HTMLElement;
-          item.style.setProperty("color", "#000", "important");
-          item.style.setProperty("background", "transparent", "important");
-          item.style.setProperty("box-shadow", "none", "important");
-          item.style.setProperty("filter", "none", "important");
-          item.style.setProperty("backdrop-filter", "none", "important");
-          item.style.setProperty("transform", "none", "important");
-
-          if (["TABLE", "TH", "TD", "TR"].includes(item.tagName)) {
-            item.style.setProperty("border", "1px solid #000", "important");
-          }
-
-          if (item.tagName === "IMG") {
-            (item as HTMLImageElement).crossOrigin = "anonymous";
+      // Configuration for better PDF quality
+      const canvas = await html2canvas(recapContent, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: false,
+        logging: false,
+        backgroundColor: "#ffffff",
+        windowWidth: recapContent.scrollWidth,
+        onclone: (clonedDoc) => {
+          const el = clonedDoc.getElementById("recap-content");
+          if (!el) return;
+          el.style.width = "800px";
+          el.style.padding = "40px";
+          el.style.background = "#ffffff";
+          el.style.color = "#000000";
+          
+          // Force visibility of all elements in print
+          const all = el.getElementsByTagName("*");
+          for (let i = 0; i < all.length; i++) {
+            const item = all[i] as HTMLElement;
+            item.style.color = "#000000";
+            item.style.borderColor = "#000000";
           }
         }
-      };
+      });
 
-      const renderSlice = async (scale: number, yOffset: number, height: number) =>
-        html2canvas(recapContent, {
-          backgroundColor: "#ffffff",
-          scale,
-          useCORS: true,
-          allowTaint: false,
-          logging: false,
-          imageTimeout: 30000,
-          width: contentWidth,
-          height,
-          x: 0,
-          y: yOffset,
-          windowWidth: contentWidth,
-          windowHeight: Math.max(contentHeight, height),
-          scrollX: -window.scrollX,
-          scrollY: -window.scrollY,
-          onclone: cloneForExport
-        });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      
+      const imgWidth = pageWidth - 20; // 10mm margin on each side
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      let heightLeft = imgHeight;
+      let position = 10; // 10mm top margin
 
-      const buildPdf = async (scale: number) => {
-        const pdf = new jsPDF("p", "mm", "a4");
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
-        const margin = 10;
-        const pagePadding = 6;
-        const printableWidth = pageWidth - margin * 2;
-        const printableHeight = pageHeight - margin * 2 - pagePadding * 2;
-        const contentY = margin + pagePadding;
-        const pageHeightPx = (printableHeight * contentWidth) / printableWidth;
+      pdf.addImage(imgData, "PNG", 10, position, imgWidth, imgHeight);
+      heightLeft -= (pageHeight - 20);
 
-        let renderedHeight = 0;
-        let pageIndex = 0;
-
-        while (renderedHeight < contentHeight) {
-          const sliceHeight = Math.min(pageHeightPx, contentHeight - renderedHeight);
-          const canvas = await renderSlice(scale, renderedHeight, sliceHeight);
-
-          if (!canvas.width || !canvas.height) {
-            throw new Error("Konten rekap kosong atau tidak dapat dirender.");
-          }
-
-          const imgData = canvas.toDataURL("image/png");
-          const mmPerPx = printableWidth / canvas.width;
-          const imgHeight = canvas.height * mmPerPx;
-
-          if (pageIndex > 0) {
-            pdf.addPage();
-          }
-          pdf.addImage(imgData, "PNG", margin, contentY, printableWidth, imgHeight);
-
-          renderedHeight += sliceHeight;
-          pageIndex += 1;
-        }
-
-        return pdf;
-      };
-
-      let pdf: jsPDF;
-      try {
-        const scale = Math.min(2, window.devicePixelRatio || 1);
-        pdf = await buildPdf(scale);
-      } catch (error) {
-        console.warn("Export gagal pada render pertama, mencoba ulang dengan skala lebih kecil.", error);
-        pdf = await buildPdf(1);
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight + 10;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 10, position, imgWidth, imgHeight);
+        heightLeft -= (pageHeight - 20);
       }
 
       pdf.save(`rekap-${fromDate}-${toDate}.pdf`);
     } catch (err) {
-      console.error(err);
-      window.alert("Gagal ekspor. Coba lagi atau perkecil periode untuk mengurangi beban.");
+      console.error("PDF Export Error:", err);
+      window.alert("Gagal ekspor PDF. Pastikan koneksi stabil dan coba lagi.");
     } finally {
       setIsExporting(false);
     }
