@@ -29,6 +29,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
+import { id, enUS } from "date-fns/locale";
+import { useLanguage } from "@/contexts/language-context";
+
 type TimePeriod = "TODAY" | "YESTERDAY" | "THIS_WEEK" | "THIS_MONTH" | "LAST_MONTH";
 
 const getDateRange = (period: TimePeriod): [string, string] => {
@@ -77,6 +80,8 @@ const TIME_PRESETS: { value: TimePeriod; label: string }[] = [
 
 export default function Expenses() {
   const t = useTranslate();
+  const { language } = useLanguage();
+  const locale = language === "id" ? id : enUS;
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isAddCatOpen, setIsAddCatOpen] = useState(false);
   const [period, setPeriod] = useState<string>("THIS_MONTH");
@@ -326,7 +331,7 @@ export default function Expenses() {
               <div className="flex items-center justify-between gap-4 px-1">
                 <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                   <Calendar className="h-3 w-3" />
-                  {format(new Date(newDate), "dd MMM yyyy")}
+                  {format(new Date(newDate), "dd MMM yyyy", { locale })}
                   <span className="text-muted-foreground/30">•</span>
                   <MapPin className="h-3 w-3" />
                   {locations.find(l => l.id === newLocationId)?.name || "Pilih Lokasi"}
@@ -723,7 +728,7 @@ export default function Expenses() {
                 (() => {
                   const grouped: { [key: string]: any[] } = {};
                   filteredExpenses.forEach(exp => {
-                    const dateKey = format(new Date(exp.expenseDate), "EEEE, dd MMM yyyy");
+                    const dateKey = format(new Date(exp.expenseDate), "EEEE, dd MMM yyyy", { locale });
                     if (!grouped[dateKey]) grouped[dateKey] = [];
                     grouped[dateKey].push(exp);
                   });
