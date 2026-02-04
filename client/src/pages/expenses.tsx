@@ -696,13 +696,16 @@ export default function Expenses() {
       </Card>
 
       <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+        <div className="p-4 border-b bg-muted/50">
+          <h3 className="font-semibold text-sm">{t('expenses.byday')}</h3>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="bg-muted text-muted-foreground border-b border-border">
               <tr>
-                <th className="px-6 py-3 font-medium">Category</th>
-                <th className="px-6 py-3 font-medium">Note</th>
-                <th className="px-6 py-3 font-medium text-right">Amount</th>
+            <th className="px-6 py-3 font-medium">{t('expenses.category')}</th>
+            <th className="px-6 py-3 font-medium">{t('expenses.note')}</th>
+            <th className="px-6 py-3 font-medium text-right">{t('expenses.amount')}</th>
                 <th className="px-6 py-3 font-medium text-right w-10"></th>
               </tr>
             </thead>
@@ -712,7 +715,7 @@ export default function Expenses() {
                   <td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">
                     <div className="flex flex-col items-center gap-2">
                       <Receipt className="h-8 w-8 text-muted-foreground/50" />
-                      <p data-testid="text-no-expenses">No expenses found.</p>
+                      <p data-testid="text-no-expenses">Data tidak ditemukan.</p>
                     </div>
                   </td>
                 </tr>

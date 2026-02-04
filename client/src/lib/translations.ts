@@ -147,7 +147,9 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
     'expenses.edit': 'Edit',
     'expenses.delete': 'Delete',
     'expenses.bymonth': 'Expenses by Month',
+    'expenses.byday': 'Expenses by Day',
     'expenses.breakdown': 'Expense Breakdown',
+    'expenses.note': 'Note',
 
     // Trucks
     'trucks.title': 'Trucks',
@@ -389,7 +391,9 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
     'expenses.edit': 'Edit',
     'expenses.delete': 'Hapus',
     'expenses.bymonth': 'Pengeluaran per Bulan',
+    'expenses.byday': 'Pengeluaran per Hari',
     'expenses.breakdown': 'Rincian Pengeluaran',
+    'expenses.note': 'Catatan',
 
     // Trucks
     'trucks.title': 'Truk',
