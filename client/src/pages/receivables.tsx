@@ -36,7 +36,7 @@ export default function Receivables() {
   const { data: trucks = [] } = useTrucks();
   const { data: allTrips = [], isLoading: tripsLoading } = useSaleTrips({
     locationId: filterLocation !== "all" ? filterLocation : undefined,
-    paymentStatus: "UNPAID", // Show only unpaid and partial
+    //paymentStatus: "UNPAID", // Show only unpaid and partial
   });
   const updateSaleTrip = useUpdateSaleTrip();
 
