@@ -520,111 +520,237 @@ export default function Sales() {
             </Card>
           ) : (
             (() => {
-              const groupedByLocation = todayTrips?.reduce((acc, trip) => {
-                const locName = locations?.find(l => l.id === trip.locationId)?.name || 'Unknown';
-                if (!acc[locName]) acc[locName] = [];
-                acc[locName].push(trip);
+              const groupedByPlate = todayTrips?.reduce((acc, trip) => {
+                const plate = trip.plateNumber.toUpperCase();
+                if (!acc[plate]) acc[plate] = [];
+                acc[plate].push(trip);
                 return acc;
               }, {} as Record<string, typeof todayTrips>);
 
-              return Object.entries(groupedByLocation || {}).map(([locationName, trips]) => (
-                <div key={locationName} className="space-y-3">
-                  <div className="flex items-center gap-2 px-1 pt-2">
-                    <MapPin className="h-4 w-4 text-primary" />
-                    <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">{locationName}</h3>
-                    <div className="h-px flex-1 bg-border ml-2" />
-                  </div>
-                  
-                  <div className="grid gap-3">
-                    {trips.map((trip) => {
-                      const tripDiscount = Math.max(0, trip.basePrice - trip.appliedPrice);
-                      const truck = trucks?.find(t => t.plateNumber.toUpperCase() === trip.plateNumber.toUpperCase());
-                      const driverName = truck?.contactName || "-";
+              const sortedPlates = Object.entries(groupedByPlate || {}).sort((a, b) => {
+                const latestA = Math.max(...a[1].map(t => new Date(t.createdAt || 0).getTime()));
+                const latestB = Math.max(...b[1].map(t => new Date(t.createdAt || 0).getTime()));
+                return latestB - latestA;
+              });
 
-                      return (
-                        <Card key={trip.id} className="group hover-elevate overflow-hidden border-l-4 border-l-primary/10 hover:border-l-primary transition-all" data-testid={`card-trip-${trip.id}`}>
-                          <CardContent className="p-3">
-                            <div className="flex items-center justify-between gap-4">
-                              <div className="flex items-center gap-4">
-                                <div className="text-center min-w-[45px] py-1 bg-muted/50 rounded-md">
-                                  <div className="text-xs font-medium text-muted-foreground uppercase">
-                                    {trip.createdAt ? format(new Date(trip.createdAt), "HH:mm") : "-"}
+              return (
+                <div className="space-y-6">
+                  {/* Version 2: Grouped by Plate with Collapsible */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 px-1 pt-2">
+                      <Truck className="h-4 w-4 text-primary" />
+                      <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Today's Logs (Grouped by Plate)</h3>
+                      <div className="h-px flex-1 bg-border ml-2" />
+                    </div>
+                    <div className="grid gap-3">
+                      {sortedPlates.map(([plate, trips]) => {
+                        const sortedTrips = [...trips].sort((a, b) => 
+                          new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+                        );
+                        const latestTrip = sortedTrips[0];
+                        const truck = trucks?.find(t => t.plateNumber.toUpperCase() === plate);
+                        const driverName = truck?.contactName || "-";
+                        const tripDiscount = Math.max(0, latestTrip.basePrice - latestTrip.appliedPrice);
+
+                        return (
+                          <Collapsible key={plate}>
+                            <Card className="group hover-elevate overflow-hidden border-l-4 border-l-primary transition-all">
+                              <CardContent className="p-3">
+                                <div className="flex items-center justify-between gap-4">
+                                  <div className="flex items-center gap-4">
+                                    <div className="text-center min-w-[45px] py-1 bg-muted/50 rounded-md">
+                                      <div className="text-xs font-medium text-muted-foreground uppercase">
+                                        {latestTrip.createdAt ? format(new Date(latestTrip.createdAt), "HH:mm") : "-"}
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="space-y-0.5">
+                                      <div className="flex items-center gap-2">
+                                        <div className="font-mono font-bold text-base leading-none tracking-tight">
+                                          {plate}
+                                        </div>
+                                        {trips.length > 1 && (
+                                          <CollapsibleTrigger asChild>
+                                            <Button variant="ghost" size="sm" className="h-5 px-1 text-[10px] gap-0.5 bg-muted/50 hover:bg-muted">
+                                              {trips.length}x
+                                              <ChevronDown className="h-3 w-3" />
+                                            </Button>
+                                          </CollapsibleTrigger>
+                                        )}
+                                      </div>
+                                      <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                        <Truck className="h-3 w-3" />
+                                        {driverName}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-4 ml-auto">
+                                    <div className="text-right space-y-0.5">
+                                      <div className={cn(
+                                        "font-mono font-bold text-base",
+                                        latestTrip.paymentStatus === 'UNPAID' ? "text-destructive" : "text-foreground"
+                                      )}>
+                                        {new Intl.NumberFormat('id-ID').format(latestTrip.appliedPrice)}
+                                      </div>
+                                      <div className="flex items-center justify-end gap-1.5">
+                                        {latestTrip.paymentStatus === 'UNPAID' && (
+                                          <Badge variant="destructive" className="text-[10px] h-4 px-1 uppercase leading-none">
+                                            Unpaid
+                                          </Badge>
+                                        )}
+                                        {tripDiscount > 0 ? (
+                                          <Badge variant="outline" className="text-[10px] h-4 px-1 leading-none text-amber-600 border-amber-200 bg-amber-50">
+                                            -{new Intl.NumberFormat('id-ID', { notation: "compact" }).format(tripDiscount)}
+                                          </Badge>
+                                        ) : (
+                                          <Badge variant="secondary" className="text-[10px] h-4 px-1 leading-none opacity-70">
+                                            Full
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-1 border-l pl-3">
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                        onClick={() => handleEditTrip(latestTrip as any)}
+                                      >
+                                        <Edit className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                        onClick={() => setDeleteConfirmId(latestTrip.id)}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
                                   </div>
                                 </div>
                                 
-                                <div className="space-y-0.5">
-                                  <div className="font-mono font-bold text-base leading-none tracking-tight">
-                                    {trip.plateNumber}
+                                {latestTrip.note && (
+                                  <div className="mt-2 pt-2 border-t text-[11px] text-muted-foreground italic flex items-start gap-1">
+                                    <div className="mt-0.5">Note:</div>
+                                    <div className="flex-1">{latestTrip.note}</div>
                                   </div>
-                                  <div className="text-xs text-muted-foreground flex items-center gap-1">
-                                    <Truck className="h-3 w-3" />
-                                    {driverName}
-                                  </div>
-                                </div>
-                              </div>
+                                )}
+                              </CardContent>
 
-                              <div className="flex items-center gap-4 ml-auto">
-                                <div className="text-right space-y-0.5">
-                                  <div className={cn(
-                                    "font-mono font-bold text-base",
-                                    trip.paymentStatus === 'UNPAID' ? "text-destructive" : "text-foreground"
-                                  )}>
-                                    {new Intl.NumberFormat('id-ID').format(trip.appliedPrice)}
-                                  </div>
-                                  <div className="flex items-center justify-end gap-1.5">
-                                    {trip.paymentStatus === 'UNPAID' && (
-                                      <Badge variant="destructive" className="text-[10px] h-4 px-1 uppercase leading-none">
-                                        Unpaid
-                                      </Badge>
-                                    )}
-                                    {tripDiscount > 0 ? (
-                                      <Badge variant="outline" className="text-[10px] h-4 px-1 leading-none text-amber-600 border-amber-200 bg-amber-50">
-                                        -{new Intl.NumberFormat('id-ID', { notation: "compact" }).format(tripDiscount)}
-                                      </Badge>
-                                    ) : (
-                                      <Badge variant="secondary" className="text-[10px] h-4 px-1 leading-none opacity-70">
-                                        Full
-                                      </Badge>
-                                    )}
-                                  </div>
+                              <CollapsibleContent>
+                                <div className="px-3 pb-3 pt-0 space-y-2 border-t border-dashed mt-1 bg-muted/20">
+                                  {sortedTrips.slice(1).map((trip) => (
+                                    <div key={trip.id} className="flex items-center justify-between gap-4 py-2 border-b last:border-0 border-muted/50">
+                                      <div className="flex items-center gap-3">
+                                        <div className="text-[10px] font-medium text-muted-foreground">
+                                          {trip.createdAt ? format(new Date(trip.createdAt), "HH:mm") : "-"}
+                                        </div>
+                                        <div className="text-[10px] text-muted-foreground">
+                                          {locations?.find(l => l.id === trip.locationId)?.name}
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center gap-3">
+                                        <span className="text-xs font-mono font-bold">
+                                          {new Intl.NumberFormat('id-ID').format(trip.appliedPrice)}
+                                        </span>
+                                        <div className="flex items-center gap-1">
+                                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditTrip(trip as any)}>
+                                            <Edit className="h-3 w-3" />
+                                          </Button>
+                                          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setDeleteConfirmId(trip.id)}>
+                                            <Trash2 className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
                                 </div>
+                              </CollapsibleContent>
+                            </Card>
+                          </Collapsible>
+                        );
+                      })}
+                    </div>
+                  </div>
 
-                                <div className="flex items-center gap-1 border-l pl-3">
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-8 w-8 text-muted-foreground hover:text-primary"
-                                    onClick={() => handleEditTrip(trip as any)}
-                                    data-testid={`button-edit-trip-${trip.id}`}
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                    onClick={() => setDeleteConfirmId(trip.id)}
-                                    data-testid={`button-delete-trip-${trip.id}`}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            {trip.note && (
-                              <div className="mt-2 pt-2 border-t text-[11px] text-muted-foreground italic flex items-start gap-1">
-                                <div className="mt-0.5">Note:</div>
-                                <div className="flex-1">{trip.note}</div>
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
+                  {/* Version 1: Original Grouped by Location (Backup) */}
+                  <div className="space-y-4 pt-10 border-t border-dashed opacity-40 grayscale hover:opacity-100 hover:grayscale-0 transition-all">
+                    <div className="flex items-center gap-2 px-1 pt-2">
+                      <MapPin className="h-4 w-4 text-primary" />
+                      <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Backup: Grouped by Location</h3>
+                      <div className="h-px flex-1 bg-border ml-2" />
+                    </div>
+                    {(() => {
+                      const grouped = todayTrips?.reduce((acc, trip) => {
+                        const locName = locations?.find(l => l.id === trip.locationId)?.name || 'Unknown';
+                        if (!acc[locName]) acc[locName] = [];
+                        acc[locName].push(trip);
+                        return acc;
+                      }, {} as Record<string, typeof todayTrips>);
+                      
+                      return Object.entries(grouped || {}).map(([locationName, trips]) => (
+                        <div key={locationName} className="space-y-3">
+                          <div className="flex items-center gap-2 px-1 pt-2">
+                            <h3 className="font-semibold text-xs uppercase tracking-wider text-muted-foreground/70">{locationName}</h3>
+                            <div className="h-px flex-1 bg-border/50 ml-2" />
+                          </div>
+                          <div className="grid gap-3">
+                            {trips.map((trip) => {
+                              const tripDiscount = Math.max(0, trip.basePrice - trip.appliedPrice);
+                              const truck = trucks?.find(t => t.plateNumber.toUpperCase() === trip.plateNumber.toUpperCase());
+                              const driverName = truck?.contactName || "-";
+
+                              return (
+                                <Card key={trip.id} className="group overflow-hidden border-l-4 border-l-primary/30">
+                                  <CardContent className="p-3">
+                                    <div className="flex items-center justify-between gap-4">
+                                      <div className="flex items-center gap-4">
+                                        <div className="text-center min-w-[45px] py-1 bg-muted/50 rounded-md">
+                                          <div className="text-xs font-medium text-muted-foreground uppercase">
+                                            {trip.createdAt ? format(new Date(trip.createdAt), "HH:mm") : "-"}
+                                          </div>
+                                        </div>
+                                        
+                                        <div className="space-y-0.5">
+                                          <div className="font-mono font-bold text-base leading-none tracking-tight">
+                                            {trip.plateNumber}
+                                          </div>
+                                          <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                            <Truck className="h-3 w-3" />
+                                            {driverName}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex items-center gap-4 ml-auto">
+                                        <div className="text-right space-y-0.5">
+                                          <div className="font-mono font-bold text-base">
+                                            {new Intl.NumberFormat('id-ID').format(trip.appliedPrice)}
+                                          </div>
+                                          <div className="flex items-center justify-end gap-1.5">
+                                            {tripDiscount > 0 && (
+                                              <Badge variant="outline" className="text-[10px] h-4 px-1 leading-none text-amber-600 border-amber-200 bg-amber-50">
+                                                -{new Intl.NumberFormat('id-ID', { notation: "compact" }).format(tripDiscount)}
+                                              </Badge>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ));
+                    })()}
                   </div>
                 </div>
-              ));
+              );
             })()
           )}
         </div>
