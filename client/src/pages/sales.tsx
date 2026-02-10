@@ -552,6 +552,11 @@ export default function Sales() {
                         const driverName = truck?.contactName || "-";
                         const tripDiscount = Math.max(0, latestTrip.basePrice - latestTrip.appliedPrice);
 
+                        // Calculate totals for the plate
+                        const totalPaid = trips.reduce((sum, t) => sum + (t.paidAmount || 0), 0);
+                        const totalApplied = trips.reduce((sum, t) => sum + (t.appliedPrice || 0), 0);
+                        const totalUnpaid = totalApplied - totalPaid;
+
                         return (
                           <Collapsible key={plate}>
                             <Card className="group hover-elevate overflow-hidden border-l-4 border-l-primary transition-all">
@@ -582,6 +587,11 @@ export default function Sales() {
                                         <Truck className="h-3 w-3" />
                                         {driverName}
                                       </div>
+                                      {latestTrip.note && (
+                                        <div className="text-[10px] text-muted-foreground italic line-clamp-1 max-w-[150px]">
+                                          {latestTrip.note}
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
 
@@ -593,20 +603,28 @@ export default function Sales() {
                                       )}>
                                         {new Intl.NumberFormat('id-ID').format(latestTrip.appliedPrice)}
                                       </div>
-                                      <div className="flex items-center justify-end gap-1.5">
-                                        {latestTrip.paymentStatus === 'UNPAID' && (
-                                          <Badge variant="destructive" className="text-[10px] h-4 px-1 uppercase leading-none">
-                                            Unpaid
-                                          </Badge>
-                                        )}
-                                        {tripDiscount > 0 ? (
-                                          <Badge variant="outline" className="text-[10px] h-4 px-1 leading-none text-amber-600 border-amber-200 bg-amber-50">
-                                            -{new Intl.NumberFormat('id-ID', { notation: "compact" }).format(tripDiscount)}
-                                          </Badge>
-                                        ) : (
-                                          <Badge variant="secondary" className="text-[10px] h-4 px-1 leading-none opacity-70">
-                                            Full
-                                          </Badge>
+                                      <div className="flex flex-col items-end gap-1">
+                                        <div className="flex items-center justify-end gap-1.5">
+                                          {latestTrip.paymentStatus === 'UNPAID' && (
+                                            <Badge variant="destructive" className="text-[10px] h-4 px-1 uppercase leading-none">
+                                              Unpaid
+                                            </Badge>
+                                          )}
+                                          {tripDiscount > 0 ? (
+                                            <Badge variant="outline" className="text-[10px] h-4 px-1 leading-none text-amber-600 border-amber-200 bg-amber-50">
+                                              -{new Intl.NumberFormat('id-ID', { notation: "compact" }).format(tripDiscount)}
+                                            </Badge>
+                                          ) : (
+                                            <Badge variant="secondary" className="text-[10px] h-4 px-1 leading-none opacity-70">
+                                              Full
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        {trips.length > 1 && (
+                                          <div className="flex items-center gap-2 text-[9px] font-mono font-bold">
+                                            <span className="text-green-600">P:{new Intl.NumberFormat('id-ID', { notation: "compact" }).format(totalPaid)}</span>
+                                            <span className="text-destructive">U:{new Intl.NumberFormat('id-ID', { notation: "compact" }).format(totalUnpaid)}</span>
+                                          </div>
                                         )}
                                       </div>
                                     </div>
@@ -617,6 +635,7 @@ export default function Sales() {
                                         variant="ghost"
                                         className="h-8 w-8 text-muted-foreground hover:text-primary"
                                         onClick={() => handleEditTrip(latestTrip as any)}
+                                        data-testid={`button-edit-trip-${latestTrip.id}`}
                                       >
                                         <Edit className="h-4 w-4" />
                                       </Button>
@@ -625,19 +644,13 @@ export default function Sales() {
                                         variant="ghost"
                                         className="h-8 w-8 text-muted-foreground hover:text-destructive"
                                         onClick={() => setDeleteConfirmId(latestTrip.id)}
+                                        data-testid={`button-delete-trip-${latestTrip.id}`}
                                       >
                                         <Trash2 className="h-4 w-4" />
                                       </Button>
                                     </div>
                                   </div>
                                 </div>
-                                
-                                {latestTrip.note && (
-                                  <div className="mt-2 pt-2 border-t text-[11px] text-muted-foreground italic flex items-start gap-1">
-                                    <div className="mt-0.5">Note:</div>
-                                    <div className="flex-1">{latestTrip.note}</div>
-                                  </div>
-                                )}
                               </CardContent>
 
                               <CollapsibleContent>
@@ -648,20 +661,28 @@ export default function Sales() {
                                         <div className="text-[10px] font-medium text-muted-foreground">
                                           {trip.createdAt ? format(new Date(trip.createdAt), "HH:mm") : "-"}
                                         </div>
-                                        <div className="text-[10px] text-muted-foreground">
-                                          {locations?.find(l => l.id === trip.locationId)?.name}
+                                        <div className="text-[10px] text-muted-foreground italic line-clamp-1 max-w-[120px]">
+                                          {trip.note || "-"}
                                         </div>
                                       </div>
                                       <div className="flex items-center gap-3">
-                                        <span className="text-xs font-mono font-bold">
-                                          {new Intl.NumberFormat('id-ID').format(trip.appliedPrice)}
-                                        </span>
+                                        <div className="flex flex-col items-end">
+                                          <span className="text-xs font-mono font-bold">
+                                            {new Intl.NumberFormat('id-ID').format(trip.appliedPrice)}
+                                          </span>
+                                          <span className={cn(
+                                            "text-[9px] font-mono uppercase font-bold",
+                                            trip.paymentStatus === 'PAID' ? "text-green-600" : trip.paymentStatus === 'PARTIAL' ? "text-amber-600" : "text-destructive"
+                                          )}>
+                                            {trip.paymentStatus}
+                                          </span>
+                                        </div>
                                         <div className="flex items-center gap-1">
                                           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditTrip(trip as any)}>
                                             <Edit className="h-3 w-3" />
                                           </Button>
                                           <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setDeleteConfirmId(trip.id)}>
-                                            <Trash2 className="h-3 w-3" />
+                                            <Trash2 className="h-3.5 w-3.5" />
                                           </Button>
                                         </div>
                                       </div>
