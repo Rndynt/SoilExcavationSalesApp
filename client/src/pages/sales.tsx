@@ -620,12 +620,10 @@ export default function Sales() {
                                             </Badge>
                                           )}
                                         </div>
-                                        {trips.length > 1 && (
-                                          <div className="flex items-center gap-2 text-[9px] font-mono font-bold">
-                                            <span className="text-green-600">P:{new Intl.NumberFormat('id-ID', { notation: "compact" }).format(totalPaid)}</span>
-                                            <span className="text-destructive">U:{new Intl.NumberFormat('id-ID', { notation: "compact" }).format(totalUnpaid)}</span>
-                                          </div>
-                                        )}
+                                        <div className="flex items-center gap-2 text-[9px] font-mono font-bold">
+                                          <span className="text-green-600">P:{new Intl.NumberFormat('id-ID', { notation: "compact" }).format(totalPaid)}</span>
+                                          <span className="text-destructive">U:{new Intl.NumberFormat('id-ID', { notation: "compact" }).format(totalUnpaid)}</span>
+                                        </div>
                                       </div>
                                     </div>
 
