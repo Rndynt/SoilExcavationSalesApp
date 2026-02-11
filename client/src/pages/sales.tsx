@@ -621,8 +621,8 @@ export default function Sales() {
                                           )}
                                         </div>
                                         <div className="flex items-center gap-2 text-[9px] font-mono font-bold">
-                                          <span className="text-green-600">P:{new Intl.NumberFormat('id-ID', { notation: "compact" }).format(totalPaid)}</span>
-                                          <span className="text-destructive">U:{new Intl.NumberFormat('id-ID', { notation: "compact" }).format(totalUnpaid)}</span>
+                                          <span className="text-green-600">P:{new Intl.NumberFormat('id-ID').format(totalPaid)}</span>
+                                          <span className="text-destructive">U:{new Intl.NumberFormat('id-ID').format(totalUnpaid)}</span>
                                         </div>
                                       </div>
                                     </div>
