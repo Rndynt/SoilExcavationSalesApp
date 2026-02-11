@@ -16,6 +16,7 @@ import Locations from "@/pages/locations";
 import Pricing from "@/pages/pricing";
 import Settings from "@/pages/settings";
 import Recap from "@/pages/recap";
+import PnLCalendar from "@/pages/pnl-calendar";
 import SyncQueue from "@/pages/sync-queue";
 import { LanguageProvider } from "@/contexts/language-context";
 
@@ -27,6 +28,7 @@ function Router() {
         <Route path="/sales" component={Sales} />
         <Route path="/sales-history" component={SalesHistory} />
         <Route path="/recap" component={Recap} />
+        <Route path="/pnl-calendar" component={PnLCalendar} />
         <Route path="/receivables" component={Receivables} />
         <Route path="/expenses" component={Expenses} />
         <Route path="/trucks" component={Trucks} />
