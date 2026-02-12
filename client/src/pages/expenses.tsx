@@ -126,6 +126,40 @@ export default function Expenses() {
   const updateCategory = useUpdateExpenseCategory();
   const deleteCategory = useDeleteExpenseCategory();
 
+  // Filter Logic
+  const filteredExpenses = expenses.filter(e => {
+    const cat = categories.find(c => c.id === e.categoryId);
+    if (!cat) return false;
+    
+    if (filterType !== 'all' && cat.type !== filterType) return false;
+    
+    // Filter by date range
+    if (e.expenseDate < dateRange.from || e.expenseDate > dateRange.to) return false;
+
+    // Filter by search query
+    if (searchQuery) {
+      const lowerQuery = searchQuery.toLowerCase();
+      const matchesNote = e.note?.toLowerCase().includes(lowerQuery);
+      const matchesPlate = e.relatedPlateNumber?.toLowerCase().includes(lowerQuery);
+      const matchesCat = cat.name.toLowerCase().includes(lowerQuery);
+      if (!matchesNote && !matchesPlate && !matchesCat) return false;
+    }
+    
+    return true;
+  }).sort((a,b) => new Date(b.expenseDate).getTime() - new Date(a.expenseDate).getTime());
+
+  const groupedByDay = filteredExpenses.reduce((acc, exp) => {
+    const day = exp.expenseDate.split('T')[0];
+    if (!acc[day]) acc[day] = { expenses: [], total: 0 };
+    acc[day].expenses.push(exp);
+    acc[day].total += exp.amount;
+    return acc;
+  }, {} as Record<string, { expenses: any[]; total: number }>);
+
+  const sortedDays = Object.entries(groupedByDay).sort((a, b) => 
+    new Date(b[0]).getTime() - new Date(a[0]).getTime()
+  );
+
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
 
   const toggleDate = (date: string) => {
@@ -154,28 +188,6 @@ export default function Expenses() {
       setDateRange({ from: start, to: end });
     }
   };
-
-  // Filter Logic
-  const filteredExpenses = expenses.filter(e => {
-    const cat = categories.find(c => c.id === e.categoryId);
-    if (!cat) return false;
-    
-    if (filterType !== 'all' && cat.type !== filterType) return false;
-    
-    // Filter by date range
-    if (e.expenseDate < dateRange.from || e.expenseDate > dateRange.to) return false;
-
-    // Filter by search query
-    if (searchQuery) {
-      const lowerQuery = searchQuery.toLowerCase();
-      const matchesNote = e.note?.toLowerCase().includes(lowerQuery);
-      const matchesPlate = e.relatedPlateNumber?.toLowerCase().includes(lowerQuery);
-      const matchesCat = cat.name.toLowerCase().includes(lowerQuery);
-      if (!matchesNote && !matchesPlate && !matchesCat) return false;
-    }
-    
-    return true;
-  }).sort((a,b) => new Date(b.expenseDate).getTime() - new Date(a.expenseDate).getTime());
 
   // Submit Expense
   const handleSubmit = async (e: React.FormEvent) => {
@@ -598,42 +610,53 @@ export default function Expenses() {
         </DialogContent>
       </Dialog>
 
-      <div className="flex items-center gap-2 flex-wrap">
-        <Select value={period} onValueChange={handlePeriodChange}>
-          <SelectTrigger className="w-[140px] h-9">
-            <SelectValue placeholder="Pilih Periode" />
-          </SelectTrigger>
-          <SelectContent>
-            {TIME_PRESETS.map(p => (
-              <SelectItem key={p.value} value={p.value}>{t(p.label)}</SelectItem>
-            ))}
-            <SelectItem value="CUSTOM">Custom Range</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="flex items-center gap-4 flex-wrap justify-between">
+        <div className="flex items-center gap-2">
+          <Select value={period} onValueChange={handlePeriodChange}>
+            <SelectTrigger className="w-[140px] h-9">
+              <SelectValue placeholder="Pilih Periode" />
+            </SelectTrigger>
+            <SelectContent>
+              {TIME_PRESETS.map(p => (
+                <SelectItem key={p.value} value={p.value}>{t(p.label)}</SelectItem>
+              ))}
+              <SelectItem value="CUSTOM">Custom Range</SelectItem>
+            </SelectContent>
+          </Select>
 
-        {period === "CUSTOM" && (
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Calendar className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="date"
-                value={dateRange.from}
-                onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))}
-                className="w-[140px] pl-9 h-9"
-              />
+          {period === "CUSTOM" && (
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Calendar className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="date"
+                  value={dateRange.from}
+                  onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))}
+                  className="w-[140px] pl-9 h-9"
+                />
+              </div>
+              <span className="text-muted-foreground">-</span>
+              <div className="relative">
+                <Calendar className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="date"
+                  value={dateRange.to}
+                  onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))}
+                  className="w-[140px] pl-9 h-9"
+                />
+              </div>
             </div>
-            <span className="text-muted-foreground">-</span>
-            <div className="relative">
-              <Calendar className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="date"
-                value={dateRange.to}
-                onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))}
-                className="w-[140px] pl-9 h-9"
-              />
-            </div>
-          </div>
-        )}
+          )}
+        </div>
+
+        <div className="bg-primary/5 px-4 py-2 rounded-lg border border-primary/10">
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block leading-none mb-1">Total Pengeluaran Periode Ini</span>
+          <span className="text-xl font-mono font-bold text-primary">
+            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(
+              filteredExpenses.reduce((sum, e) => sum + e.amount, 0)
+            )}
+          </span>
+        </div>
       </div>
 
       <Card className="border-border shadow-sm">
@@ -647,213 +670,128 @@ export default function Expenses() {
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className="pl-9 h-9"
-                data-testid="input-search-expenses"
               />
             </div>
           </div>
-
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-medium text-foreground">Filter:</span>
+          <div className="flex-1 flex gap-4">
+            <div className="space-y-2">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tipe</span>
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger className="w-[140px] h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Tipe</SelectItem>
+                  <SelectItem value="OPERATIONAL">Operasional</SelectItem>
+                  <SelectItem value="PAYABLE">Hutang</SelectItem>
+                  <SelectItem value="LOAN">Pinjaman</SelectItem>
+                  <SelectItem value="DISCOUNT">Potongan</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Kategori</span>
+              <Select value={filterCat} onValueChange={setFilterCat}>
+                <SelectTrigger className="w-[180px] h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Kategori</SelectItem>
+                  {categories.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          
-          <Select value={filterType} onValueChange={setFilterType}>
-            <SelectTrigger className="w-[150px] h-9" data-testid="select-filter-type">
-              <SelectValue placeholder="All Types" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="OPERATIONAL">{t('expenses.operational')}</SelectItem>
-              <SelectItem value="DISCOUNT">{t('expenses.discount')}</SelectItem>
-              <SelectItem value="PAYABLE">{t('expenses.payable')}</SelectItem>
-              <SelectItem value="LOAN">{t('expenses.loan')}</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={filterCat} onValueChange={setFilterCat}>
-            <SelectTrigger className="w-[200px] h-9" data-testid="select-filter-category">
-              <SelectValue placeholder="All Categories" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {categories.map(c => (
-                 <div key={c.id} className="flex items-center justify-between px-2 py-1 hover:bg-muted cursor-default group w-full">
-                   <SelectItem value={c.id} className="flex-1">{c.name}</SelectItem>
-                   {!c.isSystem && (
-                     <Button 
-                       variant="ghost" 
-                       size="icon" 
-                       className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity ml-2"
-                       onClick={(e) => {
-                         e.preventDefault();
-                         e.stopPropagation();
-                         openEditCategory(c);
-                       }}
-                     >
-                       <Edit2 className="h-3 w-3" />
-                     </Button>
-                   )}
-                 </div>
-              ))}
-            </SelectContent>
-          </Select>
         </CardContent>
       </Card>
 
-      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
-        <div className="p-4 border-b bg-muted/50">
-          <h3 className="font-semibold text-sm">{t('expenses.byday')}</h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-muted text-muted-foreground border-b border-border">
-              <tr>
-            <th className="px-6 py-3 font-medium">{t('expenses.category')}</th>
-            <th className="px-6 py-3 font-medium">{t('expenses.note')}</th>
-            <th className="px-6 py-3 font-medium text-right">{t('expenses.amount')}</th>
-                <th className="px-6 py-3 font-medium text-right w-10"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filteredExpenses.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">
-                    <div className="flex flex-col items-center gap-2">
-                      <Receipt className="h-8 w-8 text-muted-foreground/50" />
-                      <p data-testid="text-no-expenses">Data tidak ditemukan.</p>
+      <div className="grid gap-4">
+        {sortedDays.map(([date, data]) => {
+          const isExpanded = expandedDates[date] || false;
+          
+          return (
+            <div key={date} className="border rounded-lg overflow-hidden bg-card shadow-sm">
+              <div 
+                className="flex items-center justify-between p-4 cursor-pointer hover:bg-accent/50 transition-colors"
+                onClick={() => toggleDate(date)}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="bg-primary/10 p-2 rounded-lg">
+                    <Calendar className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="text-left">
+                    <h4 className="font-semibold text-sm">{format(new Date(date), "eeee, dd MMMM yyyy", { locale })}</h4>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{data.expenses.length} Transaksi</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <div className="font-mono font-bold text-sm text-primary">
+                      {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(data.total)}
                     </div>
-                  </td>
-                </tr>
-              ) : (
-                (() => {
-                  const grouped: { [key: string]: any[] } = {};
-                  filteredExpenses.forEach(exp => {
-                    const dateKey = format(new Date(exp.expenseDate), "EEEE, dd MMM yyyy", { locale });
-                    if (!grouped[dateKey]) grouped[dateKey] = [];
-                    grouped[dateKey].push(exp);
-                  });
+                  </div>
+                  {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                </div>
+              </div>
 
-                  return Object.entries(grouped).map(([date, items]) => {
-                    const isExpanded = expandedDates[date] || false;
-                    const dailyTotal = items.reduce((sum, item) => sum + (item.amount || 0), 0);
-                    
-                    return (
-                      <React.Fragment key={date}>
-                        <tr 
-                          className="bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
-                          onClick={() => toggleDate(date)}
-                        >
-                          <td colSpan={4} className="px-6 py-2">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <span className="font-bold text-xs uppercase tracking-wider text-primary">
-                                  {date}
-                                </span>
-                                <Badge variant="secondary" className="text-[10px] py-0 h-4">
-                                  {items.length} Data
-                                </Badge>
-                              </div>
-                              <div className="flex items-center gap-4">
-                                <span className="font-mono text-xs font-semibold text-primary">
-                                  {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(dailyTotal)}
-                                </span>
-                                {isExpanded ? (
-                                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                                ) : (
-                                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                                )}
-                              </div>
-                            </div>
-                          </td>
+              {isExpanded && (
+                <div className="p-4 pt-0 space-y-3">
+                  <div className="h-px bg-border mb-3" />
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="text-left text-muted-foreground uppercase tracking-wider text-[10px]">
+                          <th className="pb-2 font-semibold">Kategori</th>
+                          <th className="pb-2 font-semibold">Catatan</th>
+                          <th className="pb-2 font-semibold text-right">Jumlah</th>
+                          <th className="pb-2 font-semibold text-right">Aksi</th>
                         </tr>
-                        {isExpanded && items.map((expense) => {
+                      </thead>
+                      <tbody className="divide-y">
+                        {data.expenses.map((expense: any) => {
                           const cat = categories.find(c => c.id === expense.categoryId);
-                          const isDiscount = cat?.type === 'DISCOUNT';
-                          const isPayableLoan = cat?.type === 'PAYABLE' || cat?.type === 'LOAN';
-                          const isSystem = cat?.isSystem || false;
-
                           return (
-                            <tr key={expense.id} className="group hover:bg-muted/50 transition-colors" data-testid={`row-expense-${expense.id}`}>
-                              <td className="px-6 py-4">
-                                <div className="flex flex-col gap-1">
-                                  <Badge 
-                                    variant="outline" 
-                                    className={cn(
-                                      "text-[10px] font-normal w-fit",
-                                      isDiscount ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800" :
-                                      isPayableLoan ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800" :
-                                      "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800"
-                                    )}
-                                  >
-                                    {cat?.type}
-                                  </Badge>
-                                  <span className="font-medium text-foreground leading-tight">{cat?.name}</span>
+                            <tr key={expense.id} className="group hover:bg-muted/30">
+                              <td className="py-3 pr-4">
+                                <div className="flex flex-col">
+                                  <span className="font-medium">{cat?.name}</span>
+                                  <span className="text-[10px] text-muted-foreground">{cat?.type}</span>
                                 </div>
                               </td>
-                              <td className="px-6 py-4 text-muted-foreground max-w-xs">
-                                <div className="flex flex-col gap-1">
-                                  <span>{expense.note || "-"}</span>
-                                  {expense.relatedPlateNumber && (
-                                    <div className={cn(
-                                      "flex items-center gap-1 text-[10px] font-mono",
-                                      isDiscount ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"
-                                    )}>
-                                      <Truck className="w-3 h-3" /> {expense.relatedPlateNumber}
-                                    </div>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 text-right font-mono font-medium text-foreground">
-                                {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(expense.amount)}
-                              </td>
-                              <td className="px-6 py-4 text-right">
-                                {!isSystem && (
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="h-8 w-8 p-0" data-testid={`button-actions-${expense.id}`}>
-                                        <MoreVertical className="h-4 w-4" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      <DropdownMenuItem onClick={() => openEditDialog(expense)} data-testid={`button-edit-${expense.id}`}>
-                                        <Edit2 className="h-4 w-4 mr-2" /> Edit
-                                      </DropdownMenuItem>
-                                      <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                          <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive" data-testid={`button-delete-trigger-${expense.id}`}>
-                                            <Trash2 className="h-4 w-4 mr-2" /> Hapus
-                                          </DropdownMenuItem>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                          <AlertDialogHeader>
-                                            <AlertDialogTitle>Hapus Pengeluaran?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                              Tindakan ini tidak dapat dibatalkan. Pengeluaran ini akan dihapus permanen dari sistem.
-                                            </AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter>
-                                            <AlertDialogCancel>Batal</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleDelete(expense.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                              Hapus
-                                            </AlertDialogAction>
-                                          </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
+                              <td className="py-3 pr-4 text-muted-foreground">
+                                {expense.note || "-"}
+                                {expense.relatedPlateNumber && (
+                                  <div className="text-[10px] font-mono mt-0.5">
+                                    Plat: {expense.relatedPlateNumber}
+                                  </div>
                                 )}
+                              </td>
+                              <td className="py-3 pr-4 text-right font-mono font-semibold">
+                                {new Intl.NumberFormat('id-ID').format(expense.amount)}
+                              </td>
+                              <td className="py-3 text-right">
+                                <div className="flex justify-end gap-1">
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); openEditDialog(expense); }}>
+                                    <Edit2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={(e) => { e.stopPropagation(); handleDelete(expense.id); }}>
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
                               </td>
                             </tr>
                           );
                         })}
-                      </React.Fragment>
-                    );
-                  });
-                })()
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               )}
-            </tbody>
-          </table>
-        </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
