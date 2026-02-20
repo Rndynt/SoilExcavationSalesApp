@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import { 
   addToOutbox, 
@@ -36,7 +37,7 @@ const normalizeOutboxPayload = (body: Record<string, unknown>) => {
 };
 
 export function useOnlineStatus() {
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isOnline, setIsOnline] = React.useState(navigator.onLine);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -56,7 +57,7 @@ export function useOnlineStatus() {
 
 export function useOfflineSync() {
   const isOnline = useOnlineStatus();
-  const [syncState, setSyncState] = useState<SyncState>({
+  const [syncState, setSyncState] = React.useState<SyncState>({
     isOnline: navigator.onLine,
     isSyncing: false,
     pendingCount: 0,

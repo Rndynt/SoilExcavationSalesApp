@@ -530,31 +530,48 @@ export default function Expenses() {
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Kategori</span>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 text-xs gap-2">
-                  <Filter className="h-3 w-3" />
-                  {selectedCategories.length === categories.length ? "Semua Kategori" : `${selectedCategories.length} Terpilih`}
+                <Button variant="outline" size="sm" className="h-8 text-xs gap-2 min-w-[140px] justify-between">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-3 w-3" />
+                    <span>{selectedCategories.length === categories.length ? "Semua Kategori" : `${selectedCategories.length} Terpilih`}</span>
+                  </div>
+                  <ChevronDown className="h-3 w-3 opacity-50" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-56 p-2">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between pb-2 border-b">
                     <span className="text-[10px] font-bold uppercase tracking-wider">Filter Kategori</span>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-6 px-2 text-[10px]" 
-                      onClick={() => setSelectedCategories(categories.map(c => c.id))}
-                    >
-                      Check All
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-6 px-2 text-[10px] font-bold" 
+                        onClick={(e) => { e.stopPropagation(); setSelectedCategories(categories.map(c => c.id)); }}
+                      >
+                        ALL
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-6 px-2 text-[10px] font-bold" 
+                        onClick={(e) => { e.stopPropagation(); setSelectedCategories([]); }}
+                      >
+                        NONE
+                      </Button>
+                    </div>
                   </div>
                   <div className="max-h-[300px] overflow-y-auto space-y-1 pr-1">
                     {categories.map(cat => (
-                      <div key={cat.id} className="flex items-center gap-2 px-1 py-1 hover:bg-muted rounded-md cursor-pointer transition-colors" onClick={() => toggleCategory(cat.id)}>
-                        <Checkbox checked={selectedCategories.includes(cat.id)} onCheckedChange={() => toggleCategory(cat.id)} />
+                      <div key={cat.id} className="flex items-center gap-2 px-1 py-1.5 hover:bg-muted rounded-md cursor-pointer transition-colors" onClick={() => toggleCategory(cat.id)}>
+                        <Checkbox 
+                          checked={selectedCategories.includes(cat.id)} 
+                          onCheckedChange={() => toggleCategory(cat.id)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
                         <div className="flex flex-col">
-                          <span className="text-xs font-medium leading-none">{cat.name}</span>
-                          <span className="text-[10px] text-muted-foreground leading-tight">{cat.type}</span>
+                          <span className="text-xs font-bold leading-none">{cat.name}</span>
+                          <span className="text-[9px] text-muted-foreground leading-tight font-medium uppercase">{cat.type}</span>
                         </div>
                       </div>
                     ))}
@@ -612,30 +629,30 @@ export default function Expenses() {
                       
                       return (
                         <div key={expense.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 border border-transparent hover:border-border/50 transition-all">
-                          <div className="flex items-center gap-3">
-                            <div className="flex flex-col">
-                              <span className="text-xs font-bold leading-none">{cat?.name}</span>
-                              <span className="text-[10px] text-muted-foreground mt-0.5 leading-none font-medium">{cat?.type}</span>
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <div className="flex flex-col min-w-[80px]">
+                              <span className="text-[11px] font-bold leading-none truncate">{cat?.name}</span>
+                              <span className="text-[9px] text-muted-foreground mt-0.5 leading-none font-medium uppercase">{cat?.type}</span>
                             </div>
-                            <div className="w-px h-6 bg-border/50 mx-1" />
-                            <div className="flex flex-col">
-                              <span className="text-xs text-foreground/80 leading-none">{expense.note || "-"}</span>
+                            <div className="w-px h-4 bg-border/50 mx-1 shrink-0" />
+                            <div className="flex flex-col min-w-0 flex-1">
+                              <span className="text-[11px] text-foreground/80 leading-tight truncate">{expense.note || "-"}</span>
                               {expense.relatedPlateNumber && (
-                                <span className="text-[10px] font-mono font-bold text-primary/80 mt-1 leading-none uppercase">
+                                <span className="text-[9px] font-mono font-bold text-primary/80 mt-0.5 leading-none uppercase truncate">
                                   {expense.relatedPlateNumber}
                                 </span>
                               )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-4">
-                            <span className="font-mono font-bold text-xs">
+                          <div className="flex items-center gap-3 shrink-0 ml-2">
+                            <span className="font-mono font-bold text-[11px]">
                               {new Intl.NumberFormat('id-ID').format(expense.amount)}
                             </span>
                             {!isSystem && (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 p-0">
-                                    <MoreVertical className="h-3.5 w-3.5" />
+                                  <Button variant="ghost" size="icon" className="h-6 w-6 p-0 hover:bg-accent">
+                                    <MoreVertical className="h-3 w-3 text-muted-foreground" />
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-32">
