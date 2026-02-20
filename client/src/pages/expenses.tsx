@@ -631,21 +631,21 @@ export default function Expenses() {
                         <div key={expense.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 border border-transparent hover:border-border/50 transition-all">
                           <div className="flex items-center gap-3 min-w-0">
                             <div className="flex flex-col min-w-[100px]">
-                              <span className="text-[11px] font-bold leading-none truncate">{cat?.name}</span>
-                              <span className="text-[9px] text-muted-foreground mt-1 leading-none font-medium uppercase tracking-wider">{cat?.type}</span>
+                              <span className="text-xs font-bold leading-none truncate">{cat?.name}</span>
+                              <span className="text-[10px] text-muted-foreground mt-1.5 leading-none font-medium uppercase tracking-wider">{cat?.type}</span>
                             </div>
-                            <div className="w-px h-5 bg-border/50 mx-1 shrink-0" />
+                            <div className="w-px h-6 bg-border/50 mx-1 shrink-0" />
                             <div className="flex flex-col min-w-0">
-                              <span className="text-[11px] text-foreground/80 leading-tight truncate">{expense.note || "-"}</span>
+                              <span className="text-xs text-foreground/80 leading-normal truncate">{expense.note || "-"}</span>
                               {expense.relatedPlateNumber && (
-                                <span className="text-[9px] font-mono font-bold text-primary/80 mt-1 leading-none uppercase truncate tracking-tight">
+                                <span className="text-[10px] font-mono font-bold text-primary/80 mt-1.5 leading-none uppercase truncate tracking-tight">
                                   {expense.relatedPlateNumber}
                                 </span>
                               )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-3 shrink-0">
-                            <span className="font-mono font-bold text-[11px]">
+                          <div className="flex items-center gap-4 shrink-0">
+                            <span className="font-mono font-bold text-xs">
                               {new Intl.NumberFormat('id-ID').format(expense.amount)}
                             </span>
                             {!isSystem && (
