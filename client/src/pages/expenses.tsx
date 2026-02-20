@@ -28,6 +28,7 @@ import { useTranslate } from "@/hooks/use-translate";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import { id, enUS } from "date-fns/locale";
 import { useLanguage } from "@/contexts/language-context";
@@ -99,6 +100,7 @@ export default function Expenses() {
   // Filters
   const [filterType, setFilterType] = useState("all");
   const [filterCat, setFilterCat] = useState("all");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   // Form
   const [newDate, setNewDate] = useState(new Date().toISOString().split('T')[0]);
@@ -126,41 +128,24 @@ export default function Expenses() {
   const updateCategory = useUpdateExpenseCategory();
   const deleteCategory = useDeleteExpenseCategory();
 
-  // Filter Logic
-  const filteredExpenses = expenses.filter(e => {
-    const cat = categories.find(c => c.id === e.categoryId);
-    if (!cat) return false;
-    
-    if (filterType !== 'all' && cat.type !== filterType) return false;
-    
-    // Filter by date range
-    if (e.expenseDate < dateRange.from || e.expenseDate > dateRange.to) return false;
-
-    // Filter by search query
-    if (searchQuery) {
-      const lowerQuery = searchQuery.toLowerCase();
-      const matchesNote = e.note?.toLowerCase().includes(lowerQuery);
-      const matchesPlate = e.relatedPlateNumber?.toLowerCase().includes(lowerQuery);
-      const matchesCat = cat.name.toLowerCase().includes(lowerQuery);
-      if (!matchesNote && !matchesPlate && !matchesCat) return false;
-    }
-    
-    return true;
-  }).sort((a,b) => new Date(b.expenseDate).getTime() - new Date(a.expenseDate).getTime());
-
-  const groupedByDay = filteredExpenses.reduce((acc, exp) => {
-    const day = exp.expenseDate.split('T')[0];
-    if (!acc[day]) acc[day] = { expenses: [], total: 0 };
-    acc[day].expenses.push(exp);
-    acc[day].total += exp.amount;
-    return acc;
-  }, {} as Record<string, { expenses: any[]; total: number }>);
-
-  const sortedDays = Object.entries(groupedByDay).sort((a, b) => 
-    new Date(b[0]).getTime() - new Date(a[0]).getTime()
-  );
-
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (categories.length > 0 && selectedCategories.length === 0) {
+      const defaultSelected = categories
+        .filter(c => c.type !== 'DISCOUNT')
+        .map(c => c.id);
+      setSelectedCategories(defaultSelected);
+    }
+  }, [categories]);
+
+  const toggleCategory = (catId: string) => {
+    setSelectedCategories(prev => 
+      prev.includes(catId) 
+        ? prev.filter(id => id !== catId)
+        : [...prev, catId]
+    );
+  };
 
   const toggleDate = (date: string) => {
     setExpandedDates(prev => ({
@@ -188,6 +173,43 @@ export default function Expenses() {
       setDateRange({ from: start, to: end });
     }
   };
+
+  // Filter Logic
+  const filteredExpenses = expenses.filter(e => {
+    const cat = categories.find(c => c.id === e.categoryId);
+    if (!cat) return false;
+    
+    // Category checkbox filter
+    if (selectedCategories.length > 0 && !selectedCategories.includes(e.categoryId)) return false;
+    
+    if (filterType !== 'all' && cat.type !== filterType) return false;
+
+    // Filter by date range
+    if (e.expenseDate < dateRange.from || e.expenseDate > dateRange.to) return false;
+
+    // Filter by search query
+    if (searchQuery) {
+      const lowerQuery = searchQuery.toLowerCase();
+      const matchesNote = e.note?.toLowerCase().includes(lowerQuery);
+      const matchesPlate = e.relatedPlateNumber?.toLowerCase().includes(lowerQuery);
+      const matchesCat = cat.name.toLowerCase().includes(lowerQuery);
+      if (!matchesNote && !matchesPlate && !matchesCat) return false;
+    }
+    
+    return true;
+  }).sort((a,b) => new Date(b.expenseDate).getTime() - new Date(a.expenseDate).getTime());
+
+  const groupedByDay = filteredExpenses.reduce((acc, exp) => {
+    const day = exp.expenseDate.split('T')[0];
+    if (!acc[day]) acc[day] = { expenses: [], total: 0 };
+    acc[day].expenses.push(exp);
+    acc[day].total += exp.amount;
+    return acc;
+  }, {} as Record<string, { expenses: any[]; total: number }>);
+
+  const sortedDays = Object.entries(groupedByDay).sort((a, b) => 
+    new Date(b[0]).getTime() - new Date(a[0]).getTime()
+  );
 
   // Submit Expense
   const handleSubmit = async (e: React.FormEvent) => {
@@ -328,20 +350,19 @@ export default function Expenses() {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight" data-testid="text-page-title">{t('expenses.title')}</h2>
-        <p className="text-muted-foreground mt-1">{t('expenses.subtitle')}</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight" data-testid="text-page-title">{t('expenses.title')}</h2>
+          <p className="text-muted-foreground mt-1 text-sm">{t('expenses.subtitle')}</p>
+        </div>
       </div>
 
       <Card className="border-border shadow-sm bg-accent/20">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">{t('expenses.addexpense')}</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="p-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             <Collapsible open={configOpen} onOpenChange={setConfigOpen} className="space-y-4">
               <div className="flex items-center justify-between gap-4 px-1">
-                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                   <Calendar className="h-3 w-3" />
                   {format(new Date(newDate), "dd MMM yyyy", { locale })}
                   <span className="text-muted-foreground/30">•</span>
@@ -349,17 +370,17 @@ export default function Expenses() {
                   {locations.find(l => l.id === newLocationId)?.name || "Pilih Lokasi"}
                 </div>
                 <CollapsibleTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
+                  <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] gap-1 uppercase font-bold tracking-wider">
                     {configOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                    {configOpen ? "Close" : "Change"}
+                    {configOpen ? "Close" : "Change Settings"}
                   </Button>
                 </CollapsibleTrigger>
               </div>
 
-              <CollapsibleContent className="space-y-4 pt-2 border-t border-dashed animate-in fade-in slide-in-from-top-1">
+              <CollapsibleContent className="space-y-4 pt-4 border-t border-dashed animate-in fade-in slide-in-from-top-1">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('expenses.date')}</Label>
+                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t('expenses.date')}</Label>
                     <div className="relative">
                       <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -372,7 +393,7 @@ export default function Expenses() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Lokasi</Label>
+                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Lokasi</Label>
                     <div className="relative">
                       <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground z-10" />
                       <Select value={newLocationId} onValueChange={setNewLocationId}>
@@ -390,9 +411,9 @@ export default function Expenses() {
                 </div>
               </CollapsibleContent>
             </Collapsible>
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
-              <div className="md:col-span-1 space-y-2">
-                <Label className="text-xs font-semibold">{t('expenses.amount')}</Label>
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+              <div className="md:col-span-2 space-y-2">
+                <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t('expenses.amount')}</Label>
                 <Input 
                   type="number" 
                   value={newAmount} 
@@ -400,19 +421,19 @@ export default function Expenses() {
                   required 
                   data-testid="input-amount"
                   placeholder="0"
-                  className="h-9"
+                  className="h-9 font-mono font-bold"
                 />
               </div>
 
-              <div className="md:col-span-2 space-y-2">
-                <Label className="text-xs font-semibold flex justify-between">
+              <div className="md:col-span-3 space-y-2">
+                <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex justify-between">
                   {t('expenses.category')}
                   <span 
-                    className="text-xs text-primary cursor-pointer hover:underline font-normal"
+                    className="text-[10px] text-primary cursor-pointer hover:underline font-bold"
                     onClick={() => setIsAddCatOpen(true)}
                     data-testid="link-new-category"
                   >
-                    + {t('expenses.addnewcategory')}
+                    + ADD NEW
                   </span>
                 </Label>
                 <Select value={newCatId} onValueChange={setNewCatId}>
@@ -429,21 +450,8 @@ export default function Expenses() {
                 </Select>
               </div>
 
-              {(selectedCatType === 'PAYABLE' || selectedCatType === 'LOAN') && (
-                <div className="md:col-span-1 space-y-2">
-                  <Label className="text-xs font-semibold">Plat</Label>
-                  <Input 
-                    value={newPlate} 
-                    onChange={e => setNewPlate(e.target.value)} 
-                    className="h-9 text-xs uppercase" 
-                    placeholder="Opt" 
-                    data-testid="input-related-plate"
-                  />
-                </div>
-              )}
-
-              <div className={`space-y-2 ${selectedCatType === 'PAYABLE' || selectedCatType === 'LOAN' ? 'md:col-span-1' : 'md:col-span-2'}`}>
-                <Label className="text-xs font-semibold">Catatan</Label>
+              <div className={`space-y-2 ${(selectedCatType === 'PAYABLE' || selectedCatType === 'LOAN') ? 'md:col-span-2' : 'md:col-span-3'}`}>
+                <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Catatan</Label>
                 <Input 
                   value={newNote} 
                   onChange={e => setNewNote(e.target.value)} 
@@ -453,10 +461,23 @@ export default function Expenses() {
                 />
               </div>
 
-              <div className="md:col-span-1 flex items-end">
+              {(selectedCatType === 'PAYABLE' || selectedCatType === 'LOAN') && (
+                <div className="md:col-span-2 space-y-2">
+                  <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Plat</Label>
+                  <Input 
+                    value={newPlate} 
+                    onChange={e => setNewPlate(e.target.value)} 
+                    className="h-9 text-xs uppercase font-mono font-bold" 
+                    placeholder="BK 0000 XX" 
+                    data-testid="input-related-plate"
+                  />
+                </div>
+              )}
+
+              <div className="md:col-span-2 flex items-end">
                 <Button 
                   type="submit" 
-                  className="w-full h-9" 
+                  className="w-full h-9 font-bold tracking-wide" 
                   disabled={createExpense.isPending}
                   data-testid="button-submit-expense"
                 >
@@ -465,7 +486,7 @@ export default function Expenses() {
                   ) : (
                     <>
                       <Plus className="w-4 h-4 mr-1" />
-                      Catat
+                      SIMPAN
                     </>
                   )}
                 </Button>
@@ -474,6 +495,186 @@ export default function Expenses() {
           </form>
         </CardContent>
       </Card>
+
+      <div className="flex flex-col md:flex-row items-start md:items-center gap-4 justify-between bg-card p-4 rounded-xl border border-border shadow-sm">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="space-y-1.5">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Periode</span>
+            <Select value={period} onValueChange={handlePeriodChange}>
+              <SelectTrigger className="w-[140px] h-8 text-xs font-semibold">
+                <SelectValue placeholder="Pilih Periode" />
+              </SelectTrigger>
+              <SelectContent>
+                {TIME_PRESETS.map(p => (
+                  <SelectItem key={p.value} value={p.value} className="text-xs">{t(p.label)}</SelectItem>
+                ))}
+                <SelectItem value="CUSTOM" className="text-xs">Custom Range</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Cari</span>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Catatan, Plat..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="pl-8 h-8 text-xs w-[180px]"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Kategori</span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 text-xs gap-2">
+                  <Filter className="h-3 w-3" />
+                  {selectedCategories.length === categories.length ? "Semua Kategori" : `${selectedCategories.length} Terpilih`}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56 p-2">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between pb-2 border-b">
+                    <span className="text-[10px] font-bold uppercase tracking-wider">Filter Kategori</span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 px-2 text-[10px]" 
+                      onClick={() => setSelectedCategories(categories.map(c => c.id))}
+                    >
+                      Check All
+                    </Button>
+                  </div>
+                  <div className="max-h-[300px] overflow-y-auto space-y-1 pr-1">
+                    {categories.map(cat => (
+                      <div key={cat.id} className="flex items-center gap-2 px-1 py-1 hover:bg-muted rounded-md cursor-pointer transition-colors" onClick={() => toggleCategory(cat.id)}>
+                        <Checkbox checked={selectedCategories.includes(cat.id)} onCheckedChange={() => toggleCategory(cat.id)} />
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium leading-none">{cat.name}</span>
+                          <span className="text-[10px] text-muted-foreground leading-tight">{cat.type}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
+        <div className="bg-primary/5 px-4 py-2 rounded-lg border border-primary/10">
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block leading-none mb-1">Total Pengeluaran</span>
+          <span className="text-xl font-mono font-bold text-primary">
+            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(
+              filteredExpenses.reduce((sum, e) => sum + e.amount, 0)
+            )}
+          </span>
+        </div>
+      </div>
+
+      <div className="grid gap-3">
+        {sortedDays.map(([date, data]) => {
+          const isExpanded = expandedDates[date] || false;
+          
+          return (
+            <div key={date} className="border rounded-xl overflow-hidden bg-card shadow-sm border-border/50">
+              <div 
+                className="flex items-center justify-between p-3 cursor-pointer hover:bg-accent/30 transition-colors"
+                onClick={() => toggleDate(date)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="bg-primary/10 p-1.5 rounded-lg">
+                    <Calendar className="h-3.5 w-3.5 text-primary" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-xs">{format(new Date(date), "eeee, dd MMMM yyyy", { locale })}</h4>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">{data.expenses.length} Transaksi</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="font-mono font-bold text-sm text-primary">
+                    {new Intl.NumberFormat('id-ID').format(data.total)}
+                  </div>
+                  {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                </div>
+              </div>
+
+              {isExpanded && (
+                <div className="p-3 pt-0 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <div className="h-px bg-border/50 mb-3" />
+                  <div className="space-y-2">
+                    {data.expenses.map((expense: any) => {
+                      const cat = categories.find(c => c.id === expense.categoryId);
+                      const isSystem = cat?.isSystem || false;
+                      
+                      return (
+                        <div key={expense.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 border border-transparent hover:border-border/50 transition-all">
+                          <div className="flex items-center gap-3">
+                            <div className="flex flex-col">
+                              <span className="text-xs font-bold leading-none">{cat?.name}</span>
+                              <span className="text-[10px] text-muted-foreground mt-0.5 leading-none font-medium">{cat?.type}</span>
+                            </div>
+                            <div className="w-px h-6 bg-border/50 mx-1" />
+                            <div className="flex flex-col">
+                              <span className="text-xs text-foreground/80 leading-none">{expense.note || "-"}</span>
+                              {expense.relatedPlateNumber && (
+                                <span className="text-[10px] font-mono font-bold text-primary/80 mt-1 leading-none uppercase">
+                                  {expense.relatedPlateNumber}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <span className="font-mono font-bold text-xs">
+                              {new Intl.NumberFormat('id-ID').format(expense.amount)}
+                            </span>
+                            {!isSystem && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 p-0">
+                                    <MoreVertical className="h-3.5 w-3.5" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-32">
+                                  <DropdownMenuItem className="text-xs" onClick={(e) => { e.stopPropagation(); openEditDialog(expense); }}>
+                                    <Edit2 className="h-3.5 w-3.5 mr-2" /> Edit
+                                  </DropdownMenuItem>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <DropdownMenuItem className="text-xs text-destructive" onSelect={(e) => e.preventDefault()}>
+                                        <Trash2 className="h-3.5 w-3.5 mr-2" /> Hapus
+                                      </DropdownMenuItem>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Hapus Pengeluaran?</AlertDialogTitle>
+                                        <AlertDialogDescription>Tindakan ini permanen dan tidak dapat dibatalkan.</AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel className="text-xs">Batal</AlertDialogCancel>
+                                        <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-xs" onClick={() => handleDelete(expense.id)}>
+                                          Hapus
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
 
       <Dialog open={isAddCatOpen} onOpenChange={(open) => {
         setIsAddCatOpen(open);
@@ -609,190 +810,6 @@ export default function Expenses() {
           </form>
         </DialogContent>
       </Dialog>
-
-      <div className="flex items-center gap-4 flex-wrap justify-between">
-        <div className="flex items-center gap-2">
-          <Select value={period} onValueChange={handlePeriodChange}>
-            <SelectTrigger className="w-[140px] h-9">
-              <SelectValue placeholder="Pilih Periode" />
-            </SelectTrigger>
-            <SelectContent>
-              {TIME_PRESETS.map(p => (
-                <SelectItem key={p.value} value={p.value}>{t(p.label)}</SelectItem>
-              ))}
-              <SelectItem value="CUSTOM">Custom Range</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {period === "CUSTOM" && (
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <Calendar className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="date"
-                  value={dateRange.from}
-                  onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))}
-                  className="w-[140px] pl-9 h-9"
-                />
-              </div>
-              <span className="text-muted-foreground">-</span>
-              <div className="relative">
-                <Calendar className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="date"
-                  value={dateRange.to}
-                  onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))}
-                  className="w-[140px] pl-9 h-9"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="bg-primary/5 px-4 py-2 rounded-lg border border-primary/10">
-          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block leading-none mb-1">Total Pengeluaran Periode Ini</span>
-          <span className="text-xl font-mono font-bold text-primary">
-            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(
-              filteredExpenses.reduce((sum, e) => sum + e.amount, 0)
-            )}
-          </span>
-        </div>
-      </div>
-
-      <Card className="border-border shadow-sm">
-        <CardContent className="p-4 flex flex-wrap gap-4 items-center">
-          <div className="w-full md:w-64 space-y-2">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Search</span>
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Note, Plate, Category..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="pl-9 h-9"
-              />
-            </div>
-          </div>
-          <div className="flex-1 flex gap-4">
-            <div className="space-y-2">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tipe</span>
-              <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger className="w-[140px] h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Tipe</SelectItem>
-                  <SelectItem value="OPERATIONAL">Operasional</SelectItem>
-                  <SelectItem value="PAYABLE">Hutang</SelectItem>
-                  <SelectItem value="LOAN">Pinjaman</SelectItem>
-                  <SelectItem value="DISCOUNT">Potongan</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Kategori</span>
-              <Select value={filterCat} onValueChange={setFilterCat}>
-                <SelectTrigger className="w-[180px] h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Kategori</SelectItem>
-                  {categories.map(c => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-4">
-        {sortedDays.map(([date, data]) => {
-          const isExpanded = expandedDates[date] || false;
-          
-          return (
-            <div key={date} className="border rounded-lg overflow-hidden bg-card shadow-sm">
-              <div 
-                className="flex items-center justify-between p-4 cursor-pointer hover:bg-accent/50 transition-colors"
-                onClick={() => toggleDate(date)}
-              >
-                <div className="flex items-center gap-4">
-                  <div className="bg-primary/10 p-2 rounded-lg">
-                    <Calendar className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="text-left">
-                    <h4 className="font-semibold text-sm">{format(new Date(date), "eeee, dd MMMM yyyy", { locale })}</h4>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{data.expenses.length} Transaksi</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <div className="font-mono font-bold text-sm text-primary">
-                      {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(data.total)}
-                    </div>
-                  </div>
-                  {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-                </div>
-              </div>
-
-              {isExpanded && (
-                <div className="p-4 pt-0 space-y-3">
-                  <div className="h-px bg-border mb-3" />
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="text-left text-muted-foreground uppercase tracking-wider text-[10px]">
-                          <th className="pb-2 font-semibold">Kategori</th>
-                          <th className="pb-2 font-semibold">Catatan</th>
-                          <th className="pb-2 font-semibold text-right">Jumlah</th>
-                          <th className="pb-2 font-semibold text-right">Aksi</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {data.expenses.map((expense: any) => {
-                          const cat = categories.find(c => c.id === expense.categoryId);
-                          return (
-                            <tr key={expense.id} className="group hover:bg-muted/30">
-                              <td className="py-3 pr-4">
-                                <div className="flex flex-col">
-                                  <span className="font-medium">{cat?.name}</span>
-                                  <span className="text-[10px] text-muted-foreground">{cat?.type}</span>
-                                </div>
-                              </td>
-                              <td className="py-3 pr-4 text-muted-foreground">
-                                {expense.note || "-"}
-                                {expense.relatedPlateNumber && (
-                                  <div className="text-[10px] font-mono mt-0.5">
-                                    Plat: {expense.relatedPlateNumber}
-                                  </div>
-                                )}
-                              </td>
-                              <td className="py-3 pr-4 text-right font-mono font-semibold">
-                                {new Intl.NumberFormat('id-ID').format(expense.amount)}
-                              </td>
-                              <td className="py-3 text-right">
-                                <div className="flex justify-end gap-1">
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); openEditDialog(expense); }}>
-                                    <Edit2 className="h-3.5 w-3.5" />
-                                  </Button>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={(e) => { e.stopPropagation(); handleDelete(expense.id); }}>
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </Button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
     </div>
   );
 }
