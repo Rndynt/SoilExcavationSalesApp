@@ -597,25 +597,25 @@ export default function Expenses() {
           const isExpanded = expandedDates[date] || false;
           
           return (
-            <div key={date} className="border rounded-lg overflow-hidden bg-card shadow-sm border-border/50">
+            <div key={date} className="border rounded-xl overflow-hidden bg-card shadow-md border-border">
               <div 
-                className="flex items-center justify-between p-2.5 cursor-pointer hover:bg-accent/30 transition-colors"
+                className="flex items-center justify-between p-4 cursor-pointer hover:bg-accent/30 transition-colors"
                 onClick={() => toggleDate(date)}
               >
-                <div className="flex items-center gap-2">
-                  <div className="bg-primary/10 p-1 rounded-md">
-                    <Calendar className="h-3 w-3 text-primary" />
+                <div className="flex items-center gap-3">
+                  <div className="bg-primary/10 p-2 rounded-lg">
+                    <Calendar className="h-4 w-4 text-primary" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-[11px] leading-tight">{format(new Date(date), "eeee, dd MMMM yyyy", { locale })}</h4>
-                    <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-tight leading-none">{data.expenses.length} Transaksi</p>
+                    <h4 className="font-bold text-sm leading-tight">{format(new Date(date), "eeee, dd MMMM yyyy", { locale })}</h4>
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-tight">{data.expenses.length} Transaksi</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="font-mono font-bold text-xs text-primary">
+                <div className="flex items-center gap-4">
+                  <div className="font-mono font-bold text-base text-primary">
                     {new Intl.NumberFormat('id-ID').format(data.total)}
                   </div>
-                  {isExpanded ? <ChevronUp className="h-3 w-3 text-muted-foreground" /> : <ChevronDown className="h-3 w-3 text-muted-foreground" />}
+                  {isExpanded ? <ChevronUp className="h-5 w-5 text-muted-foreground" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
                 </div>
               </div>
 
@@ -628,24 +628,23 @@ export default function Expenses() {
                       const isSystem = cat?.isSystem || false;
                       
                       return (
-                        <div key={expense.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 border border-transparent hover:border-border/50 transition-all">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="flex flex-col min-w-[100px]">
-                              <span className="text-xs font-bold leading-none truncate">{cat?.name}</span>
-                              <span className="text-[10px] text-muted-foreground mt-1.5 leading-none font-medium uppercase tracking-wider">{cat?.type}</span>
+                        <div key={expense.id} className="flex items-start justify-between p-3 rounded-lg hover:bg-muted/50 transition-all border-b last:border-0 border-border/40">
+                          <div className="grid grid-cols-[160px_1fr] gap-6 items-start min-w-0 flex-1">
+                            <div className="flex flex-col shrink-0">
+                              <span className="text-[13px] font-bold text-foreground leading-tight break-words">{cat?.name}</span>
+                              <span className="text-[11px] text-muted-foreground mt-1 leading-none font-medium uppercase tracking-wider">{cat?.type}</span>
                             </div>
-                            <div className="w-px h-6 bg-border/50 mx-1 shrink-0" />
-                            <div className="flex flex-col min-w-0">
-                              <span className="text-xs text-foreground/80 leading-normal truncate">{expense.note || "-"}</span>
+                            <div className="flex flex-col min-w-0 border-l border-border/60 pl-6">
+                              <span className="text-[13px] text-foreground leading-relaxed break-words whitespace-pre-wrap">{expense.note || "-"}</span>
                               {expense.relatedPlateNumber && (
-                                <span className="text-[10px] font-mono font-bold text-primary/80 mt-1.5 leading-none uppercase truncate tracking-tight">
+                                <span className="text-[11px] font-mono font-bold text-primary mt-2 leading-none uppercase tracking-tight">
                                   {expense.relatedPlateNumber}
                                 </span>
                               )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-4 shrink-0">
-                            <span className="font-mono font-bold text-xs">
+                          <div className="flex items-center gap-4 shrink-0 ml-6">
+                            <span className="font-mono font-bold text-sm text-foreground">
                               {new Intl.NumberFormat('id-ID').format(expense.amount)}
                             </span>
                             {!isSystem && (
