@@ -597,25 +597,25 @@ export default function Expenses() {
           const isExpanded = expandedDates[date] || false;
           
           return (
-            <div key={date} className="border rounded-xl overflow-hidden bg-card shadow-sm border-border/50">
+            <div key={date} className="border rounded-lg overflow-hidden bg-card shadow-sm border-border/50">
               <div 
-                className="flex items-center justify-between p-3 cursor-pointer hover:bg-accent/30 transition-colors"
+                className="flex items-center justify-between p-2.5 cursor-pointer hover:bg-accent/30 transition-colors"
                 onClick={() => toggleDate(date)}
               >
-                <div className="flex items-center gap-3">
-                  <div className="bg-primary/10 p-1.5 rounded-lg">
-                    <Calendar className="h-3.5 w-3.5 text-primary" />
+                <div className="flex items-center gap-2">
+                  <div className="bg-primary/10 p-1 rounded-md">
+                    <Calendar className="h-3 w-3 text-primary" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-xs">{format(new Date(date), "eeee, dd MMMM yyyy", { locale })}</h4>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">{data.expenses.length} Transaksi</p>
+                    <h4 className="font-bold text-[11px] leading-tight">{format(new Date(date), "eeee, dd MMMM yyyy", { locale })}</h4>
+                    <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-tight leading-none">{data.expenses.length} Transaksi</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="font-mono font-bold text-sm text-primary">
+                <div className="flex items-center gap-3">
+                  <div className="font-mono font-bold text-xs text-primary">
                     {new Intl.NumberFormat('id-ID').format(data.total)}
                   </div>
-                  {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                  {isExpanded ? <ChevronUp className="h-3 w-3 text-muted-foreground" /> : <ChevronDown className="h-3 w-3 text-muted-foreground" />}
                 </div>
               </div>
 
@@ -628,31 +628,31 @@ export default function Expenses() {
                       const isSystem = cat?.isSystem || false;
                       
                       return (
-                        <div key={expense.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 border border-transparent hover:border-border/50 transition-all">
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <div className="flex flex-col min-w-[80px]">
+                        <div key={expense.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 border border-transparent hover:border-border/50 transition-all">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="flex flex-col min-w-[100px]">
                               <span className="text-[11px] font-bold leading-none truncate">{cat?.name}</span>
-                              <span className="text-[9px] text-muted-foreground mt-0.5 leading-none font-medium uppercase">{cat?.type}</span>
+                              <span className="text-[9px] text-muted-foreground mt-1 leading-none font-medium uppercase tracking-wider">{cat?.type}</span>
                             </div>
-                            <div className="w-px h-4 bg-border/50 mx-1 shrink-0" />
-                            <div className="flex flex-col min-w-0 flex-1">
+                            <div className="w-px h-5 bg-border/50 mx-1 shrink-0" />
+                            <div className="flex flex-col min-w-0">
                               <span className="text-[11px] text-foreground/80 leading-tight truncate">{expense.note || "-"}</span>
                               {expense.relatedPlateNumber && (
-                                <span className="text-[9px] font-mono font-bold text-primary/80 mt-0.5 leading-none uppercase truncate">
+                                <span className="text-[9px] font-mono font-bold text-primary/80 mt-1 leading-none uppercase truncate tracking-tight">
                                   {expense.relatedPlateNumber}
                                 </span>
                               )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-3 shrink-0 ml-2">
+                          <div className="flex items-center gap-3 shrink-0">
                             <span className="font-mono font-bold text-[11px]">
                               {new Intl.NumberFormat('id-ID').format(expense.amount)}
                             </span>
                             {!isSystem && (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-6 w-6 p-0 hover:bg-accent">
-                                    <MoreVertical className="h-3 w-3 text-muted-foreground" />
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 p-0 hover:bg-accent">
+                                    <MoreVertical className="h-4 w-4 text-muted-foreground" />
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-32">
