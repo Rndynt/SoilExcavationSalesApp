@@ -607,8 +607,8 @@ export default function Expenses() {
                     <Calendar className="h-4 w-4 text-primary" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-sm leading-tight">{format(new Date(date), "eeee, dd MMMM yyyy", { locale })}</h4>
-                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-tight">{data.expenses.length} Transaksi</p>
+                    <h4 className="font-semibold text-sm leading-tight">{format(new Date(date), "eeee, dd MMMM yyyy", { locale })}</h4>
+                    <p className="text-xs font-bold text-muted-foreground leading-none">{data.expenses.length} Transaksi</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
@@ -629,12 +629,12 @@ export default function Expenses() {
                       
                       return (
                         <div key={expense.id} className="flex items-start justify-between p-3 rounded-lg hover:bg-muted/50 transition-all border-b last:border-0 border-border/40">
-                          <div className="grid grid-cols-[160px_1fr] gap-6 items-start min-w-0 flex-1">
+                          <div className="grid grid-cols-[100px_1fr] gap-6 items-start min-w-0 flex-1">
                             <div className="flex flex-col shrink-0">
-                              <span className="text-[13px] font-bold text-foreground leading-tight break-words">{cat?.name}</span>
+                              <span className="text-[13px] font-semibold text-foreground leading-tight break-words">{cat?.name}</span>
                               <span className="text-[11px] text-muted-foreground mt-1 leading-none font-medium uppercase tracking-wider">{cat?.type}</span>
                             </div>
-                            <div className="flex flex-col min-w-0 border-l border-border/60 pl-6">
+                            <div className="flex flex-col min-w-0 border-l border-border/60 pl-3 break-words whitespace-pre-wrap">
                               <span className="text-[13px] text-foreground leading-relaxed break-words whitespace-pre-wrap">{expense.note || "-"}</span>
                               {expense.relatedPlateNumber && (
                                 <span className="text-[11px] font-mono font-bold text-primary mt-2 leading-none uppercase tracking-tight">
