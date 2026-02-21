@@ -647,39 +647,41 @@ export default function Expenses() {
                             <span className="font-mono font-bold text-sm text-foreground">
                               {new Intl.NumberFormat('id-ID').format(expense.amount)}
                             </span>
-                            {!isSystem && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8 p-0 hover:bg-accent">
-                                    <MoreVertical className="h-4 w-4 text-muted-foreground" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-32">
-                                  <DropdownMenuItem className="text-xs" onClick={(e) => { e.stopPropagation(); openEditDialog(expense); }}>
-                                    <Edit2 className="h-3.5 w-3.5 mr-2" /> Edit
-                                  </DropdownMenuItem>
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <DropdownMenuItem className="text-xs text-destructive" onSelect={(e) => e.preventDefault()}>
-                                        <Trash2 className="h-3.5 w-3.5 mr-2" /> Hapus
-                                      </DropdownMenuItem>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle>Hapus Pengeluaran?</AlertDialogTitle>
-                                        <AlertDialogDescription>Tindakan ini permanen dan tidak dapat dibatalkan.</AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel className="text-xs">Batal</AlertDialogCancel>
-                                        <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-xs" onClick={() => handleDelete(expense.id)}>
-                                          Hapus
-                                        </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
+                            <div className="w-8 flex justify-center">
+                              {!isSystem && (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 p-0 hover:bg-accent">
+                                      <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-32">
+                                    <DropdownMenuItem className="text-xs" onClick={(e) => { e.stopPropagation(); openEditDialog(expense); }}>
+                                      <Edit2 className="h-3.5 w-3.5 mr-2" /> Edit
+                                    </DropdownMenuItem>
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <DropdownMenuItem className="text-xs text-destructive" onSelect={(e) => e.preventDefault()}>
+                                          <Trash2 className="h-3.5 w-3.5 mr-2" /> Hapus
+                                        </DropdownMenuItem>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Hapus Pengeluaran?</AlertDialogTitle>
+                                          <AlertDialogDescription>Tindakan ini permanen dan tidak dapat dibatalkan.</AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel className="text-xs">Batal</AlertDialogCancel>
+                                          <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-xs" onClick={() => handleDelete(expense.id)}>
+                                            Hapus
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );
